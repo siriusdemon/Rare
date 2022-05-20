@@ -1,0 +1,428 @@
+<!DOCTYPE HTML>
+<html lang="zh" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Rare: Rust A Riscv Emulator</title>
+        <meta name="robots" content="noindex" />
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Rare: Rust A Riscv Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="riscv-模拟器系列教程"><a class="header" href="#riscv-模拟器系列教程">Riscv 模拟器系列教程</a></h1>
+<p>本教程基于<a href="https://github.com/d0iasm">Asami</a> 所写的模拟器<a href="https://book.rvemu.app/">教程</a>。虽然作者只写到第三章，但她已经事先将所有的代码划分成了十个章节。所以看着代码也能够一步一步地构建出这个模拟器。</p>
+<p>最终的模拟器可以运行 <a href="https://pdos.csail.mit.edu/6.828/2012/xv6.html">xv6</a> 操作系统。</p>
+<p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。</p>
+<h3 id="前置"><a class="header" href="#前置">前置</a></h3>
+<p>本教程假设读者已经对 Riscv 有一定的了解，因此教程中不会对 Riscv 作过多的解释。推荐通过阅读以下资料来了解 Riscv。</p>
+<ul>
+<li><a href="https://riscv.org/technical/specifications/">Riscv 标准</a></li>
+<li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">Riscv Reader</a></li>
+</ul>
+<p>教程中使用的很多插图来自 Riscv Reader.</p>
+<h3 id="环境"><a class="header" href="#环境">环境</a></h3>
+<ul>
+<li>Linux / WSL</li>
+</ul>
+<p>我们需要用到 gcc 的工具来生成测试的二进制文件。<code>ubuntu</code> 下安装</p>
+<pre><code class="language-sh">sudo apt install binutils-riscv64-unknown-elf gcc-riscv64-unknown-elf
+</code></pre>
+<h3 id="目录"><a class="header" href="#目录">目录</a></h3>
+<ol>
+<li><a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
+<li><a href="./v2-Memory-and-Bus.html">内存和总线</a></li>
+<li><a href="./v3-csrs.html">csrs寄存器</a></li>
+<li><a href="./v4-privileged-mode.html">特权模式</a></li>
+<li><a href="./v5-exceptions.html">异常</a></li>
+<li><a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
+<li><a href="./v7-uart.html">UART</a></li>
+<li><a href="./v8-interrupts.html">中断</a></li>
+<li><a href="./v9-virtio.html">Virtio</a></li>
+<li><a href="./v10-virtual-memory-system.html">虚拟内存系统</a></li>
+</ol>
+<p>说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="加法器-cpu"><a class="header" href="#加法器-cpu">加法器 CPU</a></h1>
+<p>CPU 指中心处理单元（Center Process Unit），是一块小小的芯片。它是计算机（computer）最核心的部分。</p>
+<p>不过，为了简单起见，第一节的 CPU 代指的是整个计算机，它包含了 32 个通用寄存器、一个 PC 寄存器和一块内存。在下一节，我们会将内存移出 CPU。</p>
+<p>本节对应原作者的第一节，CPU with Two instructions。这一节的 CPU 只能执行 <code>add</code> 和 <code>addi</code> 两个指令。</p>
+<h3 id="编码实现"><a class="header" href="#编码实现">编码实现</a></h3>
+<pre><code class="language-bash"># 代码总数
+main.rs             : 90
+----------------------------
+total               : 90
+</code></pre>
+<p>首先定义 CPU 的结构</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">struct Cpu {
+    // Riscv has 32 registers
+    regs: [u64; 32],
+    // pc register contains the memory address of next instruction
+    pc: u64,
+    // memory, a byte-array. There is no memory in real CPU.
+    dram: Vec&lt;u8&gt;,
+}
+</code></pre>
+<p>我们需要定义内存的大小，来初始化 CPU。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">// init memory as 128MB
+pub const DRAM_SIZE: u64 = 1024 * 1024 * 128;
+
+struct Cpu { ... }
+
+impl Cpu {
+    fn new(code: Vec&lt;u8&gt;) -&gt; Self {
+        let mut regs = [0; 32];
+        regs[2] = DRAM_SIZE;
+        Self {regs, pc: 0, dram: code}
+    }
+}
+</code></pre>
+<p>CPU 的工作流程通常包含以下阶段：</p>
+<ol>
+<li>根据<code>pc</code>值读取内存中的指令 (fetch)</li>
+<li>解码指令 (decode)</li>
+<li>执行指令 (execute)</li>
+<li>更新<code>pc</code></li>
+</ol>
+<p>周而复始。</p>
+<p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
+<p>小端字节序指的是，一个 32 位的数（由四个字节构成），它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
+<p><img src="./images/endianness.jpg" alt="endianness" /></p>
+<p class="comment">图片来自原作者教程</p>
+<p>在本实现中，我们采用小端字节序。小端字节序是目前商业芯片的主流。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    // ...
+    fn fetch(&amp;self) -&gt; u32 {
+        let index = self.pc as usize;
+        let inst = self.dram[index] as u32 
+                | ((self.dram[index + 1] as u32) &lt;&lt; 8)
+                | ((self.dram[index + 2] as u32) &lt;&lt; 16)
+                | ((self.dram[index + 3] as u32) &lt;&lt; 24);
+        return inst;
+    }
+}
+</code></pre>
+<p>读取指令后就要进行解码。在实际的硬件中，解码是一个独立的步骤，芯片会同时读取和解码多个指令 (pipeline parallel) 以提高运行速度。但在我们的模拟器中，一次只读一个指令，可以将这两部分合并在一起。</p>
+<p>我们先看解码过程。Riscv 目前有四种基本的指令编码格式（包含变体共有6种），</p>
+<p><img src="./images/inst-type.png" alt="inst-type" /></p>
+<p class="comment">图片来自原作者</p>
+<p>现在我们的 CPU 只执行<code>add</code>、<code>addi</code>，它们的功能说明和指令格式如下：</p>
+<p><img src="./images/add-addi.png" alt="add-addi" /></p>
+<p class="comment">图片来自 Riscv Reader</p>
+<p>因为各个指令格式都有相同的部分，我们不妨先按 R-type 进行解码。对于其他的类型，则在其具体的分支中进一步解码。比如说，<code>addi</code>的<code>imm</code>将会在它的处理分支中进行解码。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    // ...
+    fn execute(&amp;mut self, inst: u32) {
+        // decode as R-type
+        let opcode = inst &amp; 0x7f;
+        let rd = ((inst &gt;&gt; 7) &amp; 0x1f) as usize;
+        let rs1 = ((inst &gt;&gt; 15) &amp; 0x1f) as usize;
+        let rs2 = ((inst &gt;&gt; 20) &amp; 0x1f) as usize;
+        let funct3 = (inst &gt;&gt; 12) &amp; 0x7;
+        let funct7 = (inst &gt;&gt; 25) &amp; 0x7f;
+
+        // x0 is hardwired zero
+        self.regs[0] = 0;
+
+        // execute stage
+        match opcode {
+            0x13 =&gt; {
+                // addi
+                let imm = ((inst &amp; 0xfff0_0000) as i64 &gt;&gt; 20) as u64;
+                self.regs[rd] = self.regs[rs1].wrapping_add(imm);
+            }
+            0x33 =&gt; {
+                // add
+                self.regs[rd] = self.regs[rs1].wrapping_add(self.regs[rs2]);
+            }
+
+            _ =&gt; {
+                dbg!(format!(&quot;Invalid opcode: {:#x}&quot;, opcode)); 
+            }
+        }
+    }
+}
+</code></pre>
+<p>这里，我们使用 <code>wrapping_add</code> 的原因在于，这两个指令忽略算术溢出错误(arithmetic overflow)，溢出的位(bit)会被直接丢弃（见上面关于这两个指令的说明）。</p>
+<p>CPU 的功能基本上完成了。但我们需要能够方便地查看寄存器的状态，以便验证 CPU 是否正确执行了指令。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    // ...
+    pub fn dump_registers(&amp;self) {
+        let mut output = String::new();
+        let abi = [
+            &quot;zero&quot;, &quot; ra &quot;, &quot; sp &quot;, &quot; gp &quot;, &quot; tp &quot;, &quot; t0 &quot;, &quot; t1 &quot;, &quot; t2 &quot;, 
+            &quot; s0 &quot;, &quot; s1 &quot;, &quot; a0 &quot;, &quot; a1 &quot;, &quot; a2 &quot;, &quot; a3 &quot;, &quot; a4 &quot;, &quot; a5 &quot;, 
+            &quot; a6 &quot;, &quot; a7 &quot;, &quot; s2 &quot;, &quot; s3 &quot;, &quot; s4 &quot;, &quot; s5 &quot;, &quot; s6 &quot;, &quot; s7 &quot;, 
+            &quot; s8 &quot;, &quot; s9 &quot;, &quot; s10&quot;, &quot; s11&quot;, &quot; t3 &quot;, &quot; t4 &quot;, &quot; t5 &quot;, &quot; t6 &quot;,
+        ];
+        
+        for i in (0..32).step_by(4) {
+            let i0 = format!(&quot;x{}&quot;, i);
+            let i1 = format!(&quot;x{}&quot;, i + 1); 
+            let i2 = format!(&quot;x{}&quot;, i + 2);
+            let i3 = format!(&quot;x{}&quot;, i + 3); 
+            let line = format!(
+                &quot;{:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x}\n&quot;,
+                i0, abi[i], self.regs[i], 
+                i1, abi[i + 1], self.regs[i + 1], 
+                i2, abi[i + 2], self.regs[i + 2], 
+                i3, abi[i + 3], self.regs[i + 3],
+            );
+            output = output + &amp;line;
+        }
+
+        println!(&quot;{}&quot;, output);
+    }
+}
+</code></pre>
+<h3 id="测试"><a class="header" href="#测试">测试</a></h3>
+<p>我们通过执行一个 Riscv 二进制文件来验证我们的实现。</p>
+<p>创建<code>add-addi.s</code>，写入以下内容</p>
+<pre><code class="language-s">addi x29, x0, 5
+addi x30, x0, 37
+add x31, x30, x29
+</code></pre>
+<p>生成 Riscv 二进制文件</p>
+<pre><code class="language-bash">riscv64-unknown-elf-gcc -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
+riscv64-unknown-elf-objcopy -O binary add add-addi.bin
+</code></pre>
+<p>同时，模拟器需要读取<code>add-addi.bin</code>的内容。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">use std::env;
+use std::fs::File;
+use std::io;
+use std::io::prelude::*;
+
+// ...
+
+fn main() -&gt; io::Result&lt;()&gt; {
+    let args: Vec&lt;String&gt; = env::args().collect();
+
+    if args.len() != 2 {
+        println!(
+            &quot;Usage:\n\
+            - cargo run &lt;filename&gt;&quot;
+        );
+        return Ok(());
+    }
+
+    let mut file = File::open(&amp;args[1])?;
+    let mut code = Vec::new();
+    file.read_to_end(&amp;mut code)?;
+
+    let mut cpu = Cpu::new(code);
+
+
+    while cpu.pc &lt; cpu.dram.len() as u64 {
+        let inst = cpu.fetch();
+        cpu.execute(inst);
+        cpu.pc += 4;
+    }
+    cpu.dump_registers();
+
+    Ok(())
+}
+</code></pre>
+<p>执行</p>
+<pre><code class="language-bash">cargo run add-addi.bin
+</code></pre>
+<p>应该能够从控制台的输出中看到<code>x31</code>的值为<code>0x2a</code>。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="内存和总线"><a class="header" href="#内存和总线">内存和总线</a></h1>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+        <script type="text/javascript">
+        window.addEventListener('load', function() {
+            window.setTimeout(window.print, 100);
+        });
+        </script>
+
+    </body>
+</html>
