@@ -1,0 +1,10 @@
+[book]
+authors = ["siriusdemon"]
+language = "zh"
+multilingual = true
+src = "src"
+title = "Rare: Rust A Riscv Emulator"
+
+[output.html]
+default-theme = "Rust"
+additional-css = ["theme/custom.css"]
