@@ -60,6 +60,12 @@ impl Cpu {
         self.bus.load(self.pc, 32)
     }
 
+    #[inline]
+    pub fn update_pc(&mut self) -> Result<(), RvException> {
+        self.pc += 4;
+        return Ok(());
+    }
+
     pub fn execute(&mut self, inst: u64) -> Result<(), RvException> {
         let opcode = inst & 0x7f;
         let rd = ((inst >> 7) & 0x1f) as usize;
@@ -79,37 +85,37 @@ impl Cpu {
                     0x0 => {
                         let val = self.load(addr, 8)?;
                         self.regs[rd] = val as i8 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x1 => {
                         let val = self.load(addr, 16)?;
                         self.regs[rd] = val as i16 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x2 => {
                         let val = self.load(addr, 32)?;
                         self.regs[rd] = val as i32 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x3 => {
                         let val = self.load(addr, 64)?;
                         self.regs[rd] = val;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x4 => {
                         let val = self.load(addr, 8)?;
                         self.regs[rd] = val;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x5 => {
                         let val = self.load(addr, 16)?;
                         self.regs[rd] = val;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x6 => {
                         let val = self.load(addr, 32)?;
                         self.regs[rd] = val;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     _ => Err(InvalidInstruction(inst)),
                     
@@ -125,48 +131,48 @@ impl Cpu {
                     0x0 => {
                         // addi
                         self.regs[rd] = self.regs[rs1].wrapping_add(imm);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x1 => {
                         // slli
                         self.regs[rd] = self.regs[rs1] << shamt;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x2 => {
                         // slti
                         self.regs[rd] = if (self.regs[rs1] as i64) < (imm as i64) { 1 } else { 0 };
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x3 => {
                         // sltiu
                         self.regs[rd] = if self.regs[rs1] < imm { 1 } else { 0 };
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x4 => {
                         // xori
                         self.regs[rd] = self.regs[rs1] ^ imm;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x5 => match funct7 >> 1 {
                         // srli
                         0x00 => {
                             self.regs[rd] = self.regs[rs1].wrapping_shr(shamt);
-                            return Ok(());
+                            return self.update_pc();
                         }
                         // srai
                         0x10 => {
                             self.regs[rd] = (self.regs[rs1] as i64).wrapping_shr(shamt) as u64;
-                            return Ok(());
+                            return self.update_pc();
                         }
                         _ => Err(InvalidInstruction(inst)),
                     }
                     0x6 => {
                         self.regs[rd] = self.regs[rs1] | imm; // ori
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x7 => {
                         self.regs[rd] = self.regs[rs1] & imm; // andi
-                        return Ok(());
+                        return self.update_pc();
                     }
                     _ => Err(InvalidInstruction(inst)),
                 }
@@ -175,7 +181,7 @@ impl Cpu {
                 // auipc
                 let imm = (inst & 0xfffff000) as i32 as i64 as u64;
                 self.regs[rd] = self.pc.wrapping_add(imm).wrapping_sub(4);
-                return Ok(());
+                return self.update_pc();
             }
             0x1b => {
                 let imm = ((inst as i32 as i64) >> 20) as u64;
@@ -185,24 +191,24 @@ impl Cpu {
                     0x0 => {
                         // addiw
                         self.regs[rd] = self.regs[rs1].wrapping_add(imm) as i32 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x1 => {
                         // slliw
                         self.regs[rd] = self.regs[rs1].wrapping_shl(shamt) as i32 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x5 => {
                         match funct7 {
                             0x00 => {
                                 // srliw
                                 self.regs[rd] = (self.regs[rs1] as u32).wrapping_shr(shamt) as i32 as i64 as u64;
-                                return Ok(());
+                                return self.update_pc();
                             }
                             0x20 => {
                                 // sraiw
                                 self.regs[rd] = (self.regs[rs1] as i32).wrapping_shr(shamt) as i64 as u64;
-                                return Ok(());
+                                return self.update_pc();
                             }
                             _ => Err(InvalidInstruction(inst)),
                         }
@@ -214,10 +220,10 @@ impl Cpu {
                 let imm = ((inst & 0xfe00_0000) as i32 as i64 >> 20) as u64 | ((inst >> 7) & 0x1f) as u64;
                 let addr = self.regs[rs1].wrapping_add(imm);
                 match funct3 {
-                    0x0 => self.store(addr, 8, self.regs[rs2]),
-                    0x1 => self.store(addr, 16, self.regs[rs2]),
-                    0x2 => self.store(addr, 32, self.regs[rs2]),
-                    0x3 => self.store(addr, 64, self.regs[rs2]),
+                    0x0 => { self.store(addr, 8, self.regs[rs2]); self.update_pc() }
+                    0x1 => { self.store(addr, 16, self.regs[rs2]); self.update_pc() }
+                    0x2 => { self.store(addr, 32, self.regs[rs2]); self.update_pc() }
+                    0x3 => { self.store(addr, 64, self.regs[rs2]); self.update_pc() }
                     _ => Err(InvalidInstruction(inst)),
                 }
             }
@@ -230,57 +236,57 @@ impl Cpu {
                     (0x0, 0x00) => {
                         // add
                         self.regs[rd] = self.regs[rs1].wrapping_add(self.regs[rs2]);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x0, 0x01) => {
                         // mul
                         self.regs[rd] = self.regs[rs1].wrapping_mul(self.regs[rs2]);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x0, 0x20) => {
                         // sub
                         self.regs[rd] = self.regs[rs1].wrapping_sub(self.regs[rs2]);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x1, 0x00) => {
                         // sll
                         self.regs[rd] = self.regs[rs1].wrapping_shl(shamt);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x2, 0x00) => {
                         // slt
                         self.regs[rd] = if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) { 1 } else { 0 };
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x3, 0x00) => {
                         // sltu
                         self.regs[rd] = if self.regs[rs1] < self.regs[rs2] { 1 } else { 0 };
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x4, 0x00) => {
                         // xor
                         self.regs[rd] = self.regs[rs1] ^ self.regs[rs2];
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x5, 0x00) => {
                         // srl
                         self.regs[rd] = self.regs[rs1].wrapping_shr(shamt);
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x5, 0x20) => {
                         // sra
                         self.regs[rd] = (self.regs[rs1] as i64).wrapping_shr(shamt) as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x6, 0x00) => {
                         // or
                         self.regs[rd] = self.regs[rs1] | self.regs[rs2];
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x7, 0x00) => {
                         // and
                         self.regs[rd] = self.regs[rs1] & self.regs[rs2];
-                        return Ok(());
+                        return self.update_pc();
                     }
                     _ => Err(InvalidInstruction(inst)),
                 }
@@ -288,7 +294,7 @@ impl Cpu {
             0x37 => {
                 // lui
                 self.regs[rd] = (inst & 0xfffff000) as i32 as i64 as u64;
-                return Ok(());
+                return self.update_pc();
             }
             0x3b => {
                 // "The shift amount is given by rs2[4:0]."
@@ -297,27 +303,27 @@ impl Cpu {
                     (0x0, 0x00) => {
                         // addw
                         self.regs[rd] = self.regs[rs1].wrapping_add(self.regs[rs2]) as i32 as i64 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x0, 0x20) => {
                         // subw
                         self.regs[rd] = ((self.regs[rs1].wrapping_sub(self.regs[rs2])) as i32) as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x1, 0x00) => {
                         // sllw
                         self.regs[rd] = (self.regs[rs1] as u32).wrapping_shl(shamt) as i32 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x5, 0x00) => {
                         // srlw
                         self.regs[rd] = (self.regs[rs1] as u32).wrapping_shr(shamt) as i32 as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     (0x5, 0x20) => {
                         // sraw
                         self.regs[rd] = ((self.regs[rs1] as i32) >> (shamt as i32)) as u64;
-                        return Ok(());
+                        return self.update_pc();
                     }
                     _ => Err(InvalidInstruction(inst)), 
                 }
@@ -333,42 +339,42 @@ impl Cpu {
                     0x0 => {
                         // beq
                         if self.regs[rs1] == self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
                     0x1 => {
                         // bne
                         if self.regs[rs1] != self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
                     0x4 => {
                         // blt
                         if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
                     0x5 => {
                         // bge
                         if (self.regs[rs1] as i64) >= (self.regs[rs2] as i64) {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
                     0x6 => {
                         // bltu
                         if self.regs[rs1] < self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
                     0x7 => {
                         // bgeu
                         if self.regs[rs1] >= self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                            self.pc = self.pc.wrapping_add(imm);
                         }
                         return Ok(());
                     }
@@ -377,8 +383,7 @@ impl Cpu {
             }
             0x67 => {
                 // jalr
-                // Note: Don't add 4 because the pc already moved on.
-                let t = self.pc;
+                let t = self.pc + 4;
                 let imm = ((((inst & 0xfff00000) as i32) as i64) >> 20) as u64;
                 self.pc = (self.regs[rs1].wrapping_add(imm)) & !1;
                 self.regs[rd] = t;
@@ -392,7 +397,7 @@ impl Cpu {
                     | (inst & 0xff000)  as u64// imm[19:12]
                     | ((inst >> 9) & 0x800) as u64// imm[11]
                     | ((inst >> 20) & 0x7fe) as u64; // imm[10:1]
-                self.pc = self.pc.wrapping_add(imm).wrapping_sub(4);
+                self.pc = self.pc.wrapping_add(imm);
                 return Ok(());
             }
             _ => Err(InvalidInstruction(inst)),
@@ -454,7 +459,6 @@ mod test {
                 Ok(inst) => inst,
                 Err(err) => break,
             };
-            cpu.pc += 4;
             match cpu.execute(inst) {
                 Ok(_) => (),
                 Err(err) => println!("{}", err),

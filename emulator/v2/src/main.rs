@@ -43,7 +43,6 @@ fn main() -> io::Result<()> {
                 break;
             }
         };
-        cpu.pc += 4;
         match cpu.execute(inst) {
             Ok(_) => (),
             Err(e) => {
