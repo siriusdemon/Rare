@@ -17,7 +17,7 @@ impl Dram {
     pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
         let nbytes = size / 8;
         if (nbytes + addr - 1) > DRAM_END {
-            return Err(RvException::AddressOutofBounds(addr));
+            return Err(RvException::InvalidAddress(addr));
         }
 
         let index = (addr - DRAM_BASE) as usize;
@@ -33,7 +33,7 @@ impl Dram {
     pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
         let nbytes = size / 8;
         if (nbytes + addr - 1) > DRAM_END {
-            return Err(RvException::AddressOutofBounds(addr));
+            return Err(RvException::InvalidAddress(addr));
         }
 
         let index = (addr - DRAM_BASE) as usize;
