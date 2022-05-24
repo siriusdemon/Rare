@@ -194,7 +194,7 @@ add x31, x30, x29
 
 ```bash
 riscv64-unknown-elf-gcc -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
-riscv64-unknown-elf-objcopy -O binary add add-addi.bin
+riscv64-unknown-elf-objcopy -O binary add-addi add-addi.bin
 ```
 
 同时，模拟器需要读取`add-addi.bin`的内容。
