@@ -335,9 +335,13 @@ impl Cpu {
                     | ((inst >> 20) & 0x7e0) as u64// imm[10:5]
                     | ((inst >> 7) & 0x1e) as u64; // imm[4:1]
 
+                println!("Imm {} funct3 {}", imm, funct3);
+                println!("rs1 {} rs2 {}", rs1, rs2);
+
                 match funct3 {
                     0x0 => {
                         // beq
+                        println!("Go here");
                         if self.regs[rs1] == self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
                         }
@@ -556,4 +560,18 @@ mod test {
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
     }
+
+    // #[test]
+    // fn test_beq() {
+    //     let code = "
+    //         addi a1, zero, 16
+    //         beq a1, a1, 12
+    //     ";
+    //     match rv_helper(code, "test_beq", 4) {
+    //         Ok(cpu) => {
+    //             assert_eq!(cpu.pc, DRAM_BASE + 24 + 4);
+    //         }
+    //         Err(e) => { println!("error: {}", e); assert!(false); }
+    //     }
+    // }
 }
