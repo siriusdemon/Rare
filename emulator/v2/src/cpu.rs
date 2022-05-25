@@ -411,10 +411,10 @@ mod test {
     use std::fs::File;
     use std::io::{Write, Read};
     use std::process::Command;
-    use crate::param::{RV_GCC, RV_OBJCOPY};
     use super::*;
 
     fn generate_rv_assembly(c_src: &str) {
+        let RV_GCC = "riscv64-unknown-elf-gcc";
         Command::new(RV_GCC).arg("-S")
                             .arg(c_src)
                             .output()
@@ -422,6 +422,7 @@ mod test {
     }
 
     fn generate_rv_obj(assembly: &str) {
+        let RV_GCC = "riscv64-unknown-elf-gcc";
         let pieces: Vec<&str> = assembly.split(".").collect();
         Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
@@ -435,6 +436,7 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &str) {
+        let RV_OBJCOPY = "riscv64-unknown-elf-objcopy";
         Command::new(RV_OBJCOPY).arg("-O")
                                 .arg("binary")
                                 .arg(obj)

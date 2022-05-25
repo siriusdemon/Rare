@@ -174,6 +174,39 @@ impl Cpu {
     pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
         self.bus.store(addr, size, value)
     }
-
 }
 ```
+
+至此，我们已经完成将内存剥离 CPU 的重构工作。您现在可以对`main.rs`进一步修改，以便成功运行上一节的汇编程序。要改的地方包括：
+
+<p class="filename">main.rs</p>
+
+```rs
+mod param;
+mod dram;
+mod cpu;
+mod bus;
+mod exception;
+```
+以及`main`函数。这是一个小小的练习。
+
+
+### 支持新的指令
+
+这一节我们将支持以下指令
+
+![rv32](./images/rv32-inst.png)
+
+<p class="comment">图片来自原作者的教程</p>
+
+![rv64](./images/rv64-inst.png)
+
+<p class="comment">图片来自原作者的教程</p>
+
+在教程中逐个解释逐个实现是不切实际的。我的建议是参考 Riscv Reader 附录的指令说明来一个个实现。我在代码中提供了许多测试，可以帮助你验证自己的实现。
+
+当然，如果你已经很熟悉这些指令，完全可以先复制粘贴我的代码来跳过这一部分。
+
+### 指令测试
+
+我们需要对指令的解释做单元测试，以便我们排除 BUG。在上一节，我们通过`riscv64-unknown-elf-gcc`，`riscv64-unknown-elf-objcopy`来编译汇编程序。现在我们将这个过程自动化以便于我们在代码中添加测试。
