@@ -252,16 +252,17 @@ mod test {
 
     fn generate_rv_assembly(c_src: &str) {
         let RV_GCC = "riscv64-unknown-elf-gcc";
-        Command::new(RV_GCC).arg("-S")
+        let output = Command::new(RV_GCC).arg("-S")
                             .arg(c_src)
                             .output()
                             .expect("Failed to generate rv assembly");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn generate_rv_obj(assembly: &str) {
         let RV_GCC = "riscv64-unknown-elf-gcc";
         let pieces: Vec<&str> = assembly.split(".").collect();
-        Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
+        let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
                             .arg("-march=rv64i")
                             .arg("-mabi=lp64")
@@ -270,16 +271,18 @@ mod test {
                             .arg(assembly)
                             .output()
                             .expect("Failed to generate rv object");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn generate_rv_binary(obj: &str) {
         let RV_OBJCOPY = "riscv64-unknown-elf-objcopy";
-        Command::new(RV_OBJCOPY).arg("-O")
+        let output = Command::new(RV_OBJCOPY).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
                                 .arg(obj.to_owned() + ".bin")
                                 .output()
                                 .expect("Failed to generate rv binary");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 }
 ```

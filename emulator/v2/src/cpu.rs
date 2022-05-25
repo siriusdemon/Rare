@@ -180,7 +180,7 @@ impl Cpu {
             0x17 => {
                 // auipc
                 let imm = (inst & 0xfffff000) as i32 as i64 as u64;
-                self.regs[rd] = self.pc.wrapping_add(imm).wrapping_sub(4);
+                self.regs[rd] = self.pc.wrapping_add(imm);
                 return self.update_pc();
             }
             0x1b => {
@@ -391,7 +391,7 @@ impl Cpu {
             }
             0x6f => {
                 // jal
-                self.regs[rd] = self.pc;
+                self.regs[rd] = self.pc + 4;
                 // imm[20|10:1|11|19:12] = inst[31|30:21|20|19:12]
                 let imm = (((inst & 0x80000000) as i32 as i64 >> 11) as u64) // imm[20]
                     | (inst & 0xff000)  as u64// imm[19:12]
@@ -415,16 +415,17 @@ mod test {
 
     fn generate_rv_assembly(c_src: &str) {
         let RV_GCC = "riscv64-unknown-elf-gcc";
-        Command::new(RV_GCC).arg("-S")
+        let output = Command::new(RV_GCC).arg("-S")
                             .arg(c_src)
                             .output()
                             .expect("Failed to generate rv assembly");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn generate_rv_obj(assembly: &str) {
         let RV_GCC = "riscv64-unknown-elf-gcc";
         let pieces: Vec<&str> = assembly.split(".").collect();
-        Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
+        let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
                             .arg("-march=rv64i")
                             .arg("-mabi=lp64")
@@ -433,16 +434,18 @@ mod test {
                             .arg(assembly)
                             .output()
                             .expect("Failed to generate rv object");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn generate_rv_binary(obj: &str) {
         let RV_OBJCOPY = "riscv64-unknown-elf-objcopy";
-        Command::new(RV_OBJCOPY).arg("-O")
+        let output = Command::new(RV_OBJCOPY).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
                                 .arg(obj.to_owned() + ".bin")
                                 .output()
                                 .expect("Failed to generate rv binary");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn rv_helper(code: &str, testname: &str, n_clock: usize) -> Result<Cpu, std::io::Error> {
@@ -505,6 +508,51 @@ mod test {
         ";
         match rv_helper(code, "test_simple", 20) {
             Ok(cpu) => assert_eq!(cpu.regs[10], 42),
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_lui() {
+        let code = "lui a0, 42";
+        match rv_helper(code, "test_lui", 1) {
+            Ok(cpu) => assert_eq!(cpu.regs[10], 42 << 12),
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_auipc() {
+        let code = "auipc a0, 42";
+        match rv_helper(code, "test_auipc", 1) {
+            Ok(cpu) => assert_eq!(cpu.regs[10], cpu.pc + (42 << 12) - 4),
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_jal() {
+        let code = "jal a0, 42";
+        match rv_helper(code, "test_jal", 1) {
+            Ok(cpu) => {
+                assert_eq!(cpu.regs[10], DRAM_BASE + 4);
+                assert_eq!(cpu.pc, DRAM_BASE + 42);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_jalr() {
+        let code = "
+            addi a1, 42
+            jalr a0, -8(a1)
+        ";
+        match rv_helper(code, "test_jalr", 2) {
+            Ok(cpu) => {
+                assert_eq!(cpu.regs[10], DRAM_BASE + 4);
+                assert_eq!(cpu.pc, 34);
+            }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
     }
