@@ -14,7 +14,6 @@
 + [Riscv 标准](https://riscv.org/technical/specifications/)
 + [Riscv Reader](https://zh.webbooksnow.art/dl/16429281/d4417e)
 
-教程中使用的很多插图来自 Riscv Reader.
 
 ### 环境
 
