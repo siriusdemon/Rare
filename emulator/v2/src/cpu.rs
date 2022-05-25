@@ -545,12 +545,12 @@ mod test {
     #[test]
     fn test_jalr() {
         let code = "
-            addi a1, 42
+            addi a1, zero, 42
             jalr a0, -8(a1)
         ";
         match rv_helper(code, "test_jalr", 2) {
             Ok(cpu) => {
-                assert_eq!(cpu.regs[10], DRAM_BASE + 4);
+                assert_eq!(cpu.regs[10], DRAM_BASE + 8);
                 assert_eq!(cpu.pc, 34);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
