@@ -10,4 +10,4 @@ simple.bin: simple.c
 
 clean:
 	rm -f fib simple *.s
-	rm -f fib.bin simple.bin
+	rm -f fib.bin simple.bin test_*
