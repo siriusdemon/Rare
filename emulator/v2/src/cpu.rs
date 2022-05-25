@@ -338,6 +338,7 @@ impl Cpu {
                 match funct3 {
                     0x0 => {
                         // beq
+                        println!("imm {}", imm);
                         if self.regs[rs1] == self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
                         }
@@ -592,6 +593,51 @@ mod test {
             blt  x1, x2, 42
         ";
         match rv_helper(code, "test_blt", 10) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_bge() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bge  x2, x1, 42
+        ";
+        match rv_helper(code, "test_bge", 10) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_bltu() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bltu x1, x2, 42
+        ";
+        match rv_helper(code, "test_bltu", 10) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_bgeu() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bgeu x2, x1, 42
+        ";
+        match rv_helper(code, "test_bgeu", 10) {
             Ok(cpu) => {
                 assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
             }

@@ -1,8 +1,8 @@
-GCC=riscv64-unknown-elf-gcc
+GCC=clang
 LFLASG=-Wl,-Ttext=0x0
-CFLAGS=-nostdlib 
+CFLAGS=-nostdlib --target=riscv64 -march=rv64g -mno-relax
 
-OBJCOPY=riscv64-unknown-elf-objcopy
+OBJCOPY=llvm-objcopy
 OBJFORMAT=-O binary
 
 
