@@ -44,7 +44,7 @@ struct Cpu { ... }
 impl Cpu {
     fn new(code: Vec<u8>) -> Self {
         let mut regs = [0; 32];
-        regs[2] = DRAM_SIZE;
+        regs[2] = DRAM_SIZE - 1;
         Self {regs, pc: 0, dram: code}
     }
 }

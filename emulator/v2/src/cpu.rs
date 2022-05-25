@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::{DRAM_SIZE, DRAM_BASE};
+use crate::{DRAM_SIZE, DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, InvalidInstruction};
 
 
@@ -13,7 +13,7 @@ pub struct Cpu {
 impl Cpu {
     pub fn new(code: Vec<u8>) -> Self {
         let mut regs = [0; 32];
-        regs[2] = DRAM_SIZE + DRAM_BASE;
+        regs[2] = DRAM_END;
 
         let bus = Bus::new(code);
 
@@ -475,7 +475,7 @@ mod test {
             sd ra, 8(sp)
         ";
         match rv_helper(code, "test_sp", 2) {
-            Ok(cpu) => assert_eq!(cpu.regs[2], DRAM_BASE + DRAM_SIZE - 16),
+            Ok(cpu) => assert_eq!(cpu.regs[2], DRAM_END - 16),
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
     }
