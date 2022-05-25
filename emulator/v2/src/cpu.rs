@@ -335,13 +335,9 @@ impl Cpu {
                     | ((inst >> 20) & 0x7e0) as u64// imm[10:5]
                     | ((inst >> 7) & 0x1e) as u64; // imm[4:1]
 
-                println!("Imm {} funct3 {}", imm, funct3);
-                println!("rs1 {} rs2 {}", rs1, rs2);
-
                 match funct3 {
                     0x0 => {
                         // beq
-                        println!("Go here");
                         if self.regs[rs1] == self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
                         }
@@ -561,17 +557,45 @@ mod test {
         }
     }
 
-    // #[test]
-    // fn test_beq() {
-    //     let code = "
-    //         addi a1, zero, 16
-    //         beq a1, a1, 12
-    //     ";
-    //     match rv_helper(code, "test_beq", 4) {
-    //         Ok(cpu) => {
-    //             assert_eq!(cpu.pc, DRAM_BASE + 24 + 4);
-    //         }
-    //         Err(e) => { println!("error: {}", e); assert!(false); }
-    //     }
-    // }
+    #[test]
+    fn test_beq() {
+        let code = "
+            beq  x0, x0, 42
+        ";
+        match rv_helper(code, "test_beq", 3) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_bne() {
+        let code = "
+            addi x1, x0, 10
+            bne  x0, x1, 42
+        ";
+        match rv_helper(code, "test_bne", 5) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84 + 4);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_blt() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            blt  x1, x2, 42
+        ";
+        match rv_helper(code, "test_blt", 10) {
+            Ok(cpu) => {
+                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
 }
