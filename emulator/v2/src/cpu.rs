@@ -338,7 +338,6 @@ impl Cpu {
                 match funct3 {
                     0x0 => {
                         // beq
-                        println!("imm {}", imm);
                         if self.regs[rs1] == self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
                         }
@@ -415,7 +414,7 @@ mod test {
     use super::*;
 
     fn generate_rv_assembly(c_src: &str) {
-        let RV_GCC = "riscv64-unknown-elf-gcc";
+        let RV_GCC = "clang";
         let output = Command::new(RV_GCC).arg("-S")
                             .arg(c_src)
                             .output()
@@ -424,12 +423,14 @@ mod test {
     }
 
     fn generate_rv_obj(assembly: &str) {
-        let RV_GCC = "riscv64-unknown-elf-gcc";
+        let RV_GCC = "clang";
         let pieces: Vec<&str> = assembly.split(".").collect();
         let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
-                            .arg("-march=rv64i")
+                            .arg("-march=rv64g")
                             .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
                             .arg("-o")
                             .arg(&pieces[0])
                             .arg(assembly)
@@ -439,7 +440,7 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &str) {
-        let RV_OBJCOPY = "riscv64-unknown-elf-objcopy";
+        let RV_OBJCOPY = "llvm-objcopy";
         let output = Command::new(RV_OBJCOPY).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
@@ -565,7 +566,7 @@ mod test {
         ";
         match rv_helper(code, "test_beq", 3) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84);
+                assert_eq!(cpu.pc, DRAM_BASE + 42);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
@@ -579,7 +580,7 @@ mod test {
         ";
         match rv_helper(code, "test_bne", 5) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84 + 4);
+                assert_eq!(cpu.pc, DRAM_BASE + 42 + 4);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
@@ -594,7 +595,7 @@ mod test {
         ";
         match rv_helper(code, "test_blt", 10) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
@@ -609,7 +610,7 @@ mod test {
         ";
         match rv_helper(code, "test_bge", 10) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
@@ -624,7 +625,7 @@ mod test {
         ";
         match rv_helper(code, "test_bltu", 10) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
@@ -639,7 +640,7 @@ mod test {
         ";
         match rv_helper(code, "test_bgeu", 10) {
             Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 84 + 8);
+                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }

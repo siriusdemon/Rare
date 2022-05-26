@@ -53,5 +53,6 @@ fn main() -> io::Result<()> {
         };
     }
     cpu.dump_registers();
+    println!("pc: {:#x}", cpu.pc);
     Ok(())
 }
