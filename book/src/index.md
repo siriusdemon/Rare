@@ -38,18 +38,18 @@
 
 1. [x] [加法器 CPU](./v1-CPU-Adder.md)
 2. [x] [内存和总线](./v2-Memory-and-Bus.md)
-3. [] [csrs寄存器](./v3-csrs.md)
-4. [] [特权模式](./v4-privileged-mode.md)
-5. [] [异常](./v5-exceptions.md)
-6. [] [PLIC & CLINT](./v6-plic-clint.md)
-7. [] [UART](./v7-uart.md)
-8. [] [中断](./v8-interrupts.md)
-9. [] [Virtio](./v9-virtio.md)
-10. [] [虚拟内存系统](./v10-virtual-memory-system.md)
+3. [ ] [csrs寄存器](./v3-csrs.md)
+4. [ ] [特权模式](./v4-privileged-mode.md)
+5. [ ] [异常](./v5-exceptions.md)
+6. [ ] [PLIC & CLINT](./v6-plic-clint.md)
+7. [ ] [UART](./v7-uart.md)
+8. [ ] [中断](./v8-interrupts.md)
+9. [ ] [Virtio](./v9-virtio.md)
+10. [ ] [虚拟内存系统](./v10-virtual-memory-system.md)
 
 说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。
 
 
 ### 特别说明
 
-实践的过程中。读者可能会发现教程上的代码与实际的代码有些不同。这是因为我在编写的过程中会适当地进行重构。如果教程本身写得早，重构之后，就需要对教程进行修改。有时候我会遗漏要修改的地方，有时候则是觉得不必提及，可以留给读者自己去琢磨。因而，如有任何疑惑，欢迎在项目上提 issue。
+实践的过程中，读者可能会发现教程上的代码与实际的代码有些不同。这是因为我在编写的过程中会适当地进行重构。如果教程本身写得早，重构之后，就需要对教程进行修改。有时候我会遗漏要修改的地方，有时候则是觉得不必提及，读者看源码即能理解。因而，如有任何疑惑，欢迎在项目上提 issue。
