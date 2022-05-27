@@ -2,7 +2,6 @@ use crate::bus::Bus;
 use crate::{DRAM_SIZE, DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, InvalidInstruction};
 
-
 pub struct Cpu {
     pub regs: [u64; 32],
     pub pc: u64,
@@ -35,7 +34,18 @@ impl Cpu {
     pub fn reg(&self, r: &str) -> u64 {
         match RVABI.iter().position(|&x| x == r) {
             Some(i) => self.regs[i],
-            None => panic!("Invalid register {}", r),
+            None => match r {
+                "pc" => self.pc,
+                "fp" => self.reg("s0"),
+                r if r.starts_with("x") => {
+                    if let Ok(i) = r[1..].parse::<usize>() {
+                        if 0 <= i && i <= 31 { return self.regs[i]; }
+                        panic!("Invalid register {}", r);
+                    }
+                    panic!("Invalid register {}", r);
+                }
+                _ => panic!("Invalid register {}", r),
+            }
         }
     }
 
@@ -483,16 +493,15 @@ mod test {
         return Ok(cpu);
     }
 
-    #[test]
-    fn test_sp()  {
-        let code = "
-            addi sp, sp, -16 
-            sd ra, 8(sp)
-        ";
-        match rv_helper(code, "test_sp", 2) {
-            Ok(cpu) => assert_eq!(cpu.regs[2], DRAM_END - 16),
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+    macro_rules! riscv_test {
+        ( $code:expr, $name:expr, $clock:expr, $($real:expr => $expect:expr),* ) => {
+            match rv_helper($code, $name, $clock) {
+                Ok(cpu) => { 
+                    $(assert_eq!(cpu.reg($real), $expect);)*
+                }
+                Err(e) => { println!("error: {}", e); assert!(false); }
+            } 
+        };
     }
 
     #[test]
@@ -506,6 +515,7 @@ mod test {
 
     #[test]
     fn test_simple() {
+        // this is the assembly code of simple.c
         let code = "
         	addi	sp,sp,-16
             sd	s0,8(sp)
@@ -516,40 +526,25 @@ mod test {
             addi	sp,sp,16
             jr	ra
         ";
-        match rv_helper(code, "test_simple", 20) {
-            Ok(cpu) => assert_eq!(cpu.regs[10], 42),
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_simple", 20, "a0" => 42);
     }
 
     #[test]
     fn test_lui() {
         let code = "lui a0, 42";
-        match rv_helper(code, "test_lui", 1) {
-            Ok(cpu) => assert_eq!(cpu.regs[10], 42 << 12),
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_lui", 1, "a0" => 42 << 12);
     }
 
     #[test]
     fn test_auipc() {
         let code = "auipc a0, 42";
-        match rv_helper(code, "test_auipc", 1) {
-            Ok(cpu) => assert_eq!(cpu.regs[10], cpu.pc + (42 << 12) - 4),
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_auipc", 1, "a0" => DRAM_BASE + (42 << 12));
     }
 
     #[test]
     fn test_jal() {
         let code = "jal a0, 42";
-        match rv_helper(code, "test_jal", 1) {
-            Ok(cpu) => {
-                assert_eq!(cpu.regs[10], DRAM_BASE + 4);
-                assert_eq!(cpu.pc, DRAM_BASE + 42);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_jal", 1, "a0" => DRAM_BASE + 4, "pc" => DRAM_BASE + 42);
     }
 
     #[test]
@@ -558,13 +553,7 @@ mod test {
             addi a1, zero, 42
             jalr a0, -8(a1)
         ";
-        match rv_helper(code, "test_jalr", 2) {
-            Ok(cpu) => {
-                assert_eq!(cpu.regs[10], DRAM_BASE + 8);
-                assert_eq!(cpu.pc, 34);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_jalr", 2, "a0" => DRAM_BASE + 8, "pc" => 34);
     }
 
     #[test]
@@ -572,12 +561,7 @@ mod test {
         let code = "
             beq  x0, x0, 42
         ";
-        match rv_helper(code, "test_beq", 3) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_beq", 3, "pc" => DRAM_BASE + 42);
     }
 
     #[test]
@@ -586,12 +570,7 @@ mod test {
             addi x1, x0, 10
             bne  x0, x1, 42
         ";
-        match rv_helper(code, "test_bne", 5) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42 + 4);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_bne", 5, "pc" => DRAM_BASE + 42 + 4);
     }
 
     #[test]
@@ -601,12 +580,7 @@ mod test {
             addi x2, x0, 20
             blt  x1, x2, 42
         ";
-        match rv_helper(code, "test_blt", 10) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_blt", 10, "pc" => DRAM_BASE + 42 + 8);
     }
 
     #[test]
@@ -616,12 +590,7 @@ mod test {
             addi x2, x0, 20
             bge  x2, x1, 42
         ";
-        match rv_helper(code, "test_bge", 10) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_bge", 10, "pc" => DRAM_BASE + 42 + 8);
     }
 
     #[test]
@@ -631,12 +600,7 @@ mod test {
             addi x2, x0, 20
             bltu x1, x2, 42
         ";
-        match rv_helper(code, "test_bltu", 10) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_bltu", 10, "pc" => DRAM_BASE + 42 + 8);
     }
 
     #[test]
@@ -646,12 +610,7 @@ mod test {
             addi x2, x0, 20
             bgeu x2, x1, 42
         ";
-        match rv_helper(code, "test_bgeu", 10) {
-            Ok(cpu) => {
-                assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_bgeu", 10, "pc" => DRAM_BASE + 42 + 8);
     }
 
     #[test]
@@ -663,13 +622,7 @@ mod test {
             lb   t1, 8(sp)
             lh   t2, 8(sp)
         ";
-        match rv_helper(code, "test_store_load1", 10) {
-            Ok(cpu) => {
-                assert_eq!(cpu.reg("t1"), 0);
-                assert_eq!(cpu.reg("t2"), 256);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_store_load1", 10, "t1" => 0, "t2" => 256);
     }
 
     #[test]
@@ -679,13 +632,29 @@ mod test {
             addi t1, zero, 24
             slt  t2, t0, t1
             slti t3, t0, 42
+            sltiu t4, t0, 84
         ";
-        match rv_helper(code, "test_slt", 5) {
-            Ok(cpu) => {
-                assert_eq!(cpu.reg("t2"), 1);
-                assert_eq!(cpu.reg("t3"), 1);
-            }
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_slt", 7, "t2" => 1, "t3" => 1, "t4" => 1);
+    }
+
+    #[test]
+    fn test_xor() {
+        let code = "
+            addi a0, zero, 0b10
+            xori a1, a0, 0b01
+            xor a2, a1, a1 
+        ";
+        riscv_test!(code, "test_xor", 5, "a1" => 3, "a2" => 0);
+    }
+
+    #[test]
+    fn test_or() {
+        let code = "
+            addi a0, zero, 0b10
+            ori  a1, a0, 0b01
+            or   a2, a0, a0
+        ";
+        riscv_test!(code, "test_or", 3, "a1" => 0b11, "a2" => 0b10);
     }
 }
+
