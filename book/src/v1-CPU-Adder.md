@@ -64,7 +64,7 @@ CPU 的工作流程通常包含以下阶段：
 CPU 将`pc`的值发送给内存，内存返回对应的地址上的值。由于指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。
 
 
-小端字节序指的是，一个 32 位的数（由四个字节构成），它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。
+小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。
 
 ![endianness](./images/endianness.jpg)
 <p class="comment">图片来自原作者教程</p>
@@ -193,8 +193,8 @@ add x31, x30, x29
 生成 Riscv 二进制文件
 
 ```bash
-riscv64-unknown-elf-gcc -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
-riscv64-unknown-elf-objcopy -O binary add-addi add-addi.bin
+clang -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
+llvm-objcopy -O binary add-addi add-addi.bin
 ```
 
 同时，模拟器需要读取`add-addi.bin`的内容。

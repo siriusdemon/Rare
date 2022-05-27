@@ -9,21 +9,20 @@
 
 ### 前置
 
-本教程假设读者已经对 Riscv 有一定的了解，因此教程中不会对 Riscv 作过多的解释。推荐通过阅读以下资料来了解 Riscv。
+本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust & Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。
 
 + [Riscv 标准](https://riscv.org/technical/specifications/)
 + [Riscv Reader](https://zh.webbooksnow.art/dl/16429281/d4417e)
+
+至于 Rust，安装好环境之后，可以通过运行 `rustup docs` 来访问`the book`以及 Rust 文档。
 
 
 ### 环境
 
 + Linux / WSL
 
-我们需要用到 gcc 的工具来生成测试的二进制文件。`ubuntu` 下安装
+我们需要用到 clang 的工具来生成测试的二进制文件，可以从[LLVM](https://releases.llvm.org/)官网下载预编译版本。我使用的版本是 [clang-12](https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0)，更新的版本应该也可以。
 
-```sh
-sudo apt install binutils-riscv64-unknown-elf gcc-riscv64-unknown-elf
-```
 
 ### 目录
 

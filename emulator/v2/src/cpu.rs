@@ -507,10 +507,7 @@ mod test {
     #[test]
     fn test_addi() {
         let code = "addi x31, x0, 42";
-        match rv_helper(code, "test_addi", 1) {
-            Ok(cpu) => assert_eq!(cpu.regs[31], 42),
-            Err(e) => { println!("error: {}", e); assert!(false); }
-        }
+        riscv_test!(code, "test_addi", 1, "x31" => 42);
     }
 
     #[test]

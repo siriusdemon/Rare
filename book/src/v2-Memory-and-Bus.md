@@ -227,14 +227,14 @@ impl Cpu {
 
 ### 指令测试
 
-我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过`riscv64-unknown-elf-gcc`，`riscv64-unknown-elf-objcopy`来编译汇编程序。现在我们将这个过程自动化以便于我们在代码中添加测试。
+我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过`clang`，`llvm-objcopy`来生成二进制代码。现在我们将这个过程自动化以便于我们在代码中添加测试。
 
 我们将自动化以下过程
 
 ```bash
-riscv64-unknown-elf-gcc -S simple.c
-riscv64-unknown-elf-gcc -Wl,-Ttext=0x0 -nostdlib -march=rv64i -mabi=lp64 -o simple simple.s
-riscv64-unknown-elf-objcopy -O binary simple simple.bin
+clang -S simple.c
+clang -Wl,-Ttext=0x0 -nostdlib -march=rv64i -mabi=lp64 -mno-relax -o simple simple.s
+llvm-objcopy -O binary simple simple.bin
 ```
 
 其中第一行从C代码中生成汇编代码，第二行编译成了一个ELF格式的二进制文件，第三行去掉了ELF格式，只保存了其中的二进制代码。我们分别实现如下：
@@ -251,7 +251,7 @@ mod test {
     use super::*;
 
     fn generate_rv_assembly(c_src: &str) {
-        let RV_GCC = "riscv64-unknown-elf-gcc";
+        let RV_GCC = "clang";
         let output = Command::new(RV_GCC).arg("-S")
                             .arg(c_src)
                             .output()
@@ -260,12 +260,13 @@ mod test {
     }
 
     fn generate_rv_obj(assembly: &str) {
-        let RV_GCC = "riscv64-unknown-elf-gcc";
+        let RV_GCC = "clang";
         let pieces: Vec<&str> = assembly.split(".").collect();
         let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
                             .arg("-march=rv64i")
                             .arg("-mabi=lp64")
+                            .arg("-mno-relax")
                             .arg("-o")
                             .arg(&pieces[0])
                             .arg(assembly)
@@ -275,7 +276,7 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &str) {
-        let RV_OBJCOPY = "riscv64-unknown-elf-objcopy";
+        let RV_OBJCOPY = "llvm-objcopy";
         let output = Command::new(RV_OBJCOPY).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
@@ -341,6 +342,41 @@ mod test {
 ```
 
 至此，我们的测试框架也完成了！
+
+### riscv_test 宏
+
+以下宏用于简化测试过程。关于宏，我以前在[一篇博文](https://zhuanlan.zhihu.com/p/260707957)中写过一段简短的解释。故不赘述。
+
+<p class="filename">cpu.rs</p>
+
+```rs
+mod test {
+    // ...
+    macro_rules! riscv_test {
+        ( $code:expr, $name:expr, $clock:expr, $($real:expr => $expect:expr),* ) => {
+            match rv_helper($code, $name, $clock) {
+                Ok(cpu) => { 
+                    $(assert_eq!(cpu.reg($real), $expect);)*
+                }
+                Err(e) => { println!("error: {}", e); assert!(false); }
+            } 
+        };
+    }
+}
+```
+
+有了这个宏，以上的测试可以简化成这样：
+
+```rs
+mod test {
+    //...
+    #[test]
+    fn test_addi() {
+        let code = "addi x31, x0, 42";
+        riscv_test!(code, "test_addi", 1, "x31" => 42);
+    }
+}
+```
 
 ### 总结
 
