@@ -82,37 +82,37 @@ impl Cpu {
                 let imm = ((inst as i32 as i64) >> 20) as u64;
                 let addr = self.regs[rs1].wrapping_add(imm);
                 match funct3 {
-                    0x0 => {
+                    0x0 => {        // lb
                         let val = self.load(addr, 8)?;
                         self.regs[rd] = val as i8 as i64 as u64;
                         return self.update_pc();
                     }
-                    0x1 => {
+                    0x1 => {        // lh
                         let val = self.load(addr, 16)?;
                         self.regs[rd] = val as i16 as i64 as u64;
                         return self.update_pc();
                     }
-                    0x2 => {
+                    0x2 => {        // lw
                         let val = self.load(addr, 32)?;
                         self.regs[rd] = val as i32 as i64 as u64;
                         return self.update_pc();
                     }
-                    0x3 => {
+                    0x3 => {        // ld
                         let val = self.load(addr, 64)?;
                         self.regs[rd] = val;
                         return self.update_pc();
                     }
-                    0x4 => {
+                    0x4 => {        // lbu
                         let val = self.load(addr, 8)?;
                         self.regs[rd] = val;
                         return self.update_pc();
                     }
-                    0x5 => {
+                    0x5 => {        // lhu
                         let val = self.load(addr, 16)?;
                         self.regs[rd] = val;
                         return self.update_pc();
                     }
-                    0x6 => {
+                    0x6 => {        // lwu
                         let val = self.load(addr, 32)?;
                         self.regs[rd] = val;
                         return self.update_pc();
@@ -220,10 +220,10 @@ impl Cpu {
                 let imm = ((inst & 0xfe00_0000) as i32 as i64 >> 20) as u64 | ((inst >> 7) & 0x1f) as u64;
                 let addr = self.regs[rs1].wrapping_add(imm);
                 match funct3 {
-                    0x0 => { self.store(addr, 8, self.regs[rs2]); self.update_pc() }
-                    0x1 => { self.store(addr, 16, self.regs[rs2]); self.update_pc() }
-                    0x2 => { self.store(addr, 32, self.regs[rs2]); self.update_pc() }
-                    0x3 => { self.store(addr, 64, self.regs[rs2]); self.update_pc() }
+                    0x0 => { self.store(addr, 8, self.regs[rs2]); self.update_pc() }        // sb
+                    0x1 => { self.store(addr, 16, self.regs[rs2]); self.update_pc() }       // sh
+                    0x2 => { self.store(addr, 32, self.regs[rs2]); self.update_pc() }       // sw
+                    0x3 => { self.store(addr, 64, self.regs[rs2]); self.update_pc() }       // sd
                     _ => Err(InvalidInstruction(inst)),
                 }
             }
@@ -641,6 +641,24 @@ mod test {
         match rv_helper(code, "test_bgeu", 10) {
             Ok(cpu) => {
                 assert_eq!(cpu.pc, DRAM_BASE + 42 + 8);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_store_load1() {
+        let code = "
+            addi s0, zero, 256
+            addi sp, sp, -16
+            sd   s0, 8(sp)
+            lb   t1, 8(sp)
+            lh   t2, 8(sp)
+        ";
+        match rv_helper(code, "test_store_load1", 10) {
+            Ok(cpu) => {
+                assert_eq!(cpu.regs[6], 0);
+                assert_eq!(cpu.regs[7], 256);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
