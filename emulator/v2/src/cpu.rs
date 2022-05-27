@@ -680,10 +680,10 @@ mod test {
             slt  t2, t0, t1
             slti t3, t0, 42
         ";
-        match rv_helper(code, "test_slti", 3) {
+        match rv_helper(code, "test_slt", 5) {
             Ok(cpu) => {
                 assert_eq!(cpu.reg("t2"), 1);
-                assert_eq!(cpu.reg("t3"), 0);
+                assert_eq!(cpu.reg("t3"), 1);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
