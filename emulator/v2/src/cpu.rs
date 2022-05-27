@@ -10,6 +10,14 @@ pub struct Cpu {
 }
 
 
+const RVABI: [&str; 32] = [
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", 
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5", 
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", 
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+];
+ 
+
 impl Cpu {
     pub fn new(code: Vec<u8>) -> Self {
         let mut regs = [0; 32];
@@ -20,8 +28,15 @@ impl Cpu {
         Self {regs, pc: DRAM_BASE, bus}
     }
 
-    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException>{
+    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
         self.bus.load(addr, size)
+    }
+
+    pub fn reg(&self, r: &str) -> u64 {
+        match RVABI.iter().position(|&x| x == r) {
+            Some(i) => self.regs[i],
+            None => panic!("Invalid register {}", r),
+        }
     }
 
     pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
@@ -30,13 +45,6 @@ impl Cpu {
 
     pub fn dump_registers(&self) {
         let mut output = String::new();
-        let abi = [
-            "zero", " ra ", " sp ", " gp ", " tp ", " t0 ", " t1 ", " t2 ", 
-            " s0 ", " s1 ", " a0 ", " a1 ", " a2 ", " a3 ", " a4 ", " a5 ", 
-            " a6 ", " a7 ", " s2 ", " s3 ", " s4 ", " s5 ", " s6 ", " s7 ", 
-            " s8 ", " s9 ", " s10", " s11", " t3 ", " t4 ", " t5 ", " t6 ",
-        ];
-        
 
         for i in (0..32).step_by(4) {
             let i0 = format!("x{}", i);
@@ -44,11 +52,11 @@ impl Cpu {
             let i2 = format!("x{}", i + 2);
             let i3 = format!("x{}", i + 3); 
             let line = format!(
-                "{:3}({}) = {:<#18x} {:3}({}) = {:<#18x} {:3}({}) = {:<#18x} {:3}({}) = {:<#18x}\n",
-                i0, abi[i], self.regs[i], 
-                i1, abi[i + 1], self.regs[i + 1], 
-                i2, abi[i + 2], self.regs[i + 2], 
-                i3, abi[i + 3], self.regs[i + 3],
+                "{:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x}\n",
+                i0, RVABI[i], self.regs[i], 
+                i1, RVABI[i + 1], self.regs[i + 1], 
+                i2, RVABI[i + 2], self.regs[i + 2], 
+                i3, RVABI[i + 3], self.regs[i + 3],
             );
             output = output + &line;
         }
@@ -657,8 +665,25 @@ mod test {
         ";
         match rv_helper(code, "test_store_load1", 10) {
             Ok(cpu) => {
-                assert_eq!(cpu.regs[6], 0);
-                assert_eq!(cpu.regs[7], 256);
+                assert_eq!(cpu.reg("t1"), 0);
+                assert_eq!(cpu.reg("t2"), 256);
+            }
+            Err(e) => { println!("error: {}", e); assert!(false); }
+        }
+    }
+
+    #[test]
+    fn test_slt() {
+        let code = "
+            addi t0, zero, 14
+            addi t1, zero, 24
+            slt  t2, t0, t1
+            slti t3, t0, 42
+        ";
+        match rv_helper(code, "test_slti", 3) {
+            Ok(cpu) => {
+                assert_eq!(cpu.reg("t2"), 1);
+                assert_eq!(cpu.reg("t3"), 0);
             }
             Err(e) => { println!("error: {}", e); assert!(false); }
         }
