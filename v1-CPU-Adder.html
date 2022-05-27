@@ -174,7 +174,7 @@ struct Cpu { ... }
 impl Cpu {
     fn new(code: Vec&lt;u8&gt;) -&gt; Self {
         let mut regs = [0; 32];
-        regs[2] = DRAM_SIZE;
+        regs[2] = DRAM_SIZE - 1;
         Self {regs, pc: 0, dram: code}
     }
 }
@@ -188,7 +188,7 @@ impl Cpu {
 </ol>
 <p>周而复始。</p>
 <p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
-<p>小端字节序指的是，一个 32 位的数（由四个字节构成），它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
+<p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
 <p><img src="./images/endianness.jpg" alt="endianness" /></p>
 <p class="comment">图片来自原作者教程</p>
 <p>在本实现中，我们采用小端字节序。小端字节序是目前商业芯片的主流。</p>
@@ -288,8 +288,8 @@ addi x30, x0, 37
 add x31, x30, x29
 </code></pre>
 <p>生成 Riscv 二进制文件</p>
-<pre><code class="language-bash">riscv64-unknown-elf-gcc -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
-riscv64-unknown-elf-objcopy -O binary add add-addi.bin
+<pre><code class="language-bash">clang -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
+llvm-objcopy -O binary add-addi add-addi.bin
 </code></pre>
 <p>同时，模拟器需要读取<code>add-addi.bin</code>的内容。</p>
 <p class="filename">main.rs</p>
@@ -332,6 +332,8 @@ fn main() -&gt; io::Result&lt;()&gt; {
 <pre><code class="language-bash">cargo run add-addi.bin
 </code></pre>
 <p>应该能够从控制台的输出中看到<code>x31</code>的值为<code>0x2a</code>。</p>
+<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
+<p>我们实现了一个加法器 CPU，它可以执行两个 Riscv 指令，<code>addi</code>，<code>add</code>。我们还学习了 CPU 的执行步骤：取指令，解码，执行，更新ＰＣ。下一节，我们将内存从ＣＰＵ中剥离，并添加更多的指令支持和一个测试的框架。</p>
 
                     </main>
 

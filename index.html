@@ -146,35 +146,55 @@
                         <h1 id="riscv-模拟器系列教程"><a class="header" href="#riscv-模拟器系列教程">Riscv 模拟器系列教程</a></h1>
 <p>本教程基于<a href="https://github.com/d0iasm">Asami</a> 所写的模拟器<a href="https://book.rvemu.app/">教程</a>。虽然作者只写到第三章，但她已经事先将所有的代码划分成了十个章节。所以看着代码也能够一步一步地构建出这个模拟器。</p>
 <p>最终的模拟器可以运行 <a href="https://pdos.csail.mit.edu/6.828/2012/xv6.html">xv6</a> 操作系统。</p>
-<p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。</p>
+<p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。该教程与原作一样，使用<a href="https://github.com/rust-lang/mdBook">mdbook</a>构建。</p>
+<ul>
+<li>项目地址：<a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
+<li>在线教程：<a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
+</ul>
+<p>推荐的使用方法：</p>
+<ul>
+<li>clone 该项目到本地</li>
+<li>cd Rare/book &amp;&amp; mdbook serve 打开本地教程</li>
+<li>需要的时候，使用 git pull 更新</li>
+</ul>
 <h3 id="前置"><a class="header" href="#前置">前置</a></h3>
-<p>本教程假设读者已经对 Riscv 有一定的了解，因此教程中不会对 Riscv 作过多的解释。推荐通过阅读以下资料来了解 Riscv。</p>
+<p>本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust &amp; Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。</p>
 <ul>
 <li><a href="https://riscv.org/technical/specifications/">Riscv 标准</a></li>
 <li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">Riscv Reader</a></li>
 </ul>
-<p>教程中使用的很多插图来自 Riscv Reader.</p>
+<p>至于 Rust，安装好环境之后，可以通过运行 <code>rustup docs</code> 来访问<code>the book</code>以及 Rust 文档。</p>
 <h3 id="环境"><a class="header" href="#环境">环境</a></h3>
 <ul>
 <li>Linux / WSL</li>
 </ul>
-<p>我们需要用到 gcc 的工具来生成测试的二进制文件。<code>ubuntu</code> 下安装</p>
-<pre><code class="language-sh">sudo apt install binutils-riscv64-unknown-elf gcc-riscv64-unknown-elf
-</code></pre>
+<p>我们需要用到 clang 的工具来生成测试的二进制文件，可以从<a href="https://releases.llvm.org/">LLVM</a>官网下载预编译版本。我使用的版本是 <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>，更新的版本应该也可以。</p>
 <h3 id="目录"><a class="header" href="#目录">目录</a></h3>
 <ol>
-<li><a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
-<li><a href="./v2-Memory-and-Bus.html">内存和总线</a></li>
-<li><a href="./v3-csrs.html">csrs寄存器</a></li>
-<li><a href="./v4-privileged-mode.html">特权模式</a></li>
-<li><a href="./v5-exceptions.html">异常</a></li>
-<li><a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
-<li><a href="./v7-uart.html">UART</a></li>
-<li><a href="./v8-interrupts.html">中断</a></li>
-<li><a href="./v9-virtio.html">Virtio</a></li>
-<li><a href="./v10-virtual-memory-system.html">虚拟内存系统</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v2-Memory-and-Bus.html">内存和总线</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v3-csrs.html">csrs寄存器</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v4-privileged-mode.html">特权模式</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v5-exceptions.html">异常</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v7-uart.html">UART</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v8-interrupts.html">中断</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v9-virtio.html">Virtio</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v10-virtual-memory-system.html">虚拟内存系统</a></li>
 </ol>
 <p>说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
+<h3 id="特别说明"><a class="header" href="#特别说明">特别说明</a></h3>
+<p>实践的过程中，读者可能会发现教程上的代码与实际的代码有些不同。这是因为我在编写的过程中会适当地进行重构。如果教程本身写得早，重构之后，就需要对教程进行修改。有时候我会遗漏要修改的地方，有时候则是觉得不必提及，读者看源码即能理解。因而，如有任何疑惑，欢迎在项目上提 issue。</p>
 
                     </main>
 
