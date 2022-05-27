@@ -653,5 +653,31 @@ mod test {
         ";
         riscv_test!(code, "test_or", 3, "a1" => 0b11, "a2" => 0b10);
     }
+
+    #[test]
+    fn test_and() {
+        let code = "
+            addi a0, zero, 0b10 
+            andi a1, a0, 0b11
+            and  a2, a0, a1
+        ";
+        riscv_test!(code, "test_and", 3, "a1" => 0b10, "a2" => 0b10);
+    }
+
+    #[test]
+    fn test_sll() {
+        let code = "
+            addi a0, zero, 1
+            addi a1, zero, 5
+            sll  a2, a0, a1
+            slli a3, a0, 5
+            addi s0, zero, 128
+            sll  a4, a0, s0
+        ";
+        riscv_test!(code, "test_sll", 10, "a2" => 1 << 5, "a3" => 1 << 5, "a4" => 1);
+    }
+
+    #[test]
+    fn test_
 }
 
