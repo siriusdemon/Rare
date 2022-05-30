@@ -1,5 +1,5 @@
 use crate::bus::Bus;
-use crate::{DRAM_SIZE, DRAM_BASE, DRAM_END};
+use crate::{DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, InvalidInstruction};
 
 
@@ -91,11 +91,27 @@ impl Cpu {
                 "fp" => self.reg("s0"),
                 r if r.starts_with("x") => {
                     if let Ok(i) = r[1..].parse::<usize>() {
-                        if 0 <= i && i <= 31 { return self.regs[i]; }
+                        if i <= 31 { return self.regs[i]; }
                         panic!("Invalid register {}", r);
                     }
                     panic!("Invalid register {}", r);
                 }
+                "mstatus" => self.csrs[MSTATUS],
+                "mtvec" => self.csrs[MTVEC],
+                "mepc" => self.csrs[MEPC],
+                "mcause" => self.csrs[MCAUSE],
+                "mtval" => self.csrs[MTVAL],
+                "medeleg" => self.csrs[MEDELEG],
+                "mscratch" => self.csrs[MSCRATCH],
+                "MIP" => self.csrs[MIP],
+                "sstatus" => self.csrs[SSTATUS],
+                "stvec" => self.csrs[STVEC],
+                "sepc" => self.csrs[SEPC],
+                "scause" => self.csrs[SCAUSE],
+                "stval" => self.csrs[STVAL],
+                "sscratch" => self.csrs[SSCRATCH],
+                "SIP" => self.csrs[SIP],
+                "SATP" => self.csrs[SATP],
                 _ => panic!("Invalid register {}", r),
             }
         }
@@ -336,10 +352,10 @@ impl Cpu {
                 let imm = ((inst & 0xfe00_0000) as i32 as i64 >> 20) as u64 | ((inst >> 7) & 0x1f) as u64;
                 let addr = self.regs[rs1].wrapping_add(imm);
                 match funct3 {
-                    0x0 => { self.store(addr, 8, self.regs[rs2]); self.update_pc() }        // sb
-                    0x1 => { self.store(addr, 16, self.regs[rs2]); self.update_pc() }       // sh
-                    0x2 => { self.store(addr, 32, self.regs[rs2]); self.update_pc() }       // sw
-                    0x3 => { self.store(addr, 64, self.regs[rs2]); self.update_pc() }       // sd
+                    0x0 => { self.store(addr, 8, self.regs[rs2])?; self.update_pc() }        // sb
+                    0x1 => { self.store(addr, 16, self.regs[rs2])?; self.update_pc() }       // sh
+                    0x2 => { self.store(addr, 32, self.regs[rs2])?; self.update_pc() }       // sw
+                    0x3 => { self.store(addr, 64, self.regs[rs2])?; self.update_pc() }       // sd
                     _ => Err(InvalidInstruction(inst)),
                 }
             }
@@ -580,8 +596,8 @@ mod test {
     use super::*;
 
     fn generate_rv_assembly(c_src: &str) {
-        let RV_GCC = "clang";
-        let output = Command::new(RV_GCC).arg("-S")
+        let cc = "clang";
+        let output = Command::new(cc).arg("-S")
                             .arg(c_src)
                             .output()
                             .expect("Failed to generate rv assembly");
@@ -589,9 +605,9 @@ mod test {
     }
 
     fn generate_rv_obj(assembly: &str) {
-        let RV_GCC = "clang";
+        let cc = "clang";
         let pieces: Vec<&str> = assembly.split(".").collect();
-        let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
+        let output = Command::new(cc).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
                             .arg("-march=rv64g")
                             .arg("-mabi=lp64")
@@ -606,8 +622,8 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &str) {
-        let RV_OBJCOPY = "llvm-objcopy";
-        let output = Command::new(RV_OBJCOPY).arg("-O")
+        let objcopy = "llvm-objcopy";
+        let output = Command::new(objcopy).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
                                 .arg(obj.to_owned() + ".bin")
@@ -619,7 +635,7 @@ mod test {
     fn rv_helper(code: &str, testname: &str, n_clock: usize) -> Result<Cpu, std::io::Error> {
         let filename = testname.to_owned() + ".s";
         let mut file = File::create(&filename)?;
-        file.write(&code.as_bytes());
+        file.write(&code.as_bytes())?;
         generate_rv_obj(&filename);
         generate_rv_binary(testname);
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
@@ -630,7 +646,7 @@ mod test {
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {
                 Ok(inst) => inst,
-                Err(err) => break,
+                Err(_err) => break,
             };
             match cpu.execute(inst) {
                 Ok(_) => (),
@@ -847,6 +863,26 @@ mod test {
             addw a2, a0, a1
         ";
         riscv_test!(code, "test_word_op", 29, "a2" => 0x7f00002a);
+    }
+
+    #[test]
+    fn test_csrs1() {
+        let code = "
+        main:
+            addi t0, zero, 1
+            addi t1, zero, 2
+            addi t2, zero, 3
+            csrrw zero, mstatus, t0
+            csrrs zero, mtvec, t1
+            csrrw zero, mepc, t2
+            csrrc t2, mepc, zero
+            csrrwi zero, sstatus, 4
+            csrrsi zero, stvec, 5
+            csrrwi zero, sepc, 6
+            csrrci zero, sepc, 0 
+        ";
+        riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
+                                            "sstatus" => 4, "stvec" => 5, "sepc" => 6);
     }
 }
 
