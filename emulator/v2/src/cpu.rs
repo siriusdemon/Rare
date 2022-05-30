@@ -671,13 +671,34 @@ mod test {
             addi a1, zero, 5
             sll  a2, a0, a1
             slli a3, a0, 5
-            addi s0, zero, 128
+            addi s0, zero, 64
             sll  a4, a0, s0
         ";
         riscv_test!(code, "test_sll", 10, "a2" => 1 << 5, "a3" => 1 << 5, "a4" => 1);
     }
 
     #[test]
-    fn test_
+    fn test_sra_srl() {
+        let code = "
+            addi a0, zero, -8
+            addi a1, zero, 1
+            sra  a2, a0, a1
+            srai a3, a0, 2
+            srli a4, a0, 2
+            srl  a5, a0, a1
+        ";
+        riscv_test!(code, "test_sra_srl", 10, "a2" => -4 as i64 as u64, "a3" => -2 as i64 as u64, 
+                                              "a4" => -8 as i64 as u64 >> 2, "a5" => -8 as i64 as u64 >> 1);
+    }
+
+    #[test]
+    fn test_word_op() {
+        let code = "
+            addi a0, zero, 42 
+            lui  a1, 0x7f000
+            addw a2, a0, a1
+        ";
+        riscv_test!(code, "test_word_op", 29, "a2" => 0x7f00002a);
+    }
 }
 
