@@ -516,6 +516,56 @@ impl Cpu {
                 self.pc = self.pc.wrapping_add(imm);
                 return Ok(());
             }
+            0x73 => {
+                let csr_addr = ((inst & 0xfff00000) >> 20) as usize;
+                match funct3 {
+                    0x1 => {
+                        // csrrw
+                        let t = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, self.regs[rs1]);
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    0x2 => {
+                        // csrrs
+                        let t = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, t | self.regs[rs1]);
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    0x3 => {
+                        // csrrc
+                        let t = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, t & (!self.regs[rs1]));
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    0x5 => {
+                        // csrrwi
+                        let zimm = rs1 as u64;
+                        self.regs[rd] = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, zimm);
+                        return self.update_pc();
+                    }
+                    0x6 => {
+                        // csrrsi
+                        let zimm = rs1 as u64;
+                        let t = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, t | zimm);
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    0x7 => {
+                        // csrrci
+                        let zimm = rs1 as u64;
+                        let t = self.load_csr(csr_addr);
+                        self.store_csr(csr_addr, t & (!zimm));
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    _ => Err(InvalidInstruction(inst)),
+                }
+            }
             _ => Err(InvalidInstruction(inst)),
         }
     }
