@@ -21,7 +21,7 @@ impl Bus {
         }
         match addr {
             DRAM_BASE..=DRAM_END => self.dram.load(addr, size),
-            _ => Err(RvException::AddressOutofBounds(addr)),
+            _ => Err(RvException::InvalidAddress(addr)),
         }
     }
 
@@ -31,7 +31,7 @@ impl Bus {
         }
         match addr {
             DRAM_BASE..=DRAM_END => self.dram.store(addr, size, value),
-            _ => Err(RvException::AddressOutofBounds(addr)),
+            _ => Err(RvException::InvalidAddress(addr)),
         }
     }
 }

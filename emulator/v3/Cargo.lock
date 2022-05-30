@@ -3,5 +3,5 @@
 version = 3
 
 [[package]]
-name = "rvemu"
+name = "v3"
 version = "0.1.0"

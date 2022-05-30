@@ -43,7 +43,7 @@ fn main() -> io::Result<()> {
                 break;
             }
         };
-        cpu.pc += 4;
+        println!("inst: {:#x}" , inst);
         match cpu.execute(inst) {
             Ok(_) => (),
             Err(e) => {
@@ -54,5 +54,6 @@ fn main() -> io::Result<()> {
     }
     cpu.dump_registers();
     cpu.dump_csrs();
+    cpu.dump_pc();
     Ok(())
 }
