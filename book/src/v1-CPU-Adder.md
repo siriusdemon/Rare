@@ -69,7 +69,7 @@ CPU 将`pc`的值发送给内存，内存返回对应的地址上的值。由于
 ![endianness](./images/endianness.jpg)
 <p class="comment">图片来自原作者教程</p>
 
-在本实现中，我们采用小端字节序。小端字节序是目前商业芯片的主流。
+在本实现中，我们采用小端字节序。在 Riscv 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置`mstatus`寄存器上特定的位来控制字节序。
 
 <p class="filename">main.rs</p>
 
