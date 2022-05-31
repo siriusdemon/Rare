@@ -4,7 +4,7 @@ use crate::exception::RvException::{self, InvalidInstruction};
 
 
 
-
+/// From Riscv Spec. Volumn 2
 // Machine-level CSRs.
 /// Hardware thread ID.
 pub const MHARTID: usize = 0xf14;

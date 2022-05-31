@@ -193,7 +193,7 @@ add x31, x30, x29
 生成 Riscv 二进制文件
 
 ```bash
-clang -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
+clang -Wl,-Ttext=0x0 -nostdlib --target=riscv64 -march=rv64g -mno-relax -o add-addi add-addi.s
 llvm-objcopy -O binary add-addi add-addi.bin
 ```
 
