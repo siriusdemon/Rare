@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html" class="active"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html" class="active"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> 控制状态寄存器</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -191,7 +191,7 @@ impl Cpu {
 <p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
 <p><img src="./images/endianness.jpg" alt="endianness" /></p>
 <p class="comment">图片来自原作者教程</p>
-<p>在本实现中，我们采用小端字节序。小端字节序是目前商业芯片的主流。</p>
+<p>在本实现中，我们采用小端字节序。在 Riscv 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置<code>mstatus</code>寄存器上特定的位来控制字节序。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">impl Cpu {
     // ...
@@ -288,7 +288,7 @@ addi x30, x0, 37
 add x31, x30, x29
 </code></pre>
 <p>生成 Riscv 二进制文件</p>
-<pre><code class="language-bash">clang -Wl,-Ttext=0x0 -nostdlib -o add-addi add-addi.s
+<pre><code class="language-bash">clang -Wl,-Ttext=0x0 -nostdlib --target=riscv64 -march=rv64g -mno-relax -o add-addi add-addi.s
 llvm-objcopy -O binary add-addi add-addi.bin
 </code></pre>
 <p>同时，模拟器需要读取<code>add-addi.bin</code>的内容。</p>

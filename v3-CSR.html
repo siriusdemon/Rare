@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>写一个 Riscv 模拟器 - Rare: Rust A Riscv Emulator</title>
+        <title>控制状态寄存器 - Rare: Rust A Riscv Emulator</title>
 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html" class="active">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> 控制状态寄存器</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li><li class="chapter-item expanded "><a href="v3-CSR.html" class="active"><strong aria-hidden="true">3.</strong> 控制状态寄存器</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -143,68 +143,127 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="riscv-模拟器系列教程"><a class="header" href="#riscv-模拟器系列教程">Riscv 模拟器系列教程</a></h1>
-<p>本教程基于<a href="https://github.com/d0iasm">Asami</a> 所写的模拟器<a href="https://book.rvemu.app/">教程</a>。虽然作者只写到第三章，但她已经事先将所有的代码划分成了十个章节。所以看着代码也能够一步一步地构建出这个模拟器。</p>
-<p>最终的模拟器可以运行 <a href="https://pdos.csail.mit.edu/6.828/2012/xv6.html">xv6</a> 操作系统。</p>
-<p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。该教程与原作一样，使用<a href="https://github.com/rust-lang/mdBook">mdbook</a>构建。</p>
-<ul>
-<li>项目地址：<a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
-<li>在线教程：<a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
-</ul>
-<p>推荐的使用方法：</p>
-<ul>
-<li>clone 该项目到本地</li>
-<li>cd Rare/book &amp;&amp; mdbook serve 打开本地教程</li>
-<li>需要的时候，使用 git pull 更新</li>
-</ul>
-<h3 id="前置"><a class="header" href="#前置">前置</a></h3>
-<p>本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust &amp; Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。</p>
-<ul>
-<li><a href="https://riscv.org/technical/specifications/">Riscv 标准</a></li>
-<li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">Riscv Reader</a></li>
-</ul>
-<p>至于 Rust，安装好环境之后，可以通过运行 <code>rustup docs</code> 来访问<code>the book</code>以及 Rust 文档。</p>
-<h3 id="环境"><a class="header" href="#环境">环境</a></h3>
-<ul>
-<li>Linux / WSL</li>
-</ul>
-<p>我们需要用到 clang 的工具来生成测试的二进制文件，可以从<a href="https://releases.llvm.org/">LLVM</a>官网下载预编译版本。我使用的版本是 <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>，更新的版本应该也可以。</p>
-<h3 id="目录"><a class="header" href="#目录">目录</a></h3>
-<ol>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v2-Memory-and-Bus.html">内存和总线</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v3-CSR.html">控制状态寄存器</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v4-privilege-mode.html">特权模式</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v5-exceptions.html">异常</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v7-uart.html">UART</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v8-interrupts.html">中断</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v9-virtio.html">Virtio</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v10-virtual-memory-system.html">虚拟内存系统</a></li>
-</ol>
-<p>说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
-<h3 id="特别说明"><a class="header" href="#特别说明">特别说明</a></h3>
-<p>实践的过程中，读者可能会发现教程上的代码与实际的代码有些不同。这是因为我在编写的过程中会适当地进行重构。如果教程本身写得早，重构之后，就需要对教程进行修改。有时候我会遗漏要修改的地方，有时候则是觉得不必提及，读者看源码即能理解。</p>
-<p>如有任何疑惑，欢迎在项目上提 issue。</p>
+                        <h1 id="控制状态寄存器"><a class="header" href="#控制状态寄存器">控制状态寄存器</a></h1>
+<h3 id="risc-v-特权等级"><a class="header" href="#risc-v-特权等级">RISC-V 特权等级</a></h3>
+<p>本来特权架构与特权等级是下一节的内容，但这一节稍有涉及，略加说明。</p>
+<p>在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。当前，RISC-V 定义了三种特权等级。</p>
+<p><img src="./images/privilege-level.png" alt="privilege-level" /></p>
+<p class="comment">图片来自 RISC-V 卷2</p>
+<p>通常称为<code>M-mode</code>，<code>S-mode</code>和 <code>U-mode</code>。</p>
+<h3 id="控制状态寄存器-1"><a class="header" href="#控制状态寄存器-1">控制状态寄存器</a></h3>
+<p>RISC-V 为每一个 hart 定义了一个独立的控制状态寄存器的地址空间，有 4096 个之多。其中已经分配的地址相对较少，具体可参见 RISC-V 标准卷二的说明。</p>
+<p>下表基本包含了我们这个小项目需要用到的（也就是 xv6 所需要的）寄存器。</p>
+<p><img src="./images/misa-csr.png" alt="misa-csr" /></p>
+<p class="comment">图片来自 RISC-V 卷2</p>
+<p><img src="./images/sisa-csr.png" alt="sisa-csr" /></p>
+<p class="comment">图片来自 RISC-V 卷2</p>
+<p>这些寄存器的具体意义可参考 RISC-V 标准中的说明，故不赘述。唯一值得一提的是，<code>sie</code>和<code>sip</code>是<code>mie</code>和<code>mip</code>的子集。实际上并不存在<code>sie</code>和<code>sip</code>这两个寄存器。</p>
+<p>标准中说：通过在<code>mideleg</code>中设置特定的位，将一个中断从 M-mode 代理给 S-mode，则这个中断在<code>sip</code>中可见且可被 <code>sie</code>屏蔽。反之，该位在<code>sip</code>和<code>sie</code>中皆为 0。此外，读写<code>sip</code>和<code>sie</code>相当于读写<code>mip</code>和<code>mie</code>。它们的关系可表述为</p>
+<pre><code class="language-rs">sip == mip &amp; mideleg 
+sie == mie &amp; mideleg
+</code></pre>
+<h3 id="添加-csrs"><a class="header" href="#添加-csrs">添加 CSRs</a></h3>
+<p>根据上表，我们先录入所需要的寄存器地址。</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">// Machine-level CSRs.
+pub const MHARTID: usize = 0xf14;
+pub const MSTATUS: usize = 0x300;
+pub const MEDELEG: usize = 0x302;
+pub const MIDELEG: usize = 0x303;
+pub const MIE: usize = 0x304;
+pub const MTVEC: usize = 0x305;
+pub const MCOUNTEREN: usize = 0x306;
+pub const MSCRATCH: usize = 0x340;
+pub const MEPC: usize = 0x341;
+pub const MCAUSE: usize = 0x342;
+pub const MTVAL: usize = 0x343;
+pub const MIP: usize = 0x344;
+
+// Supervisor-level CSRs.
+pub const SSTATUS: usize = 0x100;
+pub const SIE: usize = 0x104;
+pub const STVEC: usize = 0x105;
+pub const SSCRATCH: usize = 0x140;
+pub const SEPC: usize = 0x141;
+pub const SCAUSE: usize = 0x142;
+pub const STVAL: usize = 0x143;
+pub const SIP: usize = 0x144;
+pub const SATP: usize = 0x180;
+</code></pre>
+<p>CPU 需要开辟一个 4096 的地址空间，同时，为了模拟<code>sie</code>和<code>sip</code>，我们还需要定义两个辅助函数（这是原作者的设计）。</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">pub struct Cpu {
+    pub regs: [u64; 32],
+    pub pc: u64,
+    pub bus: Bus,
+    pub csrs: [u64; 4096],
+}
+
+impl Cpu {
+    // new 函数也需要相应修改
+    // ...
+    pub fn load_csr(&amp;self, addr: usize) -&gt; u64 {
+        match addr {
+            SIE =&gt; self.csrs[MIE] &amp; self.csrs[MIDELEG],
+            SIP =&gt; self.csrs[MIP] &amp; self.csrs[MIDELEG],
+            _ =&gt; self.csrs[addr],
+        }
+    }
+
+    pub fn store_csr(&amp;mut self, addr: usize, value: u64) {
+        match addr {
+            SIE =&gt; self.csrs[MIE] = (self.csrs[MIE] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            SIP =&gt; self.csrs[MIP] = (self.csrs[MIP] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            _ =&gt; self.csrs[addr] = value,
+        }
+    }
+}
+</code></pre>
+<p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>与此类似。</p>
+<h3 id="csr-指令"><a class="header" href="#csr-指令">CSR 指令</a></h3>
+<p>我们已经为 CPU 添加了 CSR 地址空间，现在需要支持执行 CSR 指令。CSR 的指令共有 6 个。</p>
+<p><img src="./images/csr-inst.png" alt="csr-inst" /></p>
+<p class="comment">图片来自 RISC-V Volumn 1: Zicsr</p>
+<p>指令的<code>csr</code>字段有 12 位，编码的是寄存器的地址。(2^12 = 4096)。指令的含义如下：</p>
+<p><img src="./images/csr-inst1.png" alt="csr-inst1" />
+<img src="./images/csr-inst2.png" alt="csr-inst2" />
+<img src="./images/csr-inst3.png" alt="csr-inst3" /></p>
+<p class="comment">图片来自 RISC-V Reader</p>
+<p>可以自行实现，也可以复制项目中的源码。实现以上六个指令之后，可以进行下面的测试。</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">mod test {
+    // ...
+    #[test]
+    fn test_csrs1() {
+        let code = &quot;
+            addi t0, zero, 1
+            addi t1, zero, 2
+            addi t2, zero, 3
+            csrrw zero, mstatus, t0
+            csrrs zero, mtvec, t1
+            csrrw zero, mepc, t2
+            csrrc t2, mepc, zero
+            csrrwi zero, sstatus, 4
+            csrrsi zero, stvec, 5
+            csrrwi zero, sepc, 6
+            csrrci zero, sepc, 0 
+        &quot;;
+        riscv_test!(code, &quot;test_csrs1&quot;, 20, &quot;mstatus&quot; =&gt; 1, &quot;mtvec&quot; =&gt; 2, &quot;mepc&quot; =&gt; 3,
+                                            &quot;sstatus&quot; =&gt; 4, &quot;stvec&quot; =&gt; 5, &quot;sepc&quot; =&gt; 6);
+    }
+}
+</code></pre>
+<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
+<p>我们添加了对部分控制状态寄存器的读写支持，通过辅助函数模拟了<code>sip</code>、<code>sie</code>两个寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
-
-                            <a rel="next" href="v1-CPU-Adder.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                                <i class="fa fa-angle-right"></i>
+                            <a rel="prev" href="v2-Memory-and-Bus.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
                             </a>
+
 
                         <div style="clear: both"></div>
                     </nav>
@@ -212,10 +271,10 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
-
-                    <a rel="next" href="v1-CPU-Adder.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
-                        <i class="fa fa-angle-right"></i>
+                    <a rel="prev" href="v2-Memory-and-Bus.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
                     </a>
+
             </nav>
 
         </div>
