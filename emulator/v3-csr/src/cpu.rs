@@ -882,4 +882,3 @@ mod test {
                                             "sstatus" => 4, "stvec" => 5, "sepc" => 6);
     }
 }
-
