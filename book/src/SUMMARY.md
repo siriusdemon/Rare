@@ -4,3 +4,4 @@
 
 - [加法器 CPU](./v1-CPU-Adder.md)
 - [内存和总线](./v2-Memory-and-Bus.md)
+- [控制状态寄存器](./v3-CSR.md)

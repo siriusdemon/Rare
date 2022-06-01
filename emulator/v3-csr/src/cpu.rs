@@ -173,17 +173,15 @@ impl Cpu {
     pub fn load_csr(&self, addr: usize) -> u64 {
         match addr {
             SIE => self.csrs[MIE] & self.csrs[MIDELEG],
+            SIP => self.csrs[MIP] & self.csrs[MIDELEG],
             _ => self.csrs[addr],
         }
     }
 
-    /// Store a value to a CSR.
     pub fn store_csr(&mut self, addr: usize, value: u64) {
         match addr {
-            SIE => {
-                self.csrs[MIE] =
-                    (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]);
-            }
+            SIE => self.csrs[MIE] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
+            SIP => self.csrs[MIP] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
             _ => self.csrs[addr] = value,
         }
     }
@@ -868,7 +866,6 @@ mod test {
     #[test]
     fn test_csrs1() {
         let code = "
-        main:
             addi t0, zero, 1
             addi t1, zero, 2
             addi t2, zero, 3
