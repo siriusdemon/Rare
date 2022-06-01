@@ -52,10 +52,18 @@ pub const SIP: usize = 0x144;
 pub const SATP: usize = 0x180;
 
 
+#[derive(Debug, PartialEq, PartialOrd, Eq, Copy, Clone)]
+pub enum Mode {
+    User = 0b00,
+    Supervisor = 0b01,
+    Machine = 0b11,
+}
+
 pub struct Cpu {
     pub regs: [u64; 32],
     pub pc: u64,
     pub bus: Bus,
+    pub mode: Mode,
     pub csrs: [u64; 4096],
 }
 
@@ -75,8 +83,9 @@ impl Cpu {
 
         let bus = Bus::new(code);
         let csrs = [0; 4096];
+        let mode = Mode::Machine;
 
-        Self {regs, pc: DRAM_BASE, bus, csrs}
+        Self {regs, pc: DRAM_BASE, bus, csrs, mode}
     }
 
     pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
@@ -96,6 +105,7 @@ impl Cpu {
                     }
                     panic!("Invalid register {}", r);
                 }
+                "mhartid" => self.load_csr(MHARTID),
                 "mstatus" => self.load_csr(MSTATUS),
                 "mtvec" => self.load_csr(MTVEC),
                 "mepc" => self.load_csr(MEPC),
@@ -104,6 +114,7 @@ impl Cpu {
                 "medeleg" => self.load_csr(MEDELEG),
                 "mscratch" => self.load_csr(MSCRATCH),
                 "MIP" => self.load_csr(MIP),
+                "mcounteren" => self.load_csr(MCOUNTEREN),
                 "sstatus" => self.load_csr(SSTATUS),
                 "stvec" => self.load_csr(STVEC),
                 "sepc" => self.load_csr(SEPC),
@@ -533,6 +544,78 @@ impl Cpu {
             0x73 => {
                 let csr_addr = ((inst & 0xfff00000) >> 20) as usize;
                 match funct3 {
+                    0x0 => {
+                        match (rs2, funct7) {
+                            (0x2, 0x8) => {
+                                // sret
+                                // The SRET instruction returns from a supervisor-mode exception
+                                // handler. It does the following operations:
+                                // - Sets the pc to CSRs[sepc].
+                                // - Sets the privilege mode to CSRs[sstatus].SPP.
+                                // - Sets CSRs[sstatus].SIE to CSRs[sstatus].SPIE.
+                                // - Sets CSRs[sstatus].SPIE to 1.
+                                // - Sets CSRs[sstatus].SPP to 0.
+                                self.pc = self.load_csr(SEPC);
+                                // When the SRET instruction is executed to return from the trap
+                                // handler, the privilege level is set to user mode if the SPP
+                                // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
+                                // is the 8th of the SSTATUS csr.
+                                self.mode = match (self.load_csr(SSTATUS) >> 8) & 1 {
+                                    1 => Mode::Supervisor,
+                                    _ => Mode::User,
+                                };
+                                // The SPIE bit is the 5th and the SIE bit is the 1st of the
+                                // SSTATUS csr.
+                                self.store_csr(
+                                    SSTATUS,
+                                    if ((self.load_csr(SSTATUS) >> 5) & 1) == 1 {
+                                        self.load_csr(SSTATUS) | (1 << 1)
+                                    } else {
+                                        self.load_csr(SSTATUS) & !(1 << 1)
+                                    },
+                                );
+                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) | (1 << 5));
+                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) & !(1 << 8));
+                                return Ok(());
+                            }
+                            (0x2, 0x18) => {
+                                // mret
+                                // The MRET instruction returns from a machine-mode exception
+                                // handler. It does the following operations:
+                                // - Sets the pc to CSRs[mepc].
+                                // - Sets the privilege mode to CSRs[mstatus].MPP.
+                                // - Sets CSRs[mstatus].MIE to CSRs[mstatus].MPIE.
+                                // - Sets CSRs[mstatus].MPIE to 1.
+                                // - Sets CSRs[mstatus].MPP to 0.
+                                self.pc = self.load_csr(MEPC);
+                                // MPP is two bits wide at [11..12] of the MSTATUS csr.
+                                self.mode = match (self.load_csr(MSTATUS) >> 11) & 0b11 {
+                                    2 => Mode::Machine,
+                                    1 => Mode::Supervisor,
+                                    _ => Mode::User,
+                                };
+                                // The MPIE bit is the 7th and the MIE bit is the 3rd of the
+                                // MSTATUS csr.
+                                self.store_csr(
+                                    MSTATUS,
+                                    if ((self.load_csr(MSTATUS) >> 7) & 1) == 1 {
+                                        self.load_csr(MSTATUS) | (1 << 3)
+                                    } else {
+                                        self.load_csr(MSTATUS) & !(1 << 3)
+                                    },
+                                );
+                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) | (1 << 7));
+                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) & !(0b11 << 11));
+                                return Ok(());
+                            }
+                            (_, 0x9) => {
+                                // sfence.vma
+                                // Do nothing.
+                                return Ok(());
+                            }
+                            _ => Err(InvalidInstruction(inst)),
+                        }
+                    }
                     0x1 => {
                         // csrrw
                         let t = self.load_csr(csr_addr);
