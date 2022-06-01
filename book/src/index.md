@@ -38,8 +38,8 @@
 
 1. [x] [加法器 CPU](./v1-CPU-Adder.md)
 2. [x] [内存和总线](./v2-Memory-and-Bus.md)
-3. [ ] [csrs寄存器](./v3-csrs.md)
-4. [ ] [特权模式](./v4-privileged-mode.md)
+3. [x] [控制状态寄存器](./v3-CSR.md)
+4. [ ] [特权模式](./v4-privilege-mode.md)
 5. [ ] [异常](./v5-exceptions.md)
 6. [ ] [PLIC & CLINT](./v6-plic-clint.md)
 7. [ ] [UART](./v7-uart.md)
