@@ -1,4 +1,4 @@
-# Riscv MISA
+# Volumn 2
 
 ### Endianness
 
@@ -20,3 +20,17 @@ Restricted views of the mip and mie registers appear as the sip and sie register
 ### Supervisor Interrupt Registers (sip and sie)
 
 The sip and sie registers are subsets of the mip and mie registers. Reading any implemented field, or writing any writable field, of sip/sie effects a read or write of the homonymous field of mip/mie.
+
+### 3.3.1 Environment Call and Breakpoint
+
+ECALL and EBREAK cause the receiving privilege mode’s epc register to be set to the address of the ECALL or EBREAK instruction itself, not the address of the following instruction. As ECALL and EBREAK cause synchronous exceptions, they are not considered to retire, and should not increment the minstret CSR
+
+### 3.3.2 Trap-Return Instructions
+
+An xRET instruction can be executed in privilege mode x or higher, where executing a lower-privilege xRET instruction will pop the relevant lower-privilege interrupt enable and privilege mode stack. In addition to manipulating the privilege stack as described in Section 3.1.6.1, xRET sets the pc to the value stored in the xepc register.
+
+### 4.1.7 Supervisor Exception Program Counter (sepc)
+
+When a trap is taken into S-mode, sepc is written with the virtual address of the instruction that was interrupted or that encountered the exception. Otherwise, sepc is never written by the implementation, though it may be explicitly written by software.
+
+
