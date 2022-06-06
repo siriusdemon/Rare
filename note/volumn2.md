@@ -1,9 +1,5 @@
 # Volumn 2
 
-### Endianness
-
-The MBE, SBE, and UBE bits in mstatus and mstatush are WARL fields that control the endianness of memory accesses other than instruction fetches. Instruction fetches are always little-endian
-
 ### Machine Trap Delegation Registers (medeleg and mideleg)
 
 In systems with S-mode, the medeleg and mideleg registers must exist, and setting a bit in medeleg or mideleg will delegate the corresponding trap, when occurring in S-mode or U-mode, to the S-mode trap handler. In systems without S-mode, the medeleg and mideleg registers should not
@@ -60,7 +56,10 @@ MPRV = 0 if xPP != M
 + SXL / UXL: only in RV64, control UXLEN, SXLEN. In RV32, UXLEN = SXLEN = 32.
 + MPRV:  read-only if U-mode is not supported. When MPRV = 1, load and store memory addresses are translated and protected, and endianness is applied, as though the current privilege mode were set to MPP. Instruction address-translation and protection are unaffected by the setting of MPRV. 
 
++ MXR: When MXR = 1, load readable and executable virtual memory will succeed. When MXR = 0, only load readable will succeed. Read-only if S-mode is not supported.
 
++ SUM: allow S-mode memory accesses to pages that are accessible by U-mode.
++ MBE / SBE / UBE: control the endianness of memory accesses other than instruction fetches. Instruction fetches are always little-endian.
 
 ### 4.1.7 Supervisor Exception Program Counter (sepc)
 
