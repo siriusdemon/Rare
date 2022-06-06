@@ -29,6 +29,35 @@ ECALL and EBREAK cause the receiving privilege mode’s epc register to be set t
 
 An xRET instruction can be executed in privilege mode x or higher, where executing a lower-privilege xRET instruction will pop the relevant lower-privilege interrupt enable and privilege mode stack. In addition to manipulating the privilege stack as described in Section 3.1.6.1, xRET sets the pc to the value stored in the xepc register.
 
+### 3.1.6 Machine Status Registers (mstatus and mstatush)
+
+The mstatus register keeps track of and controls the hart’s current operating state. A restricted view of mstatus appears as the sstatus register in the S-level ISA
+
++ MIE / SIE: global interrupt enable for M-mode and S-mode respectively. When in x mode, higher mode y interrupt are enable regardless of the yIE bit, while lower mode z interrupt are disable regardless of zIE bit. Higher mode y can using yIE register to disable certain interrupts before enter a lower mode.
+
++ xPIE / xPP: xPIE holds previous interrupt-enable bit before enter the trap. xPP holds previous privilege mode. When a trap is taken from privilege mode y into privilege mode x, xPIE is set to the value of xIE; xIE is set to 0; and xPP is set to y.
+
+```rs
+assume current privilege mode is y
+when trap from y into x cause:
+xPIE = xIE
+xIE = 0 (efficiently disable interrupt upon entry)
+xPP = y
+```
+
+An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively.
+
+```rs
+assume current privilege mode is x and xPP = y
+when execute an xRET cause:
+xIE = xPIE
+privilege mode = y
+xPIE = 1
+xPP = least-privileged supported mode (U or M)
+MPRV = 0 if xPP != M
+```
+
+
 ### 4.1.7 Supervisor Exception Program Counter (sepc)
 
 When a trap is taken into S-mode, sepc is written with the virtual address of the instruction that was interrupted or that encountered the exception. Otherwise, sepc is never written by the implementation, though it may be explicitly written by software.
