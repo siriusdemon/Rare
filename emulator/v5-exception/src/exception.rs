@@ -1,6 +1,6 @@
 use std::fmt;
 
-#[derive(Debug)]
+#[derive(Copy, Clone)]
 pub enum RvException {
     // Riscv Standard Exception
     InstructionAddrMisaligned(u64),
@@ -17,8 +17,6 @@ pub enum RvException {
     InstructionPageFault(u64),
     LoadPageFault(u64),
     StoreOrAMOPageFault(u64),
-    // Custom Exception, number range [24-31], [48-63]
-    CustomInvalidSize(u64),
 }
 
 impl fmt::Display for RvException {
@@ -28,20 +26,72 @@ impl fmt::Display for RvException {
             InstructionAddrMisaligned(addr) => write!(f, "Instruction address misaligned {:#x}", addr),
             InstructionAccessFault(addr) => write!(f, "Instruction access fault {:#x}", addr),
             IllegalInstruction(inst) => write!(f, "Illegal instruction {:#x}", inst),
-            InvalidInstruction(inst) => write!(f, "Invalid instruction {:#x}", inst),
             Breakpoint(inst) => write!(f, "Breakpoint {:#x}", inst),
             LoadAccessMisaligned(addr) => write!(f, "Load access {:#x}", addr),
             LoadAccessFault(addr) => write!(f, "Load access fault {:#x}", addr),
-            StoreOrAmoAddrMiisaligned(addr) => write!(f, "Store or AMO address misaliged {:#x}", addr),
+            StoreOrAMOAddrMiisaligned(addr) => write!(f, "Store or AMO address misaliged {:#x}", addr),
             StoreOrAMOAccessFault(addr) => write!(f, "Store or AMO access fault {:#x}", addr),
-            EnvironmentCallFromUmode(inst) => write!(f, "Environment call from U-mode", inst),
-            EnvironmentCallFromSmode(inst) => write!(f, "Environment call from S-mode", inst),
-            EnvironmentCallFromMmode(inst) => write!(f, "Environment call from M-mode", inst),
+            EnvironmentCallFromUmode(inst) => write!(f, "Environment call from U-mode {:#x}", inst),
+            EnvironmentCallFromSmode(inst) => write!(f, "Environment call from S-mode {:#x}", inst),
+            EnvironmentCallFromMmode(inst) => write!(f, "Environment call from M-mode {:#x}", inst),
             InstructionPageFault(inst) => write!(f, "Instruction page fault {:#x}", inst),
             LoadPageFault(addr) => write!(f, "Load page fault {:#x}", addr),
             StoreOrAMOPageFault(addr) => write!(f, "Store or AMO page fault {:#x}", addr),
-            CustomInvalidSize(size) => write!(f, "Custion Exception: Invalid size {}", size),
         }
     }
 }
 
+
+impl RvException {
+    pub fn value(self) -> u64 {
+        use RvException::*;
+        match self {
+            InstructionAddrMisaligned(addr) => addr,
+            InstructionAccessFault(addr) => addr,
+            IllegalInstruction(inst) => inst,
+            Breakpoint(inst) => inst,
+            LoadAccessMisaligned(addr) => addr,
+            LoadAccessFault(addr) => addr,
+            StoreOrAMOAddrMiisaligned(addr) => addr,
+            StoreOrAMOAccessFault(addr) => addr,
+            EnvironmentCallFromUmode(inst) => inst,
+            EnvironmentCallFromSmode(inst) => inst,
+            EnvironmentCallFromMmode(inst) => inst,
+            InstructionPageFault(inst) => inst,
+            LoadPageFault(addr) => addr,
+            StoreOrAMOPageFault(addr) => addr,
+        }
+    }
+
+    pub fn code(self) -> u64 {
+        use RvException::*;
+        match self {
+            InstructionAddrMisaligned(_) => 0,
+            InstructionAccessFault(_) => 1,
+            IllegalInstruction(_) => 2,
+            Breakpoint(_) => 3,
+            LoadAccessMisaligned(_) => 4,
+            LoadAccessFault(_) => 5,
+            StoreOrAMOAddrMiisaligned(_) => 6,
+            StoreOrAMOAccessFault(_) => 7,
+            EnvironmentCallFromUmode(_) => 8,
+            EnvironmentCallFromSmode(_) => 9,
+            EnvironmentCallFromMmode(_) => 11,
+            InstructionPageFault(_) => 12,
+            LoadPageFault(_) => 13,
+            StoreOrAMOPageFault(_) => 15,
+        }
+    }
+}
+
+#[cfg(test)]
+mod test {
+    use super::*;
+
+    #[test]
+    fn test_code() {
+        let e = RvException::IllegalInstruction(0x0);
+        assert_eq!(e.value(), 0);
+        assert_eq!(e.value(), 0);
+    }
+}

@@ -1,6 +1,6 @@
 use crate::bus::Bus;
 use crate::{DRAM_BASE, DRAM_END};
-use crate::exception::RvException::{self, InvalidInstruction};
+use crate::exception::RvException::{self, IllegalInstruction};
 
 
 
@@ -258,7 +258,7 @@ impl Cpu {
                         self.regs[rd] = val;
                         return self.update_pc();
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                     
                 }
             }
@@ -305,7 +305,7 @@ impl Cpu {
                             self.regs[rd] = (self.regs[rs1] as i64).wrapping_shr(shamt) as u64;
                             return self.update_pc();
                         }
-                        _ => Err(InvalidInstruction(inst)),
+                        _ => Err(IllegalInstruction(inst)),
                     }
                     0x6 => {
                         self.regs[rd] = self.regs[rs1] | imm; // ori
@@ -315,7 +315,7 @@ impl Cpu {
                         self.regs[rd] = self.regs[rs1] & imm; // andi
                         return self.update_pc();
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
             0x17 => {
@@ -351,10 +351,10 @@ impl Cpu {
                                 self.regs[rd] = (self.regs[rs1] as i32).wrapping_shr(shamt) as i64 as u64;
                                 return self.update_pc();
                             }
-                            _ => Err(InvalidInstruction(inst)),
+                            _ => Err(IllegalInstruction(inst)),
                         }
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
             0x23 => {
@@ -365,7 +365,7 @@ impl Cpu {
                     0x1 => { self.store(addr, 16, self.regs[rs2])?; self.update_pc() }       // sh
                     0x2 => { self.store(addr, 32, self.regs[rs2])?; self.update_pc() }       // sw
                     0x3 => { self.store(addr, 64, self.regs[rs2])?; self.update_pc() }       // sd
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
             0x33 => {
@@ -429,7 +429,7 @@ impl Cpu {
                         self.regs[rd] = self.regs[rs1] & self.regs[rs2];
                         return self.update_pc();
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
             0x37 => {
@@ -466,7 +466,7 @@ impl Cpu {
                         self.regs[rd] = ((self.regs[rs1] as i32) >> (shamt as i32)) as u64;
                         return self.update_pc();
                     }
-                    _ => Err(InvalidInstruction(inst)), 
+                    _ => Err(IllegalInstruction(inst)), 
                 }
             }
             0x63 => {
@@ -519,7 +519,7 @@ impl Cpu {
                         }
                         return Ok(());
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
             0x67 => {
@@ -594,7 +594,7 @@ impl Cpu {
                                 // Do nothing.
                                 return Ok(());
                             }
-                            _ => Err(InvalidInstruction(inst)),
+                            _ => Err(IllegalInstruction(inst)),
                         }
                     }
                     0x1 => {
@@ -641,10 +641,10 @@ impl Cpu {
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
-                    _ => Err(InvalidInstruction(inst)),
+                    _ => Err(IllegalInstruction(inst)),
                 }
             }
-            _ => Err(InvalidInstruction(inst)),
+            _ => Err(IllegalInstruction(inst)),
         }
     }
 }
