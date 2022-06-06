@@ -47,7 +47,7 @@ An MRET or SRET instruction is used to return from a trap in M-mode or S-mode re
 assume current privilege mode is x and xPP = y
 when execute an xRET cause:
 xIE = xPIE
-privilege mode = y
+privilege mode = xPP (aka. y)
 xPIE = 1
 xPP = least-privileged supported mode (U or M)
 MPRV = 0 if xPP != M

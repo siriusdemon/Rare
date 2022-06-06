@@ -548,64 +548,45 @@ impl Cpu {
                         match (rs2, funct7) {
                             (0x2, 0x8) => {
                                 // sret
-                                // The SRET instruction returns from a supervisor-mode exception
-                                // handler. It does the following operations:
-                                // - Sets the pc to CSRs[sepc].
-                                // - Sets the privilege mode to CSRs[sstatus].SPP.
-                                // - Sets CSRs[sstatus].SIE to CSRs[sstatus].SPIE.
-                                // - Sets CSRs[sstatus].SPIE to 1.
-                                // - Sets CSRs[sstatus].SPP to 0.
+                                // set the pc to CSRs[sepc].
                                 self.pc = self.load_csr(SEPC);
                                 // When the SRET instruction is executed to return from the trap
                                 // handler, the privilege level is set to user mode if the SPP
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
-                                // is the 8th of the SSTATUS csr.
-                                self.mode = match (self.load_csr(SSTATUS) >> 8) & 1 {
-                                    1 => Mode::Supervisor,
-                                    _ => Mode::User,
-                                };
-                                // The SPIE bit is the 5th and the SIE bit is the 1st of the
-                                // SSTATUS csr.
-                                self.store_csr(
-                                    SSTATUS,
-                                    if ((self.load_csr(SSTATUS) >> 5) & 1) == 1 {
-                                        self.load_csr(SSTATUS) | (1 << 1)
-                                    } else {
-                                        self.load_csr(SSTATUS) & !(1 << 1)
-                                    },
-                                );
-                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) | (1 << 5));
-                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) & !(1 << 8));
+                                // is SSTATUS[8].
+                                let mut sstatus = self.load_csr(SSTATUS);
+                                self.mode = if (sstatus >> 8) & 1 == 1 {Mode::Supervisor} else {Mode::User};
+                                // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
+                                let spie = (sstatus >> 5) & 1;
+                                // set SIE = SPIE
+                                sstatus |= spie << 1;
+                                // set SPIE = 1
+                                sstatus |= 1 << 5;
+                                // set SPP the least privilege mode (u-mode)
+                                sstatus &= !(1 << 8);
+                                self.store_csr(SSTATUS, sstatus);
                                 return Ok(());
                             }
                             (0x2, 0x18) => {
                                 // mret
-                                // The MRET instruction returns from a machine-mode exception
-                                // handler. It does the following operations:
-                                // - Sets the pc to CSRs[mepc].
-                                // - Sets the privilege mode to CSRs[mstatus].MPP.
-                                // - Sets CSRs[mstatus].MIE to CSRs[mstatus].MPIE.
-                                // - Sets CSRs[mstatus].MPIE to 1.
-                                // - Sets CSRs[mstatus].MPP to 0.
+                                // set the pc to CSRs[mepc].
                                 self.pc = self.load_csr(MEPC);
-                                // MPP is two bits wide at [11..12] of the MSTATUS csr.
-                                self.mode = match (self.load_csr(MSTATUS) >> 11) & 0b11 {
+                                let mut mstatus = self.load_csr(MSTATUS);
+                                // MPP is two bits wide at MSTATUS[12:11]
+                                self.mode = match (mstatus >> 11) & 0b11 {
                                     2 => Mode::Machine,
                                     1 => Mode::Supervisor,
                                     _ => Mode::User,
                                 };
-                                // The MPIE bit is the 7th and the MIE bit is the 3rd of the
-                                // MSTATUS csr.
-                                self.store_csr(
-                                    MSTATUS,
-                                    if ((self.load_csr(MSTATUS) >> 7) & 1) == 1 {
-                                        self.load_csr(MSTATUS) | (1 << 3)
-                                    } else {
-                                        self.load_csr(MSTATUS) & !(1 << 3)
-                                    },
-                                );
-                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) | (1 << 7));
-                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) & !(0b11 << 11));
+                                // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
+                                let mpie = (mstatus >> 7) & 1;
+                                // set MIE = MPIE
+                                mstatus |= mpie << 3;
+                                // set MPIE = 1
+                                mstatus |= 1 << 7;
+                                // set MPP the least privilege mode (u-mode)
+                                mstatus &= !(ob11 << 11);
+                                self.store_csr(MSTATUS, mstatus);
                                 return Ok(());
                             }
                             (_, 0x9) => {
