@@ -57,6 +57,10 @@ xPP = least-privileged supported mode (U or M)
 MPRV = 0 if xPP != M
 ```
 
++ SXL / UXL: only in RV64, control UXLEN, SXLEN. In RV32, UXLEN = SXLEN = 32.
++ MPRV:  read-only if U-mode is not supported. When MPRV = 1, load and store memory addresses are translated and protected, and endianness is applied, as though the current privilege mode were set to MPP. Instruction address-translation and protection are unaffected by the setting of MPRV. 
+
+
 
 ### 4.1.7 Supervisor Exception Program Counter (sepc)
 
