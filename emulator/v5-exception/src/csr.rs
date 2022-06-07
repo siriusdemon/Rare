@@ -47,6 +47,7 @@ pub const SIP: usize = 0x144;
 /// Supervisor address translation and protection.
 pub const SATP: usize = 0x180;
 
+
 // mstatus and sstatus field mask
 pub const BIT_SIE: u64 = 1 << 1; 
 pub const BIT_MIE: u64 = 1 << 3;
@@ -78,8 +79,8 @@ pub struct Csr {
 }
 
 impl Csr {
-    pub fn new(csrs: [u64; NUM_CSRS]) -> Csr {
-        Self { csrs }
+    pub fn new() -> Csr {
+        Self { csrs: [0; NUM_CSRS] }
     }
 
     pub fn dump_csrs(&self) {

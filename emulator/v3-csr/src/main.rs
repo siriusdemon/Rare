@@ -9,7 +9,7 @@ mod dram;
 mod cpu;
 mod bus;
 mod exception;
-mod csrs;
+mod csr;
 
 pub use param::*;
 use cpu::Cpu;

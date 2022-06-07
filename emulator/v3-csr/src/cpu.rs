@@ -1,7 +1,7 @@
 use crate::bus::Bus;
 use crate::{DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, InvalidInstruction};
-use crate::csrs::*;
+use crate::csr::*;
 
 
 
@@ -27,7 +27,7 @@ impl Cpu {
         regs[2] = DRAM_END;
 
         let bus = Bus::new(code);
-        let csr = Csr::new([0; NUM_CSRS]);
+        let csr = Csr::new();
 
         Self {regs, pc: DRAM_BASE, bus, csr}
     }

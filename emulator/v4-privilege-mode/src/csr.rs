@@ -79,8 +79,8 @@ pub struct Csr {
 }
 
 impl Csr {
-    pub fn new(csrs: [u64; NUM_CSRS]) -> Csr {
-        Self { csrs }
+    pub fn new() -> Csr {
+        Self { csrs: [0; NUM_CSRS] }
     }
 
     pub fn dump_csrs(&self) {

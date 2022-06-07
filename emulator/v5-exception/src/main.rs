@@ -9,6 +9,7 @@ mod dram;
 mod cpu;
 mod bus;
 mod exception;
+mod csr;
 
 pub use param::*;
 use cpu::Cpu;
@@ -52,7 +53,7 @@ fn main() -> io::Result<()> {
         };
     }
     cpu.dump_registers();
-    cpu.dump_csrs();
+    cpu.csr.dump_csrs();
     cpu.dump_pc();
     Ok(())
 }
