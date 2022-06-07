@@ -471,15 +471,15 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is SSTATUS[8].
                                 let mut sstatus = self.csr.load(SSTATUS);
-                                self.mode = if (sstatus >> 8) & 1 == 1 {Mode::Supervisor} else {Mode::User};
+                                self.mode = if (sstatus & BIT_SPP) > 0 {Mode::Supervisor} else {Mode::User};
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
-                                let spie = (sstatus >> 5) & 1;
+                                let spie = (sstatus & BIT_SPIE) >> 5;
                                 // set SIE = SPIE
                                 sstatus |= spie << 1;
                                 // set SPIE = 1
-                                sstatus |= 1 << 5;
+                                sstatus |= BIT_SPIE;
                                 // set SPP the least privilege mode (u-mode)
-                                sstatus &= !(1 << 8);
+                                sstatus &= !BIT_SPP;
                                 self.csr.store(SSTATUS, sstatus);
                                 return Ok(());
                             }
@@ -489,19 +489,20 @@ impl Cpu {
                                 self.pc = self.csr.load(MEPC);
                                 let mut mstatus = self.csr.load(MSTATUS);
                                 // MPP is two bits wide at MSTATUS[12:11]
-                                self.mode = match (mstatus >> 11) & 0b11 {
+                                self.mode = match (mstatus & BIT_MPP) >> 11 {
                                     2 => Mode::Machine,
                                     1 => Mode::Supervisor,
-                                    _ => Mode::User,
+                                    0 => Mode::User,
+                                    _ => unreachable!(),
                                 };
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE
                                 mstatus |= mpie << 3;
                                 // set MPIE = 1
-                                mstatus |= 1 << 7;
+                                mstatus |= BIT_MPIE;
                                 // set MPP the least privilege mode (u-mode)
-                                mstatus &= !(0b11 << 11);
+                                mstatus &= !BIT_MPP;
                                 self.csr.store(MSTATUS, mstatus);
                                 return Ok(());
                             }

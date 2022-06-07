@@ -1,4 +1,4 @@
-
+#[allow(dead_code)]
 
 pub const NUM_CSRS: usize = 4096;
 // Machine-level CSRs.
@@ -47,17 +47,28 @@ pub const SIP: usize = 0x144;
 /// Supervisor address translation and protection.
 pub const SATP: usize = 0x180;
 
-
-pub const BIT_SIE: u64 = 1 << 1; // sstatus[1]
-pub const BIT_SPIE: u64 = 1 << 5; // sstatus[5]
-pub const BIT_UBE: u64 = 1 << 6; // sstatus[6]
-pub const BIT_SPP: u64 = 1 << 8; // sstatus[8]
-pub const BIT_FS: u64 = 0b11 << 13; // sstatus[14:13]
-pub const BIT_XS: u64 = 0b11 << 15; // sstatus[16:15]
-pub const BIT_SUM: u64 = 1 << 18; // sstatus[18]
-pub const BIT_MXR: u64 = 1 << 19; // sstatus[19]
-pub const BIT_UXL: u64 = 0b11 << 32; // sstatus[33:32]
-pub const BIT_SD: u64 = 1 << 63; // sstatus[63]
+// mstatus and sstatus field mask
+pub const BIT_SIE: u64 = 1 << 1; 
+pub const BIT_MIE: u64 = 1 << 3;
+pub const BIT_SPIE: u64 = 1 << 5; 
+pub const BIT_UBE: u64 = 1 << 6; 
+pub const BIT_MPIE: u64 = 1 << 7;
+pub const BIT_SPP: u64 = 1 << 8; 
+pub const BIT_VS: u64 = 0b11 << 9;
+pub const BIT_MPP: u64 = 0b11 << 11;
+pub const BIT_FS: u64 = 0b11 << 13; 
+pub const BIT_XS: u64 = 0b11 << 15; 
+pub const BIT_MPRV: u64 = 1 << 17;
+pub const BIT_SUM: u64 = 1 << 18; 
+pub const BIT_MXR: u64 = 1 << 19; 
+pub const BIT_TVM: u64 = 1 << 20;
+pub const BIT_TW: u64 = 1 << 21;
+pub const BIT_TSR: u64 = 1 << 22;
+pub const BIT_UXL: u64 = 0b11 << 32; 
+pub const BIT_SXL: u64 = 0b11 << 34;
+pub const BIT_SBE: u64 = 1 << 36;
+pub const BIT_MBE: u64 = 1 << 37;
+pub const BIT_SD: u64 = 1 << 63; 
 pub const SSTATUS_MASK: u64 = BIT_SIE | BIT_SPIE | BIT_UBE | BIT_SPP | BIT_FS 
                             | BIT_XS  | BIT_SUM  | BIT_MXR | BIT_UXL | BIT_SD;
 
