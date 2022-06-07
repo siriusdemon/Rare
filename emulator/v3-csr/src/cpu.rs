@@ -1,62 +1,15 @@
 use crate::bus::Bus;
 use crate::{DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, InvalidInstruction};
+use crate::csrs::*;
 
-
-
-/// From Riscv Spec. Volumn 2
-// Machine-level CSRs.
-/// Hardware thread ID.
-pub const MHARTID: usize = 0xf14;
-/// Machine status register.
-pub const MSTATUS: usize = 0x300;
-/// Machine exception delefation register.
-pub const MEDELEG: usize = 0x302;
-/// Machine interrupt delefation register.
-pub const MIDELEG: usize = 0x303;
-/// Machine interrupt-enable register.
-pub const MIE: usize = 0x304;
-/// Machine trap-handler base address.
-pub const MTVEC: usize = 0x305;
-/// Machine counter enable.
-pub const MCOUNTEREN: usize = 0x306;
-/// Scratch register for machine trap handlers.
-pub const MSCRATCH: usize = 0x340;
-/// Machine exception program counter.
-pub const MEPC: usize = 0x341;
-/// Machine trap cause.
-pub const MCAUSE: usize = 0x342;
-/// Machine bad address or instruction.
-pub const MTVAL: usize = 0x343;
-/// Machine interrupt pending.
-pub const MIP: usize = 0x344;
-
-// Supervisor-level CSRs.
-/// Supervisor status register.
-pub const SSTATUS: usize = 0x100;
-/// Supervisor interrupt-enable register.
-pub const SIE: usize = 0x104;
-/// Supervisor trap handler base address.
-pub const STVEC: usize = 0x105;
-/// Scratch register for supervisor trap handlers.
-pub const SSCRATCH: usize = 0x140;
-/// Supervisor exception program counter.
-pub const SEPC: usize = 0x141;
-/// Supervisor trap cause.
-pub const SCAUSE: usize = 0x142;
-/// Supervisor bad address or instruction.
-pub const STVAL: usize = 0x143;
-/// Supervisor interrupt pending.
-pub const SIP: usize = 0x144;
-/// Supervisor address translation and protection.
-pub const SATP: usize = 0x180;
 
 
 pub struct Cpu {
     pub regs: [u64; 32],
     pub pc: u64,
     pub bus: Bus,
-    pub csrs: [u64; 4096],
+    pub csr: Csr,
 }
 
 
@@ -74,9 +27,9 @@ impl Cpu {
         regs[2] = DRAM_END;
 
         let bus = Bus::new(code);
-        let csrs = [0; 4096];
+        let csr = Csr::new([0; NUM_CSRS]);
 
-        Self {regs, pc: DRAM_BASE, bus, csrs}
+        Self {regs, pc: DRAM_BASE, bus, csr}
     }
 
     pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
@@ -96,22 +49,22 @@ impl Cpu {
                     }
                     panic!("Invalid register {}", r);
                 }
-                "mstatus" => self.load_csr(MSTATUS),
-                "mtvec" => self.load_csr(MTVEC),
-                "mepc" => self.load_csr(MEPC),
-                "mcause" => self.load_csr(MCAUSE),
-                "mtval" => self.load_csr(MTVAL),
-                "medeleg" => self.load_csr(MEDELEG),
-                "mscratch" => self.load_csr(MSCRATCH),
-                "MIP" => self.load_csr(MIP),
-                "sstatus" => self.load_csr(SSTATUS),
-                "stvec" => self.load_csr(STVEC),
-                "sepc" => self.load_csr(SEPC),
-                "scause" => self.load_csr(SCAUSE),
-                "stval" => self.load_csr(STVAL),
-                "sscratch" => self.load_csr(SSCRATCH),
-                "SIP" => self.load_csr(SIP),
-                "SATP" => self.load_csr(SATP),
+                "mstatus" => self.csr.load(MSTATUS),
+                "mtvec" => self.csr.load(MTVEC),
+                "mepc" => self.csr.load(MEPC),
+                "mcause" => self.csr.load(MCAUSE),
+                "mtval" => self.csr.load(MTVAL),
+                "medeleg" => self.csr.load(MEDELEG),
+                "mscratch" => self.csr.load(MSCRATCH),
+                "MIP" => self.csr.load(MIP),
+                "sstatus" => self.csr.load(SSTATUS),
+                "stvec" => self.csr.load(STVEC),
+                "sepc" => self.csr.load(SEPC),
+                "scause" => self.csr.load(SCAUSE),
+                "stval" => self.csr.load(STVAL),
+                "sscratch" => self.csr.load(SSCRATCH),
+                "SIP" => self.csr.load(SIP),
+                "SATP" => self.csr.load(SATP),
                 _ => panic!("Invalid register {}", r),
             }
         }
@@ -148,43 +101,6 @@ impl Cpu {
         println!("{}", output);
     }
 
-    pub fn dump_csrs(&self) {
-        println!("{:-^80}", "control status registers");
-        let output = format!(
-            "{}\n{}\n",
-            format!(
-                "mstatus = {:<#18x}  mtvec = {:<#18x}  mepc = {:<#18x}  mcause = {:<#18x}",
-                self.load_csr(MSTATUS),
-                self.load_csr(MTVEC),
-                self.load_csr(MEPC),
-                self.load_csr(MCAUSE),
-            ),
-            format!(
-                "sstatus = {:<#18x}  stvec = {:<#18x}  sepc = {:<#18x}  scause = {:<#18x}",
-                self.load_csr(SSTATUS),
-                self.load_csr(STVEC),
-                self.load_csr(SEPC),
-                self.load_csr(SCAUSE),
-            ),
-        );
-        println!("{}", output);
-    }
-
-    pub fn load_csr(&self, addr: usize) -> u64 {
-        match addr {
-            SIE => self.csrs[MIE] & self.csrs[MIDELEG],
-            SIP => self.csrs[MIP] & self.csrs[MIDELEG],
-            _ => self.csrs[addr],
-        }
-    }
-
-    pub fn store_csr(&mut self, addr: usize, value: u64) {
-        match addr {
-            SIE => self.csrs[MIE] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
-            SIP => self.csrs[MIP] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
-            _ => self.csrs[addr] = value,
-        }
-    }
 
     pub fn fetch(&self) -> Result<u64, RvException> {
         self.bus.load(self.pc, 32)
@@ -535,45 +451,45 @@ impl Cpu {
                 match funct3 {
                     0x1 => {
                         // csrrw
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, self.regs[rs1]);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, self.regs[rs1]);
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
                     0x2 => {
                         // csrrs
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t | self.regs[rs1]);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t | self.regs[rs1]);
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
                     0x3 => {
                         // csrrc
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t & (!self.regs[rs1]));
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t & (!self.regs[rs1]));
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
                     0x5 => {
                         // csrrwi
                         let zimm = rs1 as u64;
-                        self.regs[rd] = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, zimm);
+                        self.regs[rd] = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, zimm);
                         return self.update_pc();
                     }
                     0x6 => {
                         // csrrsi
                         let zimm = rs1 as u64;
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t | zimm);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t | zimm);
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
                     0x7 => {
                         // csrrci
                         let zimm = rs1 as u64;
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t & (!zimm));
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t & (!zimm));
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
@@ -878,7 +794,6 @@ mod test {
             csrrwi zero, sepc, 6
             csrrci zero, sepc, 0 
         ";
-        riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
-                                            "sstatus" => 4, "stvec" => 5, "sepc" => 6);
+        riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3, "stvec" => 5, "sepc" => 6);
     }
 }

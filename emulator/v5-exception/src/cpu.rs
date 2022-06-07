@@ -201,6 +201,10 @@ impl Cpu {
         self.bus.load(self.pc, 32)
     }
 
+    pub fn handle_exception(&self, e: RvException) {
+        
+    }
+
     #[inline]
     pub fn update_pc(&mut self) -> Result<(), RvException> {
         self.pc += 4;
