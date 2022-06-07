@@ -1,5 +1,3 @@
-#[allow(dead_code)]
-
 use std::fmt;
 
 #[derive(Copy, Clone)]
@@ -11,7 +9,7 @@ pub enum RvException {
     Breakpoint(u64),
     LoadAccessMisaligned(u64),
     LoadAccessFault(u64),
-    StoreOrAMOAddrMiisaligned(u64),
+    StoreOrAMOAddrMisaligned(u64),
     StoreOrAMOAccessFault(u64),
     EnvironmentCallFromUmode(u64),
     EnvironmentCallFromSmode(u64),
@@ -21,9 +19,9 @@ pub enum RvException {
     StoreOrAMOPageFault(u64),
 }
 
+use RvException::*;
 impl fmt::Display for RvException {
     fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        use RvException::*;
         match self {
             InstructionAddrMisaligned(addr) => write!(f, "Instruction address misaligned {:#x}", addr),
             InstructionAccessFault(addr) => write!(f, "Instruction access fault {:#x}", addr),
@@ -31,7 +29,7 @@ impl fmt::Display for RvException {
             Breakpoint(inst) => write!(f, "Breakpoint {:#x}", inst),
             LoadAccessMisaligned(addr) => write!(f, "Load access {:#x}", addr),
             LoadAccessFault(addr) => write!(f, "Load access fault {:#x}", addr),
-            StoreOrAMOAddrMiisaligned(addr) => write!(f, "Store or AMO address misaliged {:#x}", addr),
+            StoreOrAMOAddrMisaligned(addr) => write!(f, "Store or AMO address misaliged {:#x}", addr),
             StoreOrAMOAccessFault(addr) => write!(f, "Store or AMO access fault {:#x}", addr),
             EnvironmentCallFromUmode(inst) => write!(f, "Environment call from U-mode {:#x}", inst),
             EnvironmentCallFromSmode(inst) => write!(f, "Environment call from S-mode {:#x}", inst),
@@ -46,7 +44,6 @@ impl fmt::Display for RvException {
 
 impl RvException {
     pub fn value(self) -> u64 {
-        use RvException::*;
         match self {
             InstructionAddrMisaligned(addr) => addr,
             InstructionAccessFault(addr) => addr,
@@ -54,7 +51,7 @@ impl RvException {
             Breakpoint(inst) => inst,
             LoadAccessMisaligned(addr) => addr,
             LoadAccessFault(addr) => addr,
-            StoreOrAMOAddrMiisaligned(addr) => addr,
+            StoreOrAMOAddrMisaligned(addr) => addr,
             StoreOrAMOAccessFault(addr) => addr,
             EnvironmentCallFromUmode(inst) => inst,
             EnvironmentCallFromSmode(inst) => inst,
@@ -66,7 +63,6 @@ impl RvException {
     }
 
     pub fn code(self) -> u64 {
-        use RvException::*;
         match self {
             InstructionAddrMisaligned(_) => 0,
             InstructionAccessFault(_) => 1,
@@ -74,7 +70,7 @@ impl RvException {
             Breakpoint(_) => 3,
             LoadAccessMisaligned(_) => 4,
             LoadAccessFault(_) => 5,
-            StoreOrAMOAddrMiisaligned(_) => 6,
+            StoreOrAMOAddrMisaligned(_) => 6,
             StoreOrAMOAccessFault(_) => 7,
             EnvironmentCallFromUmode(_) => 8,
             EnvironmentCallFromSmode(_) => 9,
@@ -82,6 +78,18 @@ impl RvException {
             InstructionPageFault(_) => 12,
             LoadPageFault(_) => 13,
             StoreOrAMOPageFault(_) => 15,
+        }
+    }
+
+    pub fn is_fatal(self) -> bool {
+        match self {
+            InstructionAddrMisaligned(_)
+            | InstructionAccessFault(_)
+            | LoadAccessFault(_)
+            | StoreOrAMOAddrMisaligned(_)
+            | StoreOrAMOAccessFault(_) 
+            | IllegalInstruction(_) => true,
+            _else => false,
         }
     }
 }
