@@ -1,3 +1,5 @@
+#[allow(dead_code)]
+
 use std::fmt;
 
 #[derive(Copy, Clone)]
@@ -93,5 +95,6 @@ mod test {
         let e = RvException::IllegalInstruction(0x0);
         assert_eq!(e.value(), 0);
         assert_eq!(e.value(), 0);
+        assert_eq!(e.code(), 2);
     }
 }
