@@ -34,7 +34,7 @@ impl fmt::Display for RvException {
             EnvironmentCallFromUmode(inst) => write!(f, "Environment call from U-mode {:#x}", inst),
             EnvironmentCallFromSmode(inst) => write!(f, "Environment call from S-mode {:#x}", inst),
             EnvironmentCallFromMmode(inst) => write!(f, "Environment call from M-mode {:#x}", inst),
-            InstructionPageFault(inst) => write!(f, "Instruction page fault {:#x}", inst),
+            InstructionPageFault(addr) => write!(f, "Instruction page fault {:#x}", addr),
             LoadPageFault(addr) => write!(f, "Load page fault {:#x}", addr),
             StoreOrAMOPageFault(addr) => write!(f, "Store or AMO page fault {:#x}", addr),
         }

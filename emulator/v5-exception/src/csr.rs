@@ -122,4 +122,14 @@ impl Csr {
             _ => self.csrs[addr] = value,
         }
     }
+
+    #[inline]
+    pub fn is_medelegated(&self, cause: u64) -> bool {
+        (self.csrs[MEDELEG].wrapping_shr(cause as u32) & 1) == 1
+    }
+
+    #[inline]
+    pub fn is_midelegated(&self, cause: u64) -> bool {
+        (self.csrs[MIDELEG].wrapping_shr(cause as u32) & 1) == 1
+    }
 }

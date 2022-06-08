@@ -6,12 +6,11 @@ use crate::csr::*;
 
 
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Copy, Clone)]
-pub enum Mode {
-    User = 0b00,
-    Supervisor = 0b01,
-    Machine = 0b11,
-}
+
+type Mode = u64;
+const User: Mode = 0b00;
+const Supervisor: Mode = 0b01;
+const Machine: Mode = 0b11;
 
 pub struct Cpu {
     pub regs: [u64; 32],
@@ -37,7 +36,7 @@ impl Cpu {
 
         let bus = Bus::new(code);
         let csr = Csr::new();
-        let mode = Mode::Machine;
+        let mode = Machine;
 
         Self {regs, pc: DRAM_BASE, bus, csr, mode}
     }
@@ -471,7 +470,7 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is SSTATUS[8].
                                 let mut sstatus = self.csr.load(SSTATUS);
-                                self.mode = if (sstatus & BIT_SPP) > 0 {Mode::Supervisor} else {Mode::User};
+                                self.mode = (sstatus & BIT_SPP) >> 8;
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
                                 let spie = (sstatus & BIT_SPIE) >> 5;
                                 // set SIE = SPIE
@@ -489,12 +488,7 @@ impl Cpu {
                                 self.pc = self.csr.load(MEPC);
                                 let mut mstatus = self.csr.load(MSTATUS);
                                 // MPP is two bits wide at MSTATUS[12:11]
-                                self.mode = match (mstatus & BIT_MPP) >> 11 {
-                                    2 => Mode::Machine,
-                                    1 => Mode::Supervisor,
-                                    0 => Mode::User,
-                                    _ => unreachable!(),
-                                };
+                                self.mode = (mstatus & BIT_MPP) >> 11;
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE

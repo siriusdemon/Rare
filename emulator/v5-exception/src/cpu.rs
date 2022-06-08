@@ -6,12 +6,11 @@ use crate::csr::*;
 
 
 
-#[derive(Debug, PartialEq, PartialOrd, Eq, Copy, Clone)]
-pub enum Mode {
-    User = 0b00,
-    Supervisor = 0b01,
-    Machine = 0b11,
-}
+type Mode = u64;
+const User: Mode = 0b00;
+const Supervisor: Mode = 0b01;
+const Machine: Mode = 0b11;
+
 
 pub struct Cpu {
     pub regs: [u64; 32],
@@ -37,7 +36,7 @@ impl Cpu {
 
         let bus = Bus::new(code);
         let csr = Csr::new();
-        let mode = Mode::Machine;
+        let mode = Machine;
 
         Self {regs, pc: DRAM_BASE, bus, csr, mode}
     }
@@ -117,14 +116,77 @@ impl Cpu {
         self.bus.load(self.pc, 32)
     }
 
-    pub fn handle_exception(&self, e: RvException) {
+    pub fn handle_exception(&mut self, e: RvException) {
+        // the process to handle exception in S-mode and M-mode is similar,
+        // includes following steps:
+        // 0. set xPP to current mode.
+        // 1. update hart's privilege mode (M or S according to current mode and exception setting).
+        // 2. save current pc in epc (sepc in S-mode, mepc in M-mode)
+        // 3. set pc to trap vector (stvec in S-mode, mtvec in M-mode)
+        // 4. set cause to exception code (scause in S-mode, mcause in M-mode)
+        // 5. set trap value properly (stval in S-mode, mtval in M-mode)
+        // 6. set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)
+        // 7. clear up xIE (SIE in S-mode, MIE in M-mode)
+        use RvException::*;
         let pc = self.pc; 
         let mode = self.mode;
-        let cause = e.code();
-        if mode <= Mode::Supervisor && {
-
-        }
-
+        // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
+        // then this exception should be handled in S-mode.
+        let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(e.code());
+        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, BIT_PIE, pie_i, BIT_IE, ie_i, pp_i) = if trap_in_s_mode {
+            self.mode = Supervisor;
+            (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, BIT_SPIE, 5, BIT_SIE, 1, 8)
+        } else {
+            self.mode = Machine;
+            (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, BIT_MPIE, 7, BIT_MIE, 3, 11)
+        };
+        // 3.1.7 & 4.1.2
+        // The BASE field in tvec is a WARL field that can hold any valid virtual or physical address,
+        // subject to the following alignment constraints: the address must be 4-byte aligned
+        self.pc = self.csr.load(TVEC) & !0b11;
+        // 3.1.14 & 4.1.7
+        // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
+        // of the instruction that was interrupted or that encountered the exception.
+        self.csr.store(EPC, pc & !0b11);
+        // 3.1.15 & 4.1.8
+        // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
+        // the event that caused the trap.
+        self.csr.store(CAUSE, e.code());
+        // 3.1.16 & 4.1.9
+        // If stval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or
+        // page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the
+        // faulting virtual address.
+        // If stval is written with a nonzero value when a misaligned load or store causes an access-fault or
+        // page-fault exception, then stval will contain the virtual address of the portion of the access that
+        // caused the fault
+        let addr = match e {
+            InstructionAddrMisaligned(addr) 
+            | InstructionAccessFault(addr) 
+            | InstructionPageFault(addr) => addr,
+            LoadAccessMisaligned(addr)
+            | LoadAccessFault(addr)
+            | LoadPageFault(addr) => addr,
+            StoreOrAMOAddrMisaligned(addr)
+            | StoreOrAMOAccessFault(addr)
+            | StoreOrAMOPageFault(addr) => addr,
+            _ => 0,
+        };
+        self.csr.store(TVAL, addr);
+        // 3.1.6 covers both sstatus and mstatus.
+        let mut status = self.csr.load(STATUS);
+        // get SIE or MIE
+        let ie = (status & BIT_IE) >> ie_i;
+        // set SPIE = SIE / MPIE = MIE
+        status |= ie << pie_i;
+        // set SIE = 0 / MIE = 0
+        status &= !BIT_IE; 
+        // set SPP / MPP = previous mode
+        // if mode is U-mode and trap in S-mode, SPP should be 0
+        //                    if trap in M-mode, MPP should be 0
+        // if mode is S-mode and trap in S-mode, SPP should be 1
+        //                    if trap in M-mode, MPP should be 1
+        // if mode is M-mode and trap in M-mode, MPP should be 3
+        self.csr.store(STATUS, status);
     }
 
     #[inline]
@@ -481,7 +543,7 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is SSTATUS[8].
                                 let mut sstatus = self.csr.load(SSTATUS);
-                                self.mode = if (sstatus & BIT_SPP) > 0 {Mode::Supervisor} else {Mode::User};
+                                self.mode = (sstatus & BIT_SPP) >> 8;
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
                                 let spie = (sstatus & BIT_SPIE) >> 5;
                                 // set SIE = SPIE
@@ -499,12 +561,7 @@ impl Cpu {
                                 self.pc = self.csr.load(MEPC);
                                 let mut mstatus = self.csr.load(MSTATUS);
                                 // MPP is two bits wide at MSTATUS[12:11]
-                                self.mode = match (mstatus & BIT_MPP) >> 11 {
-                                    2 => Mode::Machine,
-                                    1 => Mode::Supervisor,
-                                    0 => Mode::User,
-                                    _ => unreachable!(),
-                                };
+                                self.mode = (mstatus & BIT_MPP) >> 11;
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE
