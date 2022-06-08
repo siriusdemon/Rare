@@ -1,11 +1,12 @@
+#[allow(non_upper_case_globals)]
+
 use crate::bus::Bus;
 use crate::{DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, IllegalInstruction};
 use crate::csr::*;
 
 
-
-
+// Riscv Privilege Mode
 type Mode = u64;
 const User: Mode = 0b00;
 const Supervisor: Mode = 0b01;
@@ -133,13 +134,14 @@ impl Cpu {
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
         // then this exception should be handled in S-mode.
         let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(e.code());
-        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, BIT_PIE, pie_i, BIT_IE, ie_i, pp_i) = if trap_in_s_mode {
-            self.mode = Supervisor;
-            (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, BIT_SPIE, 5, BIT_SIE, 1, 8)
-        } else {
-            self.mode = Machine;
-            (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, BIT_MPIE, 7, BIT_MIE, 3, 11)
-        };
+        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, BIT_PIE, pie_i, BIT_IE, ie_i, BIT_PP, pp_i) 
+            = if trap_in_s_mode {
+                self.mode = Supervisor;
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, BIT_SPIE, 5, BIT_SIE, 1, BIT_SPP, 8)
+            } else {
+                self.mode = Machine;
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, BIT_MPIE, 7, BIT_MIE, 3, BIT_MPP, 11)
+            };
         // 3.1.7 & 4.1.2
         // The BASE field in tvec is a WARL field that can hold any valid virtual or physical address,
         // subject to the following alignment constraints: the address must be 4-byte aligned
@@ -181,11 +183,7 @@ impl Cpu {
         // set SIE = 0 / MIE = 0
         status &= !BIT_IE; 
         // set SPP / MPP = previous mode
-        // if mode is U-mode and trap in S-mode, SPP should be 0
-        //                    if trap in M-mode, MPP should be 0
-        // if mode is S-mode and trap in S-mode, SPP should be 1
-        //                    if trap in M-mode, MPP should be 1
-        // if mode is M-mode and trap in M-mode, MPP should be 3
+        status = (status & !BIT_PP) | mode << pp_i;
         self.csr.store(STATUS, status);
     }
 
