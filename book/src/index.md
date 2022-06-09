@@ -22,6 +22,7 @@
 
 + [Riscv 标准](https://riscv.org/technical/specifications/)
 + [Riscv Reader](https://zh.webbooksnow.art/dl/16429281/d4417e)
++ [手把手教你设计RISC-V处理器](https://zh.webbooksnow.art/book/18067855/bd7a8a)
 
 至于 Rust，安装好环境之后，可以通过运行 `rustup docs` 来访问`the book`以及 Rust 文档。
 
