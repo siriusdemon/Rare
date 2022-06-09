@@ -56,7 +56,7 @@ impl RvException {
             EnvironmentCallFromUmode(inst) => inst,
             EnvironmentCallFromSmode(inst) => inst,
             EnvironmentCallFromMmode(inst) => inst,
-            InstructionPageFault(inst) => inst,
+            InstructionPageFault(addr) => addr,
             LoadPageFault(addr) => addr,
             StoreOrAMOPageFault(addr) => addr,
         }
@@ -101,7 +101,6 @@ mod test {
     #[test]
     fn test_code() {
         let e = RvException::IllegalInstruction(0x0);
-        assert_eq!(e.value(), 0);
         assert_eq!(e.value(), 0);
         assert_eq!(e.code(), 2);
     }
