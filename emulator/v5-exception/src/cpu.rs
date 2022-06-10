@@ -134,13 +134,13 @@ impl Cpu {
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
         // then this exception should be handled in S-mode.
         let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(e.code());
-        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, BIT_PIE, pie_i, BIT_IE, ie_i, BIT_PP, pp_i) 
+        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
             = if trap_in_s_mode {
                 self.mode = Supervisor;
-                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, BIT_SPIE, 5, BIT_SIE, 1, BIT_SPP, 8)
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
             } else {
                 self.mode = Machine;
-                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, BIT_MPIE, 7, BIT_MIE, 3, BIT_MPP, 11)
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
             };
         // 3.1.7 & 4.1.2
         // The BASE field in tvec is a WARL field that can hold any valid virtual or physical address,
@@ -149,7 +149,7 @@ impl Cpu {
         // 3.1.14 & 4.1.7
         // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
         // of the instruction that was interrupted or that encountered the exception.
-        self.csr.store(EPC, pc & !0b11);
+        self.csr.store(EPC, pc);
         // 3.1.15 & 4.1.8
         // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
         // the event that caused the trap.
@@ -177,13 +177,13 @@ impl Cpu {
         // 3.1.6 covers both sstatus and mstatus.
         let mut status = self.csr.load(STATUS);
         // get SIE or MIE
-        let ie = (status & BIT_IE) >> ie_i;
+        let ie = (status & MASK_IE) >> ie_i;
         // set SPIE = SIE / MPIE = MIE
         status |= ie << pie_i;
         // set SIE = 0 / MIE = 0
-        status &= !BIT_IE; 
+        status &= !MASK_IE; 
         // set SPP / MPP = previous mode
-        status = (status & !BIT_PP) | mode << pp_i;
+        status = (status & !MASK_PP) | mode << pp_i;
         self.csr.store(STATUS, status);
     }
 
@@ -541,15 +541,15 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is SSTATUS[8].
                                 let mut sstatus = self.csr.load(SSTATUS);
-                                self.mode = (sstatus & BIT_SPP) >> 8;
+                                self.mode = (sstatus & MASK_SPP) >> 8;
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
-                                let spie = (sstatus & BIT_SPIE) >> 5;
+                                let spie = (sstatus & MASK_SPIE) >> 5;
                                 // set SIE = SPIE
                                 sstatus |= spie << 1;
                                 // set SPIE = 1
-                                sstatus |= BIT_SPIE;
+                                sstatus |= MASK_SPIE;
                                 // set SPP the least privilege mode (u-mode)
-                                sstatus &= !BIT_SPP;
+                                sstatus &= !MASK_SPP;
                                 self.csr.store(SSTATUS, sstatus);
                                 return Ok(());
                             }
@@ -559,15 +559,15 @@ impl Cpu {
                                 self.pc = self.csr.load(MEPC);
                                 let mut mstatus = self.csr.load(MSTATUS);
                                 // MPP is two bits wide at MSTATUS[12:11]
-                                self.mode = (mstatus & BIT_MPP) >> 11;
+                                self.mode = (mstatus & MASK_MPP) >> 11;
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE
                                 mstatus |= mpie << 3;
                                 // set MPIE = 1
-                                mstatus |= BIT_MPIE;
+                                mstatus |= MASK_MPIE;
                                 // set MPP the least privilege mode (u-mode)
-                                mstatus &= !BIT_MPP;
+                                mstatus &= !MASK_MPP;
                                 self.csr.store(MSTATUS, mstatus);
                                 return Ok(());
                             }
