@@ -49,29 +49,29 @@ pub const SATP: usize = 0x180;
 
 
 // mstatus and sstatus field mask
-pub const BIT_SIE: u64 = 1 << 1; 
-pub const BIT_MIE: u64 = 1 << 3;
-pub const BIT_SPIE: u64 = 1 << 5; 
-pub const BIT_UBE: u64 = 1 << 6; 
-pub const BIT_MPIE: u64 = 1 << 7;
-pub const BIT_SPP: u64 = 1 << 8; 
-pub const BIT_VS: u64 = 0b11 << 9;
-pub const BIT_MPP: u64 = 0b11 << 11;
-pub const BIT_FS: u64 = 0b11 << 13; 
-pub const BIT_XS: u64 = 0b11 << 15; 
-pub const BIT_MPRV: u64 = 1 << 17;
-pub const BIT_SUM: u64 = 1 << 18; 
-pub const BIT_MXR: u64 = 1 << 19; 
-pub const BIT_TVM: u64 = 1 << 20;
-pub const BIT_TW: u64 = 1 << 21;
-pub const BIT_TSR: u64 = 1 << 22;
-pub const BIT_UXL: u64 = 0b11 << 32; 
-pub const BIT_SXL: u64 = 0b11 << 34;
-pub const BIT_SBE: u64 = 1 << 36;
-pub const BIT_MBE: u64 = 1 << 37;
-pub const BIT_SD: u64 = 1 << 63; 
-pub const SSTATUS_MASK: u64 = BIT_SIE | BIT_SPIE | BIT_UBE | BIT_SPP | BIT_FS 
-                            | BIT_XS  | BIT_SUM  | BIT_MXR | BIT_UXL | BIT_SD;
+pub const MASK_SIE: u64 = 1 << 1; 
+pub const MASK_MIE: u64 = 1 << 3;
+pub const MASK_SPIE: u64 = 1 << 5; 
+pub const MASK_UBE: u64 = 1 << 6; 
+pub const MASK_MPIE: u64 = 1 << 7;
+pub const MASK_SPP: u64 = 1 << 8; 
+pub const MASK_VS: u64 = 0b11 << 9;
+pub const MASK_MPP: u64 = 0b11 << 11;
+pub const MASK_FS: u64 = 0b11 << 13; 
+pub const MASK_XS: u64 = 0b11 << 15; 
+pub const MASK_MPRV: u64 = 1 << 17;
+pub const MASK_SUM: u64 = 1 << 18; 
+pub const MASK_MXR: u64 = 1 << 19; 
+pub const MASK_TVM: u64 = 1 << 20;
+pub const MASK_TW: u64 = 1 << 21;
+pub const MASK_TSR: u64 = 1 << 22;
+pub const MASK_UXL: u64 = 0b11 << 32; 
+pub const MASK_SXL: u64 = 0b11 << 34;
+pub const MASK_SBE: u64 = 1 << 36;
+pub const MASK_MBE: u64 = 1 << 37;
+pub const MASK_SD: u64 = 1 << 63; 
+pub const SSTATUS_MASK: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS 
+                            | MASK_XS  | MASK_SUM  | MASK_MXR | MASK_UXL | MASK_SD;
 
 
 pub struct Csr {

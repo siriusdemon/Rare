@@ -470,15 +470,15 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is SSTATUS[8].
                                 let mut sstatus = self.csr.load(SSTATUS);
-                                self.mode = (sstatus & BIT_SPP) >> 8;
+                                self.mode = (sstatus & MASK_SPP) >> 8;
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
-                                let spie = (sstatus & BIT_SPIE) >> 5;
+                                let spie = (sstatus & MASK_SPIE) >> 5;
                                 // set SIE = SPIE
                                 sstatus |= spie << 1;
                                 // set SPIE = 1
-                                sstatus |= BIT_SPIE;
+                                sstatus |= MASK_SPIE;
                                 // set SPP the least privilege mode (u-mode)
-                                sstatus &= !BIT_SPP;
+                                sstatus &= !MASK_SPP;
                                 self.csr.store(SSTATUS, sstatus);
                                 return Ok(());
                             }
@@ -488,15 +488,15 @@ impl Cpu {
                                 self.pc = self.csr.load(MEPC);
                                 let mut mstatus = self.csr.load(MSTATUS);
                                 // MPP is two bits wide at MSTATUS[12:11]
-                                self.mode = (mstatus & BIT_MPP) >> 11;
+                                self.mode = (mstatus & MASK_MPP) >> 11;
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE
                                 mstatus |= mpie << 3;
                                 // set MPIE = 1
-                                mstatus |= BIT_MPIE;
+                                mstatus |= MASK_MPIE;
                                 // set MPP the least privilege mode (u-mode)
-                                mstatus &= !BIT_MPP;
+                                mstatus &= !MASK_MPP;
                                 self.csr.store(MSTATUS, mstatus);
                                 return Ok(());
                             }
