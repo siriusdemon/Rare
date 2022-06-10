@@ -134,7 +134,7 @@ impl Cpu {
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
         // then this exception should be handled in S-mode.
         let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(e.code());
-        let (mut STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
+        let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
             = if trap_in_s_mode {
                 self.mode = Supervisor;
                 (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
@@ -532,6 +532,21 @@ impl Cpu {
                 match funct3 {
                     0x0 => {
                         match (rs2, funct7) {
+                            // ECALL and EBREAK cause the receiving privilege mode’s epc register to be set to the address of
+                            // the ECALL or EBREAK instruction itself, not the address of the following instruction.
+                            (0x0, 0x0) => {
+                                // ecall
+                                match self.mode {
+                                    User => Err(RvException::EnvironmentCallFromUmode(self.pc)),
+                                    Supervisor => Err(RvException::EnvironmentCallFromSmode(self.pc)),
+                                    Machine => Err(RvException::EnvironmentCallFromMmode(self.pc)),
+                                    _ => unreachable!(),
+                                }
+                            }
+                            (0x1, 0x0) => {
+                                // ebreak
+                                return Err(RvException::Breakpoint(self.pc));
+                            }
                             (0x2, 0x8) => {
                                 // sret
                                 // set the pc to CSRs[sepc].

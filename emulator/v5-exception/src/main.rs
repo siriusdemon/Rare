@@ -40,8 +40,13 @@ fn main() -> io::Result<()> {
         let inst = match cpu.fetch() {
             Ok(inst) => inst,
             Err(e) => { 
-                println!("Riscv exception: {}", e);
-                break;
+                if e.is_fatal() {
+                    println!("Riscv exception: {}", e);
+                    break;
+                } else {
+                    cpu.handle_exception(e); 
+                    continue;
+                }
             }
         };
         match cpu.execute(inst) {
