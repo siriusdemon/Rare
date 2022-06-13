@@ -10,6 +10,8 @@ mod cpu;
 mod bus;
 mod exception;
 mod csr;
+mod plic;
+mod clint;
 
 pub use param::*;
 use cpu::Cpu;
