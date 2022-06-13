@@ -52,8 +52,13 @@ fn main() -> io::Result<()> {
         match cpu.execute(inst) {
             Ok(_) => (),
             Err(e) => {
-                println!("Riscv exception: {}", e);
-                break;
+                if e.is_fatal() {
+                    println!("Riscv exception: {}", e);
+                    break;
+                } else {
+                    cpu.handle_exception(e);
+                    continue;
+                }
             }
         };
     }
