@@ -69,7 +69,7 @@ pub const MASK_SXL: u64 = 0b11 << 34;
 pub const MASK_SBE: u64 = 1 << 36;
 pub const MASK_MBE: u64 = 1 << 37;
 pub const MASK_SD: u64 = 1 << 63; 
-pub const SSTATUS_MASK: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS 
+pub const MASK_SSTATUS: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS 
                             | MASK_XS  | MASK_SUM  | MASK_MXR | MASK_UXL | MASK_SD;
 
 
@@ -108,7 +108,7 @@ impl Csr {
         match addr {
             SIE => self.csrs[MIE] & self.csrs[MIDELEG],
             SIP => self.csrs[MIP] & self.csrs[MIDELEG],
-            SSTATUS => self.csrs[MSTATUS] & SSTATUS_MASK,
+            SSTATUS => self.csrs[MSTATUS] & MASK_SSTATUS,
             _ => self.csrs[addr],
         }
     }
@@ -117,7 +117,7 @@ impl Csr {
         match addr {
             SIE => self.csrs[MIE] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
             SIP => self.csrs[MIP] = (self.csrs[MIE] & !self.csrs[MIDELEG]) | (value & self.csrs[MIDELEG]),
-            SSTATUS => self.csrs[MSTATUS] = (self.csrs[MSTATUS] & !SSTATUS_MASK) | (value & SSTATUS_MASK),
+            SSTATUS => self.csrs[MSTATUS] = (self.csrs[MSTATUS] & !MASK_SSTATUS) | (value & MASK_SSTATUS),
             _ => self.csrs[addr] = value,
         }
     }
