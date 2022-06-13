@@ -21,7 +21,7 @@ impl Plic {
         Self {pending: 0, senable: 0, spriority: 0, sclaim: 0}
     }
 
-    fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
+    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
         if size != 32 {
             return Err(LoadAccessFault(addr));
         }
@@ -34,7 +34,7 @@ impl Plic {
         }
     }
 
-    fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
         if size != 32 {
             return Err(LoadAccessFault(addr));
         }
