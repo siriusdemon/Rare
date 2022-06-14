@@ -183,7 +183,7 @@ impl Cpu {
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
-        status = (status & !MASK_PP) | mode << pp_i;
+        status = (status & !MASK_PP) | (mode << pp_i);
         self.csr.store(STATUS, status);
     }
 

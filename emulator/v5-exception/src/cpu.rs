@@ -183,7 +183,7 @@ impl Cpu {
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
-        status = (status & !MASK_PP) | mode << pp_i;
+        status = (status & !MASK_PP) | (mode << pp_i);
         self.csr.store(STATUS, status);
     }
 
@@ -941,5 +941,23 @@ mod test {
         ";
         riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
                                             "sstatus" => 0, "stvec" => 5, "sepc" => 6);
+    }
+
+    #[test]
+    fn test_invalid_inst() {
+        let code = [0xff, 0xff, 0xff, 0xff];
+        // save it in bin file just for debug purpose
+        let mut file = File::create("test_invalid_inst.bin").unwrap();
+        file.write(&code).unwrap();
+        // --
+        let mut cpu = Cpu::new(code.to_vec());
+        let inst = cpu.fetch().unwrap();
+        match cpu.execute(inst) {
+            Err(e) => {
+                cpu.handle_exception(e);
+                assert_eq!(cpu.reg("mcause"), e.code());
+            }
+            _ => assert!(false),
+        };
     }
 }
