@@ -12,6 +12,7 @@ mod exception;
 mod csr;
 mod plic;
 mod clint;
+mod uart;
 
 pub use param::*;
 use cpu::Cpu;
