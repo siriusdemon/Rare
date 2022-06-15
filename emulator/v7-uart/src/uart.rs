@@ -59,9 +59,12 @@ impl Uart {
                 Ok(_) => {
                     let (uart, cvar) = &*read_uart;
                     let mut array = uart.lock().unwrap();
+                    // if data have been received but not yet be transferred.
+                    // this thread wait for it to be transferred.
                     while (array[UART_LSR as usize] & MASK_UART_LSR_RX) == 1 {
                         array = cvar.wait(array).unwrap();
                     }
+                    // data have been transferred, so receive next one.
                     array[UART_RHR as usize] = byte[0];
                     read_interrupt.store(true, Ordering::Release);
                     array[UART_LSR as usize] |= MASK_UART_LSR_RX;
