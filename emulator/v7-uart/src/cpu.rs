@@ -659,6 +659,11 @@ mod test {
         let cc = "clang";
         let output = Command::new(cc).arg("-S")
                             .arg(c_src)
+                            .arg("-nostdlib")
+                            .arg("-march=rv64g")
+                            .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
                             .output()
                             .expect("Failed to generate rv assembly");
         println!("{}", String::from_utf8_lossy(&output.stderr));
@@ -942,5 +947,56 @@ mod test {
         ";
         riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
                                             "sstatus" => 0, "stvec" => 5, "sepc" => 6);
+    }
+
+    #[test]
+    fn compile_hello_world() {
+        // You should run it by
+        // -- cargo run helloworld.bin
+        let c_code = r"
+        int main() {
+            volatile char *uart = (volatile char *) 0x10000000;
+            uart[0] = 'H';
+            uart[0] = 'e';
+            uart[0] = 'l';
+            uart[0] = 'l';
+            uart[0] = 'o';
+            uart[0] = ',';
+            uart[0] = ' ';
+            uart[0] = 'w';
+            uart[0] = 'o';
+            uart[0] = 'r';
+            uart[0] = 'l';
+            uart[0] = 'd';
+            uart[0] = '!';
+            uart[0] = '\n';
+            return 0;
+        }";
+        let mut file = File::create("test_helloworld.c").unwrap();
+        file.write(&c_code.as_bytes()).unwrap();
+        generate_rv_assembly("test_helloworld.c");
+        generate_rv_obj("test_helloworld.s");
+        generate_rv_binary("test_helloworld");
+    }
+
+    #[test]
+    fn compile_echoback() {
+        let c_code = r"
+        int main() {
+            while (1) {
+                volatile char *uart = (volatile char *) 0x10000000;
+                while ((uart[5] & 0x01) == 0);
+                char c = uart[0];
+                if ('a' <= c && c <= 'z') {
+                    c = c + 'A' - 'a';
+                }
+                uart[0] = c;
+            }
+        }";
+        let mut file = File::create("test_echoback.c").unwrap();
+        file.write(&c_code.as_bytes()).unwrap();
+        generate_rv_assembly("test_echoback.c");
+        generate_rv_obj("test_echoback.s");
+        generate_rv_binary("test_echoback");
     }
 }

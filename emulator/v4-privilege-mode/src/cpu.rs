@@ -572,6 +572,11 @@ mod test {
         let cc = "clang";
         let output = Command::new(cc).arg("-S")
                             .arg(c_src)
+                            .arg("-nostdlib")
+                            .arg("-march=rv64g")
+                            .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
                             .output()
                             .expect("Failed to generate rv assembly");
         println!("{}", String::from_utf8_lossy(&output.stderr));
