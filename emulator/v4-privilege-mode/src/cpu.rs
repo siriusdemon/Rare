@@ -396,43 +396,49 @@ impl Cpu {
                         // beq
                         if self.regs[rs1] == self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x1 => {
                         // bne
                         if self.regs[rs1] != self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x4 => {
                         // blt
                         if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x5 => {
                         // bge
                         if (self.regs[rs1] as i64) >= (self.regs[rs2] as i64) {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x6 => {
                         // bltu
                         if self.regs[rs1] < self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     0x7 => {
                         // bgeu
                         if self.regs[rs1] >= self.regs[rs2] {
                             self.pc = self.pc.wrapping_add(imm);
+                            return Ok(());
                         }
-                        return Ok(());
+                        return self.update_pc();
                     }
                     _ => Err(InvalidInstruction(inst)),
                 }
