@@ -42,7 +42,7 @@ impl Cpu {
         Self {regs, pc: DRAM_BASE, bus, csr, mode}
     }
 
-    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
+    pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, RvException> {
         self.bus.load(addr, size)
     }
 
@@ -91,9 +91,10 @@ impl Cpu {
         println!("PC = {:#x}\n", self.pc);
     }
 
-    pub fn dump_registers(&self) {
+    pub fn dump_registers(&mut self) {
         println!("{:-^80}", "registers");
         let mut output = String::new();
+        self.regs[0] = 0;
 
         for i in (0..32).step_by(4) {
             let i0 = format!("x{}", i);
@@ -113,7 +114,7 @@ impl Cpu {
         println!("{}", output);
     }
 
-    pub fn fetch(&self) -> Result<u64, RvException> {
+    pub fn fetch(&mut self) -> Result<u64, RvException> {
         self.bus.load(self.pc, 32)
     }
 

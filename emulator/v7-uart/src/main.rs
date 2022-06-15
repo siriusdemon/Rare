@@ -18,7 +18,6 @@ pub use param::*;
 use cpu::Cpu;
 
 
-const ITERATION: usize = 10000;
 
 
 fn main() -> io::Result<()> {
@@ -39,7 +38,7 @@ fn main() -> io::Result<()> {
 
     let mut cpu = Cpu::new(code);
 
-    for _i in 0..ITERATION {
+    loop {
         let inst = match cpu.fetch() {
             Ok(inst) => inst,
             Err(e) => { 
