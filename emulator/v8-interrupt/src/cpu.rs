@@ -133,9 +133,10 @@ impl Cpu {
         use RvException::*;
         let pc = self.pc; 
         let mode = self.mode;
+        let cause = e.code();
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
         // then this exception should be handled in S-mode.
-        let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(e.code());
+        let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(cause);
         let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
             = if trap_in_s_mode {
                 self.mode = Supervisor;
@@ -155,7 +156,7 @@ impl Cpu {
         // 3.1.15 & 4.1.8
         // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
         // the event that caused the trap.
-        self.csr.store(CAUSE, e.code());
+        self.csr.store(CAUSE, cause);
         // 3.1.16 & 4.1.9
         // If stval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or
         // page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the
@@ -189,8 +190,57 @@ impl Cpu {
         self.csr.store(STATUS, status);
     }
 
-    pub fn handle_interrupt(&self, interrupt: RvInterrupt) {
-
+    pub fn handle_interrupt(&mut self, interrupt: RvInterrupt) {
+        // similar to handle exception
+        let pc = self.pc; 
+        let mode = self.mode;
+        let cause = interrupt.code();
+        // although cause contains a interrupt bit. Shift the cause make it out.
+        let trap_in_s_mode = mode <= Supervisor && self.csr.is_midelegated(cause);
+        let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
+            = if trap_in_s_mode {
+                self.mode = Supervisor;
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
+            } else {
+                self.mode = Machine;
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
+            };
+        // 3.1.7 & 4.1.2
+        // When MODE=Direct, all traps into machine mode cause the pc to be set to the address in the BASE field. 
+        // When MODE=Vectored, all synchronous exceptions into machine mode cause the pc to be set to the address 
+        // in the BASE field, whereas interrupts cause the pc to be set to the address in the BASE field plus four 
+        // times the interrupt cause number. 
+        let tvec = self.csr.load(TVEC);
+        let tvec_mode = tvec & 0b11;
+        let tvec_base = tvec & !0b11;
+        match tvec_mode { // DIrect
+            0 => self.pc = tvec_base,
+            1 => self.pc = tvec_base + cause << 2,
+            _ => unreachable!(),
+        };
+        // 3.1.14 & 4.1.7
+        // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
+        // of the instruction that was interrupted or that encountered the exception.
+        self.csr.store(EPC, pc);
+        // 3.1.15 & 4.1.8
+        // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
+        // the event that caused the trap.
+        self.csr.store(CAUSE, cause);
+        // 3.1.16 & 4.1.9
+        // When a trap is taken into M-mode, mtval is either set to zero or written with exception-specific 
+        // information to assist software in handling the trap. 
+        self.csr.store(TVAL, 0);
+        // 3.1.6 covers both sstatus and mstatus.
+        let mut status = self.csr.load(STATUS);
+        // get SIE or MIE
+        let ie = (status & MASK_IE) >> ie_i;
+        // set SPIE = SIE / MPIE = MIE
+        status |= ie << pie_i;
+        // set SIE = 0 / MIE = 0
+        status &= !MASK_IE; 
+        // set SPP / MPP = previous mode
+        status = (status & !MASK_PP) | (mode << pp_i);
+        self.csr.store(STATUS, status);
     }
 
     #[inline]
