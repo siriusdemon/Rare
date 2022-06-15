@@ -9,6 +9,7 @@ mod dram;
 mod cpu;
 mod bus;
 mod exception;
+mod interrupt;
 mod csr;
 mod plic;
 mod clint;

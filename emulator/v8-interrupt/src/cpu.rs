@@ -3,6 +3,7 @@
 use crate::bus::Bus;
 use crate::{DRAM_BASE, DRAM_END};
 use crate::exception::RvException::{self, IllegalInstruction};
+use crate::interrupt::RvInterrupt;
 use crate::csr::*;
 
 
@@ -186,6 +187,10 @@ impl Cpu {
         // set SPP / MPP = previous mode
         status = (status & !MASK_PP) | (mode << pp_i);
         self.csr.store(STATUS, status);
+    }
+
+    pub fn handle_interrupt(&self, interrupt: RvInterrupt) {
+
     }
 
     #[inline]
