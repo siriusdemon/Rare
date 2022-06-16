@@ -1,11 +1,7 @@
-use crate::param::{CLINT_BASE};
+use crate::param::*;
 use crate::exception::RvException;
 
 use RvException::*;
-
-pub const CLINT_MTIMECMP: u64 = CLINT_BASE + 0x4000;
-pub const CLINT_MTIME: u64 = CLINT_BASE + 0xbff8;
-
 pub struct Clint {
     mtime: u64,
     mtimecmp: u64,

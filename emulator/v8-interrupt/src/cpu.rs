@@ -1,7 +1,7 @@
 #[allow(non_upper_case_globals)]
 
 use crate::bus::Bus;
-use crate::{DRAM_BASE, DRAM_END};
+use crate::param::*;
 use crate::exception::RvException::{self, IllegalInstruction};
 use crate::interrupt::RvInterrupt;
 use crate::csr::*;
@@ -243,8 +243,8 @@ impl Cpu {
         self.csr.store(STATUS, status);
     }
 
-    pub fn check_pending_interrupts(&mut self) -> Option<RvIntrrupt> {
-        use RvIntrrupt::*;
+    pub fn check_pending_interrupts(&mut self) -> Option<RvInterrupt> {
+        use RvInterrupt::*;
         // 3.1.6.1
         // When a hart is executing in privilege mode x, interrupts are globally enabled when x IE=1 and globally 
         // disabled when xIE=0. Interrupts for lower-privilege modes, w<x, are always globally disabled regardless 
@@ -274,7 +274,7 @@ impl Cpu {
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
         }
 
-        let pending = self.csr.load(MIE) & self.load_csr(MIP);
+        let pending = self.csr.load(MIE) & self.csr.load(MIP);
 
         if (pending & MASK_MEIP) != 0 {
             self.csr.store(MIP, self.csr.load(MIP) & !MASK_MEIP);

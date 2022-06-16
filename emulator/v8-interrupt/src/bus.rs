@@ -6,10 +6,10 @@ use crate::uart::Uart;
 use crate::exception::RvException;
 
 pub struct Bus {
-    dram: Dram,
-    plic: Plic,
-    clint: Clint,
-    uart: Uart,
+    pub dram: Dram,
+    pub plic: Plic,
+    pub clint: Clint,
+    pub uart: Uart,
 }
 
 

@@ -1,12 +1,8 @@
-use crate::param::PLIC_BASE;
+use crate::param::*;
 use crate::exception::RvException;
 
 use RvException::*;
 
-pub const PLIC_PENDING: u64 = PLIC_BASE + 0x1000;
-pub const PLIC_SENABLE: u64 = PLIC_BASE + 0x2000;
-pub const PLIC_SPRIORITY: u64 = PLIC_BASE + 0x201000;
-pub const PLIC_SCLAIM: u64 = PLIC_BASE + 0x201004;
 
 
 pub struct Plic {
