@@ -21,3 +21,5 @@ pub const PLIC_END: u64 = PLIC_BASE + PLIC_SIZE - 1;
 pub const UART_BASE: u64 = 0x1000_0000;
 pub const UART_SIZE: u64 = 0x100;
 pub const UART_END: u64 = UART_BASE + UART_SIZE - 1;
+// uart interrupt request
+pub const UART_IRQ: u64 = 10;

@@ -244,6 +244,7 @@ impl Cpu {
     }
 
     pub fn check_pending_interrupts(&mut self) -> Option<RvIntrrupt> {
+        use RvIntrrupt::*;
         // 3.1.6.1
         // When a hart is executing in privilege mode x, interrupts are globally enabled when x IE=1 and globally 
         // disabled when xIE=0. Interrupts for lower-privilege modes, w<x, are always globally disabled regardless 
@@ -267,9 +268,39 @@ impl Cpu {
         // 3.1.9 & 4.1.3
         // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
         // priority order: MEI, MSI, MTI, SEI, SSI, STI.
-        let irq = 
+        if self.bus.uart.is_interrupting() {
+            self.bus.store(PLIC_SCLAIM, 32, UART_IRQ)
+                    .expect("failed to write an IRQ to the PLIC_SCLAIM");
+            self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
+        }
 
+        let pending = self.csr.load(MIE) & self.load_csr(MIP);
 
+        if (pending & MASK_MEIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_MEIP);
+            return Some(MachineExternalInterrupt);
+        }
+        if (pending & MASK_MSIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_MSIP);
+            return Some(MachineSoftwareInterrupt);
+        }
+        if (pending & MASK_MTIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_MTIP);
+            return Some(MachineTimerInterrupt);
+        }
+        if (pending & MASK_SEIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_SEIP);
+            return Some(MachineExternalInterrupt);
+        }
+        if (pending & MASK_SSIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_SSIP);
+            return Some(MachineSoftwareInterrupt);
+        }
+        if (pending & MASK_STIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) & !MASK_STIP);
+            return Some(MachineTimerInterrupt);
+        }
+        return None;
     }
 
     #[inline]
