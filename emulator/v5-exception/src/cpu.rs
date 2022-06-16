@@ -964,7 +964,7 @@ mod test {
         let mut cpu = Cpu::new(code.to_vec());
         let inst = cpu.fetch().unwrap();
         match cpu.execute(inst) {
-            Err(e) => {
+            Err(e @ IllegalInstruction(_inst)) => {
                 cpu.handle_exception(e);
                 assert_eq!(cpu.reg("mcause"), e.code());
             }
