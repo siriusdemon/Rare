@@ -243,6 +243,35 @@ impl Cpu {
         self.csr.store(STATUS, status);
     }
 
+    pub fn check_pending_interrupts(&mut self) -> Option<RvIntrrupt> {
+        // 3.1.6.1
+        // When a hart is executing in privilege mode x, interrupts are globally enabled when x IE=1 and globally 
+        // disabled when xIE=0. Interrupts for lower-privilege modes, w<x, are always globally disabled regardless 
+        // of the setting of any global wIE bit for the lower-privilege mode. Interrupts for higher-privilege modes, 
+        // y>x, are always globally enabled regardless of the setting of the global yIE bit for the higher-privilege 
+        // mode. Higher-privilege-level code can use separate per-interrupt enable bits to disable selected higher-
+        // privilege-mode interrupts before ceding control to a lower-privilege mode
+ 
+        // 3.1.9 & 4.1.3
+        // An interrupt i will trap to M-mode (causing the privilege mode to change to M-mode) if all of
+        // the following are true: (a) either the current privilege mode is M and the MIE bit in the mstatus
+        // register is set, or the current privilege mode has less privilege than M-mode; (b) bit i is set in both
+        // mip and mie; and (c) if register mideleg exists, bit i is not set in mideleg.
+        if (self.mode == Machine) && (self.csr.load(MSTATUS) & MASK_MIE) == 0 {
+            return None;
+        }
+        if (self.mode == Supervisor) && (self.csr.load(SSTATUS) & MASK_SIE) == 0 {
+            return None;
+        }
+       
+        // 3.1.9 & 4.1.3
+        // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
+        // priority order: MEI, MSI, MTI, SEI, SSI, STI.
+        let irq = 
+
+
+    }
+
     #[inline]
     pub fn update_pc(&mut self) -> Result<(), RvException> {
         self.pc += 4;

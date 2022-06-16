@@ -1,4 +1,9 @@
-//! See the spec: http://byterunner.com/16550.html
+// UART 
+// -- See the spec: http://byterunner.com/16550.html
+// RUst atomic module
+// -- Atomic types present operations that, when used correctly, synchronize updates between threads.
+// Memory ordering
+// -- https://en.cppreference.com/w/c/atomic/memory_order
 use std::io;
 use std::io::prelude::*;
 use std::sync::{
@@ -74,6 +79,10 @@ impl Uart {
         });
         
         Self {uart, interrupt}
+    }
+
+    pub fn is_interrupting(&self) -> bool {
+        self.interrupt.swap(false, Ordering::Acquire)
     }
 
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, RvException> {
