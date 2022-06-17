@@ -269,9 +269,12 @@ impl Cpu {
         // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
         // priority order: MEI, MSI, MTI, SEI, SSI, STI.
         if self.bus.uart.is_interrupting() {
-            self.bus.store(PLIC_SCLAIM, 32, UART_IRQ)
-                    .expect("failed to write an IRQ to the PLIC_SCLAIM");
+            self.bus.store(PLIC_SCLAIM, 32, UART_IRQ).unwrap();
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
+        } else if self.bus.virtio.is_interrupting() {
+            self.disk_access();
+            self.bus.store(PLIC_SCLAIM, 32, VIRTIO_IRQ).unwrap();  
+            self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP);
         }
 
         let pending = self.csr.load(MIE) & self.csr.load(MIP);
