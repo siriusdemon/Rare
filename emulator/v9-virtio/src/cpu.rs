@@ -32,11 +32,11 @@ const RVABI: [&str; 32] = [
  
 
 impl Cpu {
-    pub fn new(code: Vec<u8>) -> Self {
+    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Self {
         let mut regs = [0; 32];
         regs[2] = DRAM_END;
 
-        let bus = Bus::new(code);
+        let bus = Bus::new(code, disk_image);
         let csr = Csr::new();
         let mode = Machine;
 
@@ -301,6 +301,41 @@ impl Cpu {
             return Some(MachineTimerInterrupt);
         }
         return None;
+    }
+
+    pub fn disk_access(&mut self) {
+        let desc_addr = self.bus.virtio.desc_addr();
+        let avail_addr = desc_addr + 0x40;
+        let used_addr = desc_addr + 4096;
+        
+        let offset = self.bus.load(avail_addr.wrapping_add(1), 16).unwrap();
+        let index = self.bus.load(avail_addr.wrapping_add(offset % DESC_NUM)
+                                            .wrapping_add(2), 16).unwrap();
+        let desc_addr0 = desc_addr + VRING_DESC_SIZE * index;
+        let addr0 = self.bus.load(desc_addr0, 64).unwrap();
+        let next0 = self.bus.load(desc_addr0.wrapping_add(14), 16).unwrap();
+        let desc_addr1 = desc_addr + VRING_DESC_SIZE * next0;
+        let addr1 = self.bus.load(desc_addr1, 64).unwrap();
+        let len1 = self.bus.load(desc_addr1.wrapping_add(8), 32).unwrap();
+        let flags1 = self.bus.load(desc_addr1.wrapping_add(12), 16).unwrap();
+        let blk_sector = self.bus.load(addr0.wrapping_add(8), 64).unwrap();
+        match (flags1 & 2) == 0 {
+            true => {
+                for i in 0..len1 {
+                    let data = self.bus.load(addr1 + 1, 8).unwrap();
+                    self.bus.virtio.write_disk(blk_sector * 512 + i, data as u8);
+                }
+            }
+            false => {
+                for i in 0..len1 {
+                    let data = self.bus.virtio.read_disk(blk_sector * 512 + i);
+                    self.bus.store(addr1 + i, 8, data as u64);
+                }
+            }
+        }
+
+        let new_id = self.bus.virtio.get_new_id();
+        self.bus.store(used_addr.wrapping_add(2), 16, new_id % 8).unwrap();
     }
 
     #[inline]
@@ -827,7 +862,7 @@ mod test {
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
         let mut code = Vec::new();
         file_bin.read_to_end(&mut code)?;
-        let mut cpu = Cpu::new(code);
+        let mut cpu = Cpu::new(code, vec![]);
 
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {

@@ -14,6 +14,7 @@ mod csr;
 mod plic;
 mod clint;
 mod uart;
+mod virtio;
 
 pub use param::*;
 use cpu::Cpu;
@@ -37,7 +38,7 @@ fn main() -> io::Result<()> {
     let mut code = Vec::new();
     file.read_to_end(&mut code)?;
 
-    let mut cpu = Cpu::new(code);
+    let mut cpu = Cpu::new(code, vec![]);
 
     loop {
         let inst = match cpu.fetch() {
