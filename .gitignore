@@ -3,4 +3,5 @@
 *.s
 test_*
 target
+*.img
 *.o

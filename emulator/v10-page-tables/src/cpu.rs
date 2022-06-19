@@ -2,10 +2,12 @@
 
 use crate::bus::Bus;
 use crate::param::*;
-use crate::exception::RvException::{self, IllegalInstruction};
+use crate::exception::RvException::{self, *};
 use crate::interrupt::RvInterrupt;
 use crate::csr::*;
 
+
+const PAGE_SIZE: u64 = 4096;
 
 // Riscv Privilege Mode
 type Mode = u64;
@@ -13,6 +15,11 @@ const User: Mode = 0b00;
 const Supervisor: Mode = 0b01;
 const Machine: Mode = 0b11;
 
+enum AccessType {
+    Load,
+    Store,
+    Instruction,
+}
 
 pub struct Cpu {
     pub regs: [u64; 32],
@@ -20,6 +27,8 @@ pub struct Cpu {
     pub bus: Bus,
     pub mode: Mode,
     pub csr: Csr,
+    pub enable_paging: bool,
+    pub page_table: u64,
 }
 
 
@@ -35,18 +44,172 @@ impl Cpu {
     pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Self {
         let mut regs = [0; 32];
         regs[2] = DRAM_END;
-
+        let pc = DRAM_BASE;
         let bus = Bus::new(code, disk_image);
         let csr = Csr::new();
         let mode = Machine;
+        let page_table = 0;
+        let enable_paging = false;
 
-        Self {regs, pc: DRAM_BASE, bus, csr, mode}
+        Self {regs, pc, bus, csr, mode, page_table, enable_paging}
     }
 
+    fn update_paging(&mut self, csr_addr: usize) {
+        if csr_addr != SATP { return; }
+
+        // Read the physical page number (PPN) of the root page table, i.e., its
+        // supervisor physical address divided by 4 KiB.
+        self.page_table = (self.csr.load(SATP) & ((1 << 44) - 1)) * PAGE_SIZE;
+
+        // Read the MODE field, which selects the current address-translation scheme.
+        let mode = self.csr.load(SATP) >> 60;
+
+        // Enable the SV39 paging if the value of the mode field is 8.
+        if mode == 8 {
+            self.enable_paging = true;
+        } else {
+            self.enable_paging = false;
+        }
+    }
+
+    /// Translate a virtual address to a physical address for the paged virtual-dram system.
+    pub fn translate(&mut self, addr: u64, access_type: AccessType) -> Result<u64, RvException> {
+        if !self.enable_paging {
+            return Ok(addr);
+        }
+
+        // The following comments are cited from 4.3.2 Virtual Address Translation Process
+        // in "The RISC-V Instruction Set Manual Volume II-Privileged Architecture_20190608".
+
+        // "A virtual address va is translated into a physical address pa as follows:"
+        let levels = 3;
+        let vpn = [
+            (addr >> 12) & 0x1ff,
+            (addr >> 21) & 0x1ff,
+            (addr >> 30) & 0x1ff,
+        ];
+
+        // "1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. (For Sv32, PAGESIZE=212
+        //     and LEVELS=2.)"
+        let mut a = self.page_table;
+        let mut i: i64 = levels - 1;
+        let mut pte;
+        loop {
+            // "2. Let pte be the value of the PTE at address a+va.vpn[i]×PTESIZE. (For Sv32,
+            //     PTESIZE=4.) If accessing pte violates a PMA or PMP check, raise an access
+            //     exception corresponding to the original access type."
+            pte = self.bus.load(a + vpn[i as usize] * 8, 64)?;
+
+            // "3. If pte.v = 0, or if pte.r = 0 and pte.w = 1, stop and raise a page-fault
+            //     exception corresponding to the original access type."
+            let v = pte & 1;
+            let r = (pte >> 1) & 1;
+            let w = (pte >> 2) & 1;
+            let x = (pte >> 3) & 1;
+            if v == 0 || (r == 0 && w == 1) {
+                match access_type {
+                    AccessType::Instruction => return Err(InstructionPageFault(addr)),
+                    AccessType::Load => return Err(LoadPageFault(addr)),
+                    AccessType::Store =>  return Err(StoreOrAMOPageFault(addr)),
+                }
+            }
+
+            // "4. Otherwise, the PTE is valid. If pte.r = 1 or pte.x = 1, go to step 5.
+            //     Otherwise, this PTE is a pointer to the next level of the page table.
+            //     Let i = i − 1. If i < 0, stop and raise a page-fault exception
+            //     corresponding to the original access type. Otherwise,
+            //     let a = pte.ppn × PAGESIZE and go to step 2."
+            if r == 1 || x == 1 {
+                break;
+            }
+            i -= 1;
+            let ppn = (pte >> 10) & 0x0fff_ffff_ffff;
+            a = ppn * PAGE_SIZE;
+            if i < 0 {
+                match access_type {
+                    AccessType::Instruction => return Err(InstructionPageFault(addr)),
+                    AccessType::Load => return Err(LoadPageFault(addr)),
+                    AccessType::Store =>  return Err(StoreOrAMOPageFault(addr)),
+                }
+            }
+        }
+
+        // A leaf PTE has been found.
+        let ppn = [
+            (pte >> 10) & 0x1ff,
+            (pte >> 19) & 0x1ff,
+            (pte >> 28) & 0x03ff_ffff,
+        ];
+
+        // We skip implementing from step 5 to 7.
+
+        // "5. A leaf PTE has been found. Determine if the requested dram access is allowed by
+        //     the pte.r, pte.w, pte.x, and pte.u bits, given the current privilege mode and the
+        //     value of the SUM and MXR fields of the mstatus register. If not, stop and raise a
+        //     page-fault exception corresponding to the original access type."
+
+        // "6. If i > 0 and pte.ppn[i − 1 : 0] ̸= 0, this is a misaligned superpage; stop and
+        //     raise a page-fault exception corresponding to the original access type."
+
+        // "7. If pte.a = 0, or if the dram access is a store and pte.d = 0, either raise a
+        //     page-fault exception corresponding to the original access type, or:
+        //     • Set pte.a to 1 and, if the dram access is a store, also set pte.d to 1.
+        //     • If this access violates a PMA or PMP check, raise an access exception
+        //     corresponding to the original access type.
+        //     • This update and the loading of pte in step 2 must be atomic; in particular, no
+        //     intervening store to the PTE may be perceived to have occurred in-between."
+
+        // "8. The translation is successful. The translated physical address is given as
+        //     follows:
+        //     • pa.pgoff = va.pgoff.
+        //     • If i > 0, then this is a superpage translation and pa.ppn[i−1:0] =
+        //     va.vpn[i−1:0].
+        //     • pa.ppn[LEVELS−1:i] = pte.ppn[LEVELS−1:i]."
+        let offset = addr & 0xfff;
+        match i {
+            0 => {
+                let ppn = (pte >> 10) & 0x0fff_ffff_ffff;
+                Ok((ppn << 12) | offset)
+            }
+            1 => {
+                // Superpage translation. A superpage is a dram page of larger size than an
+                // ordinary page (4 KiB). It reduces TLB misses and improves performance.
+                Ok((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) | offset)
+            }
+            2 => {
+                // Superpage translation. A superpage is a dram page of larger size than an
+                // ordinary page (4 KiB). It reduces TLB misses and improves performance.
+                Ok((ppn[2] << 30) | (vpn[1] << 21) | (vpn[0] << 12) | offset)
+            }
+            _ => match access_type {
+                AccessType::Instruction => return Err(InstructionPageFault(addr)),
+                AccessType::Load => return Err(LoadPageFault(addr)),
+                AccessType::Store =>  return Err(StoreOrAMOPageFault(addr)),
+            },
+        }
+    }
+
+    /// Load a value from a dram.
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, RvException> {
-        self.bus.load(addr, size)
+        let p_addr = self.translate(addr, AccessType::Load)?;
+        self.bus.load(p_addr, size)
     }
 
+    /// Store a value to a dram.
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
+        let p_addr = self.translate(addr, AccessType::Store)?;
+        self.bus.store(p_addr, size, value)
+    }
+
+    pub fn fetch(&mut self) -> Result<u64, RvException> {
+        let p_pc = self.translate(self.pc, AccessType::Instruction)?;
+        match self.bus.load(self.pc, 32) {
+            Ok(inst) => Ok(inst),
+            Err(LoadAccessFault(addr)) => Err(InstructionAccessFault(addr)),
+            _ => unreachable!(),
+        }
+    }
+    
     pub fn reg(&self, r: &str) -> u64 {
         match RVABI.iter().position(|&x| x == r) {
             Some(i) => self.regs[i],
@@ -83,10 +246,6 @@ impl Cpu {
         }
     }
 
-    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
-        self.bus.store(addr, size, value)
-    }
-
     pub fn dump_pc(&self) {
         println!("{:-^80}", "PC register");
         println!("PC = {:#x}\n", self.pc);
@@ -113,10 +272,6 @@ impl Cpu {
         }
 
         println!("{}", output);
-    }
-
-    pub fn fetch(&mut self) -> Result<u64, RvException> {
-        self.bus.load(self.pc, 32)
     }
 
     pub fn handle_exception(&mut self, e: RvException) {
@@ -402,7 +557,14 @@ impl Cpu {
                     
                 }
             }
-        
+            0x0f => {
+                // A fence instruction does nothing because this emulator executes an
+                // instruction sequentially on a single thread.
+                match funct3 {
+                    0x0 => self.update_pc(), 
+                    _ => Err(IllegalInstruction(inst)),
+                }
+            } 
             0x13 => {
                 // imm[11:0] = inst[31:20]
                 let imm = ((inst & 0xfff00000) as i32 as i64 >> 20) as u64;
@@ -505,6 +667,43 @@ impl Cpu {
                     0x1 => { self.store(addr, 16, self.regs[rs2])?; self.update_pc() }       // sh
                     0x2 => { self.store(addr, 32, self.regs[rs2])?; self.update_pc() }       // sw
                     0x3 => { self.store(addr, 64, self.regs[rs2])?; self.update_pc() }       // sd
+                    _ => Err(IllegalInstruction(inst)),
+                }
+            }
+            0x2f => {
+                // RV64A: "A" standard extension for atomic instructions
+                let funct5 = (funct7 & 0b1111100) >> 2;
+                let _aq = (funct7 & 0b0000010) >> 1; // acquire access
+                let _rl = funct7 & 0b0000001; // release access
+                match (funct3, funct5) {
+                    (0x2, 0x00) => {
+                        // amoadd.w
+                        let t = self.load(self.regs[rs1], 32)?;
+                        self.store(self.regs[rs1], 32, t.wrapping_add(self.regs[rs2]))?;
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    (0x3, 0x00) => {
+                        // amoadd.d
+                        let t = self.load(self.regs[rs1], 64)?;
+                        self.store(self.regs[rs1], 64, t.wrapping_add(self.regs[rs2]))?;
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    (0x2, 0x01) => {
+                        // amoswap.w
+                        let t = self.load(self.regs[rs1], 32)?;
+                        self.store(self.regs[rs1], 32, self.regs[rs2])?;
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
+                    (0x3, 0x01) => {
+                        // amoswap.d
+                        let t = self.load(self.regs[rs1], 64)?;
+                        self.store(self.regs[rs1], 64, self.regs[rs2])?;
+                        self.regs[rd] = t;
+                        return self.update_pc();
+                    }
                     _ => Err(IllegalInstruction(inst)),
                 }
             }
@@ -751,7 +950,7 @@ impl Cpu {
                             (_, 0x9) => {
                                 // sfence.vma
                                 // Do nothing.
-                                return Ok(());
+                                return self.update_pc();
                             }
                             _ => Err(IllegalInstruction(inst)),
                         }
@@ -761,6 +960,7 @@ impl Cpu {
                         let t = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, self.regs[rs1]);
                         self.regs[rd] = t;
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     0x2 => {
@@ -768,6 +968,7 @@ impl Cpu {
                         let t = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, t | self.regs[rs1]);
                         self.regs[rd] = t;
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     0x3 => {
@@ -775,6 +976,7 @@ impl Cpu {
                         let t = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, t & (!self.regs[rs1]));
                         self.regs[rd] = t;
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     0x5 => {
@@ -782,6 +984,7 @@ impl Cpu {
                         let zimm = rs1 as u64;
                         self.regs[rd] = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, zimm);
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     0x6 => {
@@ -790,6 +993,7 @@ impl Cpu {
                         let t = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, t | zimm);
                         self.regs[rd] = t;
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     0x7 => {
@@ -798,6 +1002,7 @@ impl Cpu {
                         let t = self.csr.load(csr_addr);
                         self.csr.store(csr_addr, t & (!zimm));
                         self.regs[rd] = t;
+                        self.update_paging(csr_addr);
                         return self.update_pc();
                     }
                     _ => Err(IllegalInstruction(inst)),

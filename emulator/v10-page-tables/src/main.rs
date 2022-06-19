@@ -25,11 +25,11 @@ use cpu::Cpu;
 fn main() -> io::Result<()> {
     let args: Vec<String> = env::args().collect();
 
-    if args.len() != 2 {
+    if args.len() != 3 {
         println!(
             "Usage:\n\
             - rvemu <filename>\n\
-            - cargo run <filename>"
+            - cargo run <filename> <fs-img>"
         );
         return Ok(());
     }
@@ -38,8 +38,12 @@ fn main() -> io::Result<()> {
     let mut code = Vec::new();
     file.read_to_end(&mut code)?;
 
-    let mut cpu = Cpu::new(code, vec![]);
+    let mut file_fs = File::open(&args[2])?;
+    let mut code_fs = Vec::new();
+    file_fs.read_to_end(&mut code_fs)?;
+    let mut cpu = Cpu::new(code, code_fs);
 
+    let mut i = 0;
     loop {
         let inst = match cpu.fetch() {
             Ok(inst) => inst,
@@ -52,6 +56,7 @@ fn main() -> io::Result<()> {
                 continue;
             }
         };
+        println!("inst {:#x} pc {:#x}", inst, cpu.pc);
         match cpu.execute(inst) {
             Ok(_) => (),
             Err(e) => {
