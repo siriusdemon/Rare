@@ -78,7 +78,7 @@ impl Uart {
             UART_RHR => {
                 cvar.notify_one();
                 array[UART_LSR as usize] &= !MASK_UART_LSR_RX;
-                return Ok(array[UART_RHR as usize] as u64);
+                Ok(array[UART_RHR as usize] as u64)
             }
             _ => Ok(array[index as usize] as u64),
         } 
@@ -94,7 +94,7 @@ impl Uart {
         match index {
             UART_THR => {
                 print!("{}", value as u8 as char);
-                io::stderr().flush().unwrap();
+                io::stdout().flush().unwrap();
                 return Ok(());
             }
             _ => {
