@@ -32,7 +32,7 @@ impl Plic {
 
     pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
         if size != 32 {
-            return Err(LoadAccessFault(addr));
+            return Err(StoreOrAMOAccessFault(addr));
         }
         match addr {
             PLIC_PENDING => Ok(self.pending = value),
