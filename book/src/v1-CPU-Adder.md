@@ -1,4 +1,8 @@
-# 加法器 CPU
+# Adder
+
+CPU (Center Process Unit) is one of the core components of a computer. But in this chapter, we will use `CPU` to denote the whole computer, including 32 common integer registers, a program counter register and a DARM (dynamic random-access memory). In next chapter, we will use bus to connect memory and CPU.
+
+This chapter corresponds to the first chapter *CPU with Two instructions* of the original tutorial by Asami. When finished, our CPU is able to run two instructions: `add` and `addi`.
 
 CPU 指中心处理单元（Center Process Unit），是一块小小的芯片。它是计算机（computer）最核心的部分。
 
@@ -6,10 +10,15 @@ CPU 指中心处理单元（Center Process Unit），是一块小小的芯片。
 
 本节对应原作者的第一节，CPU with Two instructions。这一节的 CPU 只能执行 `add` 和 `addi` 两个指令。
 
-### 编码实现
+### Background
+
+
+
+### Implementation
+编程实现
 
 ```bash
-# 代码总数
+# line of codes
 main.rs             : 90
 ----------------------------
 total               : 90

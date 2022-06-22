@@ -1,7 +1,7 @@
 # Summary
 
-[写一个 Riscv 模拟器](./index.md)
+[Rust A RISC-V Emulator](./index.md)
 
-- [加法器 CPU](./v1-CPU-Adder.md)
-- [内存和总线](./v2-Memory-and-Bus.md)
-- [控制状态寄存器](./v3-CSR.md)
+- [Adder](./v1-CPU-Adder.md)
+- [Memory and Bus](./v2-Memory-and-Bus.md)
+- [Control Status Register](./v3-CSR.md)
