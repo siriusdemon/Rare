@@ -26,7 +26,7 @@ impl Plic {
             PLIC_SENABLE => Ok(self.senable),
             PLIC_SPRIORITY => Ok(self.spriority),
             PLIC_SCLAIM => Ok(self.sclaim),
-            _ => Err(LoadAccessFault(addr)),
+            _ => Ok(0),
         }
     }
 
@@ -39,7 +39,8 @@ impl Plic {
             PLIC_SENABLE => Ok(self.senable = value),
             PLIC_SPRIORITY => Ok(self.spriority = value),
             PLIC_SCLAIM => Ok(self.sclaim = value),
-            _ => Err(StoreOrAMOAccessFault(addr)),
+            // _ => Err(StoreOrAMOAccessFault(addr)),
+            _ => Ok(()),
         }
     }
 }

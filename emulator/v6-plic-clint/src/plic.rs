@@ -1,12 +1,8 @@
-use crate::param::PLIC_BASE;
+use crate::param::*;
 use crate::exception::RvException;
 
 use RvException::*;
 
-pub const PLIC_PENDING: u64 = PLIC_BASE + 0x1000;
-pub const PLIC_SENABLE: u64 = PLIC_BASE + 0x2000;
-pub const PLIC_SPRIORITY: u64 = PLIC_BASE + 0x201000;
-pub const PLIC_SCLAIM: u64 = PLIC_BASE + 0x201004;
 
 
 pub struct Plic {
@@ -30,7 +26,7 @@ impl Plic {
             PLIC_SENABLE => Ok(self.senable),
             PLIC_SPRIORITY => Ok(self.spriority),
             PLIC_SCLAIM => Ok(self.sclaim),
-            _ => Err(LoadAccessFault(addr)),
+            _ => Ok(0),
         }
     }
 
@@ -43,7 +39,8 @@ impl Plic {
             PLIC_SENABLE => Ok(self.senable = value),
             PLIC_SPRIORITY => Ok(self.spriority = value),
             PLIC_SCLAIM => Ok(self.sclaim = value),
-            _ => Err(StoreOrAMOAccessFault(addr)),
+            // _ => Err(StoreOrAMOAccessFault(addr)),
+            _ => Ok(()),
         }
     }
 }
