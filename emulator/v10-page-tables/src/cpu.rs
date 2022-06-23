@@ -65,11 +65,7 @@ impl Cpu {
         let mode = self.csr.load(SATP) >> 60;
 
         // Enable the SV39 paging if the value of the mode field is 8.
-        if mode == 8 {
-            self.enable_paging = true;
-        } else {
-            self.enable_paging = false;
-        }
+        self.enable_paging = mode == 8;
     }
 
     /// Translate a virtual address to a physical address for the paged virtual-dram system.
@@ -337,7 +333,7 @@ impl Cpu {
         // get SIE or MIE
         let ie = (status & MASK_IE) >> ie_i;
         // set SPIE = SIE / MPIE = MIE
-        status |= ie << pie_i;
+        status = (status & !MASK_PIE) | (ie << pie_i);
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
@@ -390,7 +386,7 @@ impl Cpu {
         // get SIE or MIE
         let ie = (status & MASK_IE) >> ie_i;
         // set SPIE = SIE / MPIE = MIE
-        status |= ie << pie_i;
+        status = (status & !MASK_PIE) | (ie << pie_i);
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
