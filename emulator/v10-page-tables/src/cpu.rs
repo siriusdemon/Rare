@@ -448,15 +448,15 @@ impl Cpu {
         }
         if (pending & MASK_SEIP) != 0 {
             self.csr.store(MIP, self.csr.load(MIP) & !MASK_SEIP);
-            return Some(MachineExternalInterrupt);
+            return Some(SupervisorExternalInterrupt);
         }
         if (pending & MASK_SSIP) != 0 {
             self.csr.store(MIP, self.csr.load(MIP) & !MASK_SSIP);
-            return Some(MachineSoftwareInterrupt);
+            return Some(SupervisorSoftwareInterrupt);
         }
         if (pending & MASK_STIP) != 0 {
             self.csr.store(MIP, self.csr.load(MIP) & !MASK_STIP);
-            return Some(MachineTimerInterrupt);
+            return Some(SupervisorTimerInterrupt);
         }
         return None;
     }

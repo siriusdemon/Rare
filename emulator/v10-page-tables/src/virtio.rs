@@ -57,7 +57,7 @@ impl Virtio {
             VIRTIO_QUEUE_NUM_MAX => Ok(8),
             VIRTIO_QUEUE_PFN => Ok(self.queue_pfn as u64),
             VIRTIO_STATUS => Ok(self.status as u64),
-            _ => Err(LoadAccessFault(addr)),
+            _ => Ok(0),
         }
     }
 
@@ -76,7 +76,7 @@ impl Virtio {
             VIRTIO_QUEUE_PFN => Ok(self.queue_pfn = value),
             VIRTIO_QUEUE_NOTIFY => Ok(self.queue_notify = value),
             VIRTIO_STATUS => Ok(self.status = value),
-            _ => Err(StoreOrAMOAccessFault(addr)),
+            _ => Ok(())
         }
     }
 
