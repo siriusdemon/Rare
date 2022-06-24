@@ -1,6 +1,20 @@
-use crate::exception::RvException;
+//! The virtio module contains a virtualization standard for network and disk device drivers.
+//! This is the "legacy" virtio interface.
+//!
+//! The virtio spec:
+//! https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf
 
-use RvException::*;
+use crate::cpu::*;
+use crate::exception::*;
+use crate::param::*;
+use crate::bus::*;
+
+
+use Exception::*;
+
+/// Paravirtualized drivers for IO virtualization.
+
+
 
 pub struct Virtio {
     id: u64,
@@ -42,7 +56,7 @@ impl Virtio {
         return false;
     }
     
-    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
+    pub fn load(&self, addr: u64, size: u64) -> Result<u64, Exception> {
         if size != 32 {
             return Err(LoadAccessFault(addr));
         }
@@ -61,9 +75,9 @@ impl Virtio {
         }
     }
 
-    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), Exception> {
         if size != 32 {
-            return Err(StoreOrAMOAccessFault(addr));
+            return Err(StoreAMOAccessFault(addr));
         }
 
         let value = value as u32;
@@ -89,11 +103,11 @@ impl Virtio {
         self.queue_pfn as u64 * self.page_size as u64
     }
 
-    pub fn read_disk(&self, addr: u64) -> u8 {
-        self.disk[addr as usize]
+    pub fn read_disk(&self, addr: u64) -> u64 {
+        self.disk[addr as usize] as u64
     }
 
-    pub fn write_disk(&mut self, addr: u64, value: u8) {
-        self.disk[addr as usize] = value;
+    pub fn write_disk(&mut self, addr: u64, value: u64) {
+        self.disk[addr as usize] = value as u8;
     }
 }

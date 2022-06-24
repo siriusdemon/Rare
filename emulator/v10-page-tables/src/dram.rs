@@ -1,7 +1,8 @@
+//! The dram module contains a dram structure and implementation for dram access.
 use crate::param::{DRAM_SIZE, DRAM_BASE};
-use crate::exception::RvException;
-use RvException::*;
+use crate::exception::Exception;
 
+use Exception::*;
 
 pub struct Dram {
     pub dram: Vec<u8>,
@@ -15,7 +16,7 @@ impl Dram {
     }
 
     // addr/size must be valid. Check in bus
-    pub fn load(&self, addr: u64, size: u64) -> Result<u64, RvException> {
+    pub fn load(&self, addr: u64, size: u64) -> Result<u64, Exception> {
         if ![8, 16, 32, 64].contains(&size) {
             return Err(LoadAccessFault(addr));
         }
@@ -30,9 +31,9 @@ impl Dram {
     }
 
     // addr/size must be valid. Check in bus
-    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), Exception> {
         if ![8, 16, 32, 64].contains(&size) {
-            return Err(StoreOrAMOAccessFault(addr));
+            return Err(StoreAMOAccessFault(addr));
         }
         let nbytes = size / 8;
         let index = (addr - DRAM_BASE) as usize;
