@@ -609,11 +609,7 @@ impl Cpu {
                     }
                     0x2 => {
                         // slti
-                        self.regs[rd] = if (self.regs[rs1] as i64) < (imm as i64) {
-                            1
-                        } else {
-                            0
-                        };
+                        self.regs[rd] = if (self.regs[rs1] as i64) < (imm as i64) { 1 } else { 0 };
                         return self.update_pc();
                     }
                     0x3 => {
@@ -772,20 +768,12 @@ impl Cpu {
                     }
                     (0x2, 0x00) => {
                         // slt
-                        self.regs[rd] = if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) {
-                            1
-                        } else {
-                            0
-                        };
+                        self.regs[rd] = if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) { 1 } else { 0 };
                         return self.update_pc();
                     }
                     (0x3, 0x00) => {
                         // sltu
-                        self.regs[rd] = if self.regs[rs1] < self.regs[rs2] {
-                            1
-                        } else {
-                            0
-                        };
+                        self.regs[rd] = if self.regs[rs1] < self.regs[rs2] { 1 } else { 0 };
                         return self.update_pc();
                     }
                     (0x4, 0x00) => {
@@ -982,66 +970,57 @@ impl Cpu {
                                 // exception.
                                 return Err(Exception::Breakpoint(self.pc));
                             }
-                            (0x2, 0x8) => {
+                             (0x2, 0x8) => {
                                 // sret
-                                // The SRET instruction returns from a supervisor-mode exception
-                                // handler. It does the following operations:
-                                // - Sets the pc to CSRs[sepc].
-                                // - Sets the privilege mode to CSRs[sstatus].SPP.
-                                // - Sets CSRs[sstatus].SIE to CSRs[sstatus].SPIE.
-                                // - Sets CSRs[sstatus].SPIE to 1.
-                                // - Sets CSRs[sstatus].SPP to 0.
-                                let new_pc = self.load_csr(SEPC);
+                                // set the pc to CSRs[sepc].
+                                // whenever IALIGN=32, bit sepc[1] is masked on reads so that it appears to be 0. This
+                                // masking occurs also for the implicit read by the SRET instruction. 
+                                self.pc = self.csr.load(SEPC) & !0b11;
                                 // When the SRET instruction is executed to return from the trap
                                 // handler, the privilege level is set to user mode if the SPP
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
-                                // is the 8th of the SSTATUS csr.
-                                self.mode = match (self.load_csr(SSTATUS) >> 8) & 1 {
-                                    1 => Supervisor,
-                                    _ => User,
+                                // is SSTATUS[8].
+                                let mut sstatus = self.csr.load(SSTATUS);
+                                self.mode = (sstatus & MASK_SPP) >> 8;
+                                // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
+                                let spie = (sstatus & MASK_SPIE) >> 5;
+                                // set SIE = SPIE
+                                sstatus = if spie == 0 {
+                                    sstatus & !MASK_SIE
+                                } else {
+                                    sstatus | MASK_SIE
                                 };
-                                // The SPIE bit is the 5th and the SIE bit is the 1st of the
-                                // SSTATUS csr.
-                                self.store_csr(
-                                    SSTATUS,
-                                    if ((self.load_csr(SSTATUS) >> 5) & 1) == 1 {
-                                        self.load_csr(SSTATUS) | (1 << 1)
-                                    } else {
-                                        self.load_csr(SSTATUS) & !(1 << 1)
-                                    },
-                                );
-                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) | (1 << 5));
-                                self.store_csr(SSTATUS, self.load_csr(SSTATUS) & !(1 << 8));
+                                // set SPIE = 1
+                                sstatus |= MASK_SPIE;
+                                // set SPP the least privilege mode (u-mode)
+                                sstatus &= !MASK_SPP;
+                                self.csr.store(SSTATUS, sstatus);
+                                // set the pc to CSRs[sepc].
+                                // whenever IALIGN=32, bit sepc[1] is masked on reads so that it appears to be 0. This
+                                // masking occurs also for the implicit read by the SRET instruction. 
+                                let new_pc = self.csr.load(SEPC) & !0b11;
                                 return Ok(new_pc);
                             }
                             (0x2, 0x18) => {
                                 // mret
-                                // The MRET instruction returns from a machine-mode exception
-                                // handler. It does the following operations:
-                                // - Sets the pc to CSRs[mepc].
-                                // - Sets the privilege mode to CSRs[mstatus].MPP.
-                                // - Sets CSRs[mstatus].MIE to CSRs[mstatus].MPIE.
-                                // - Sets CSRs[mstatus].MPIE to 1.
-                                // - Sets CSRs[mstatus].MPP to 0.
-                                let new_pc = self.load_csr(MEPC);
-                                // MPP is two bits wide at [11..12] of the MSTATUS csr.
-                                self.mode = match (self.load_csr(MSTATUS) >> 11) & 0b11 {
-                                    2 => Machine,
-                                    1 => Supervisor,
-                                    _ => User,
+                                let mut mstatus = self.csr.load(MSTATUS);
+                                // MPP is two bits wide at MSTATUS[12:11]
+                                self.mode = (mstatus & MASK_MPP) >> 11;
+                                // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
+                                let mpie = (mstatus >> 7) & 1;
+                                // set MIE = MPIE
+                                mstatus = if mpie == 0 {
+                                    mstatus & !MASK_MIE
+                                } else {
+                                    mstatus | MASK_MIE
                                 };
-                                // The MPIE bit is the 7th and the MIE bit is the 3rd of the
-                                // MSTATUS csr.
-                                self.store_csr(
-                                    MSTATUS,
-                                    if ((self.load_csr(MSTATUS) >> 7) & 1) == 1 {
-                                        self.load_csr(MSTATUS) | (1 << 3)
-                                    } else {
-                                        self.load_csr(MSTATUS) & !(1 << 3)
-                                    },
-                                );
-                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) | (1 << 7));
-                                self.store_csr(MSTATUS, self.load_csr(MSTATUS) & !(0b11 << 11));
+                                // set MPIE = 1
+                                mstatus |= MASK_MPIE;
+                                // set MPP the least privilege mode (u-mode)
+                                mstatus &= !MASK_MPP;
+                                self.csr.store(MSTATUS, mstatus);
+                                // set the pc to CSRs[mepc].
+                                let new_pc = self.csr.load(MEPC) & !0b11;
                                 return Ok(new_pc);
                             }
                             (_, 0x9) => {
