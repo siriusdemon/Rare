@@ -271,10 +271,8 @@ impl Cpu {
         if (self.mode == Supervisor) && (self.csr.load(SSTATUS) & MASK_SIE) == 0 {
             return None;
         }
-       
-        // 3.1.9 & 4.1.3
-        // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
-        // priority order: MEI, MSI, MTI, SEI, SSI, STI.
+        
+        // In fact, we should using priority to decide which interrupt should be handled first.
         if self.bus.uart.is_interrupting() {
             self.bus.store(PLIC_SCLAIM, 32, UART_IRQ).unwrap();
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
@@ -284,6 +282,9 @@ impl Cpu {
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP);
         }
 
+        // 3.1.9 & 4.1.3
+        // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
+        // priority order: MEI, MSI, MTI, SEI, SSI, STI.
         let pending = self.csr.load(MIE) & self.csr.load(MIP);
 
         if (pending & MASK_MEIP) != 0 {
