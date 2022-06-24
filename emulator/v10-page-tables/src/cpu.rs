@@ -696,7 +696,7 @@ impl Cpu {
                 let imm = (((inst & 0xfe000000) as i32 as i64 >> 20) as u64) | ((inst >> 7) & 0x1f);
                 let addr = self.regs[rs1].wrapping_add(imm);
                 match funct3 {
-                    0x0 => {self.store(addr, 8, self.regs[rs2])?; self.update_pc() },  // sb
+                    0x0 => {self.store(addr, 8, self.regs[rs2])?;  self.update_pc()}, // sb
                     0x1 => {self.store(addr, 16, self.regs[rs2])?; self.update_pc()}, // sh
                     0x2 => {self.store(addr, 32, self.regs[rs2])?; self.update_pc()}, // sw
                     0x3 => {self.store(addr, 64, self.regs[rs2])?; self.update_pc()}, // sd
@@ -956,8 +956,7 @@ impl Cpu {
                             // the ECALL or EBREAK instruction itself, not the address of the following instruction.
                             (0x0, 0x0) => {
                                 // ecall
-                                // Makes a request of the execution environment by raising an
-                                // environment call exception.
+                                // Makes a request of the execution environment by raising an environment call exception.
                                 match self.mode {
                                     User => Err(Exception::EnvironmentCallFromUMode(self.pc)),
                                     Supervisor => Err(Exception::EnvironmentCallFromSMode(self.pc)),
@@ -967,8 +966,7 @@ impl Cpu {
                             }
                             (0x1, 0x0) => {
                                 // ebreak
-                                // Makes a request of the debugger bu raising a Breakpoint
-                                // exception.
+                                // Makes a request of the debugger bu raising a Breakpoint exception.
                                 return Err(Exception::Breakpoint(self.pc));
                             }
                              (0x2, 0x8) => {
@@ -986,11 +984,7 @@ impl Cpu {
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
                                 let spie = (sstatus & MASK_SPIE) >> 5;
                                 // set SIE = SPIE
-                                sstatus = if spie == 0 {
-                                    sstatus & !MASK_SIE
-                                } else {
-                                    sstatus | MASK_SIE
-                                };
+                                sstatus = (sstatus & !MASK_SIE) | (spie << 3);
                                 // set SPIE = 1
                                 sstatus |= MASK_SPIE;
                                 // set SPP the least privilege mode (u-mode)
@@ -1010,11 +1004,7 @@ impl Cpu {
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
                                 let mpie = (mstatus >> 7) & 1;
                                 // set MIE = MPIE
-                                mstatus = if mpie == 0 {
-                                    mstatus & !MASK_MIE
-                                } else {
-                                    mstatus | MASK_MIE
-                                };
+                                mstatus = (mstatus & !MASK_MIE) | (mpie << 3);
                                 // set MPIE = 1
                                 mstatus |= MASK_MPIE;
                                 // set MPP the least privilege mode (u-mode)
