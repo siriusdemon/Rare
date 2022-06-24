@@ -45,54 +45,89 @@ pub struct Cpu {
     pub page_table: u64,
 }
 
+const RVABI: [&str; 32] = [
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", 
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5", 
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", 
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+];
+ 
 impl Cpu {
     /// Create a new `Cpu` object.
-    pub fn new(binary: Vec<u8>, disk_image: Vec<u8>) -> Self {
-        // The stack pointer (SP) must be set up at first.
+    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Self {
         let mut regs = [0; 32];
-        regs[2] = DRAM_BASE + DRAM_SIZE;
+        regs[2] = DRAM_END;
+        let pc = DRAM_BASE;
+        let bus = Bus::new(code, disk_image);
+        let csr = Csr::new();
+        let mode = Machine;
+        let page_table = 0;
+        let enable_paging = false;
 
-        Self {
-            regs,
-            // The program counter starts from the start address of a dram.
-            pc: DRAM_BASE,
-            mode: Machine,
-            bus: Bus::new(binary, disk_image),
-            csr: Csr::new(),
-            enable_paging: false,
-            page_table: 0,
+        Self {regs, pc, bus, csr, mode, page_table, enable_paging}
+    }
+
+    pub fn reg(&self, r: &str) -> u64 {
+        match RVABI.iter().position(|&x| x == r) {
+            Some(i) => self.regs[i],
+            None => match r {
+                "pc" => self.pc,
+                "fp" => self.reg("s0"),
+                r if r.starts_with("x") => {
+                    if let Ok(i) = r[1..].parse::<usize>() {
+                        if i <= 31 { return self.regs[i]; }
+                        panic!("Invalid register {}", r);
+                    }
+                    panic!("Invalid register {}", r);
+                }
+                "mhartid" => self.csr.load(MHARTID),
+                "mstatus" => self.csr.load(MSTATUS),
+                "mtvec" => self.csr.load(MTVEC),
+                "mepc" => self.csr.load(MEPC),
+                "mcause" => self.csr.load(MCAUSE),
+                "mtval" => self.csr.load(MTVAL),
+                "medeleg" => self.csr.load(MEDELEG),
+                "mscratch" => self.csr.load(MSCRATCH),
+                "MIP" => self.csr.load(MIP),
+                "mcounteren" => self.csr.load(MCOUNTEREN),
+                "sstatus" => self.csr.load(SSTATUS),
+                "stvec" => self.csr.load(STVEC),
+                "sepc" => self.csr.load(SEPC),
+                "scause" => self.csr.load(SCAUSE),
+                "stval" => self.csr.load(STVAL),
+                "sscratch" => self.csr.load(SSCRATCH),
+                "SIP" => self.csr.load(SIP),
+                "SATP" => self.csr.load(SATP),
+                _ => panic!("Invalid register {}", r),
+            }
         }
     }
 
-    /// Print values in all registers (x0-x31).
-    pub fn dump_registers(&self) {
-        let mut output = String::from("");
-        let abi = [
-            "zero", " ra ", " sp ", " gp ", " tp ", " t0 ", " t1 ", " t2 ", " s0 ", " s1 ", " a0 ",
-            " a1 ", " a2 ", " a3 ", " a4 ", " a5 ", " a6 ", " a7 ", " s2 ", " s3 ", " s4 ", " s5 ",
-            " s6 ", " s7 ", " s8 ", " s9 ", " s10", " s11", " t3 ", " t4 ", " t5 ", " t6 ",
-        ];
+    pub fn dump_pc(&self) {
+        println!("{:-^80}", "PC register");
+        println!("PC = {:#x}\n", self.pc);
+    }
+
+    pub fn dump_registers(&mut self) {
+        println!("{:-^80}", "registers");
+        let mut output = String::new();
+        self.regs[0] = 0;
+
         for i in (0..32).step_by(4) {
-            output = format!(
-                "{}\n{}",
-                output,
-                format!(
-                    "x{:02}({})={:>#18x} x{:02}({})={:>#18x} x{:02}({})={:>#18x} x{:02}({})={:>#18x}",
-                    i,
-                    abi[i],
-                    self.regs[i],
-                    i + 1,
-                    abi[i + 1],
-                    self.regs[i + 1],
-                    i + 2,
-                    abi[i + 2],
-                    self.regs[i + 2],
-                    i + 3,
-                    abi[i + 3],
-                    self.regs[i + 3],
-                )
+            let i0 = format!("x{}", i);
+            let i1 = format!("x{}", i + 1); 
+            let i2 = format!("x{}", i + 2);
+            let i3 = format!("x{}", i + 3); 
+            let line = format!(
+                "{:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x}\n",
+                i0, RVABI[i], self.regs[i], 
+                i1, RVABI[i + 1], self.regs[i + 1], 
+                i2, RVABI[i + 2], self.regs[i + 2], 
+                i3, RVABI[i + 3], self.regs[i + 3],
             );
+            output = output + &line;
         }
+
         println!("{}", output);
     }
 
@@ -146,19 +181,7 @@ impl Cpu {
         // If stval is written with a nonzero value when a misaligned load or store causes an access-fault or
         // page-fault exception, then stval will contain the virtual address of the portion of the access that
         // caused the fault
-        let addr = match e {
-            InstructionAddrMisaligned(addr) 
-            | InstructionAccessFault(addr) 
-            | InstructionPageFault(addr) => addr,
-            LoadAccessMisaligned(addr)
-            | LoadAccessFault(addr)
-            | LoadPageFault(addr) => addr,
-            StoreAMOAddrMisaligned(addr)
-            | StoreAMOAccessFault(addr)
-            | StoreAMOPageFault(addr) => addr,
-            _ => 0,
-        };
-        self.csr.store(TVAL, 0);
+        self.csr.store(TVAL, e.value());
         // 3.1.6 covers both sstatus and mstatus.
         let mut status = self.csr.load(STATUS);
         // get SIE or MIE
@@ -940,6 +963,8 @@ impl Cpu {
                 match funct3 {
                     0x0 => {
                         match (rs2, funct7) {
+                            // ECALL and EBREAK cause the receiving privilege mode’s epc register to be set to the address of
+                            // the ECALL or EBREAK instruction itself, not the address of the following instruction.
                             (0x0, 0x0) => {
                                 // ecall
                                 // Makes a request of the execution environment by raising an
@@ -955,7 +980,7 @@ impl Cpu {
                                 // ebreak
                                 // Makes a request of the debugger bu raising a Breakpoint
                                 // exception.
-                                return Err(Exception::Breakpoint(0));
+                                return Err(Exception::Breakpoint(self.pc));
                             }
                             (0x2, 0x8) => {
                                 // sret
@@ -1088,5 +1113,360 @@ impl Cpu {
             }
             _ => Err(Exception::IllegalInstruction(inst)),
         }
+    }
+}
+
+
+
+#[cfg(test)]
+mod test {
+    use std::fs::File;
+    use std::io::{Write, Read};
+    use std::process::Command;
+    use super::*;
+
+    fn generate_rv_assembly(c_src: &str) {
+        let cc = "clang";
+        let output = Command::new(cc).arg("-S")
+                            .arg(c_src)
+                            .arg("-nostdlib")
+                            .arg("-march=rv64g")
+                            .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
+                            .output()
+                            .expect("Failed to generate rv assembly");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+
+    fn generate_rv_obj(assembly: &str) {
+        let cc = "clang";
+        let pieces: Vec<&str> = assembly.split(".").collect();
+        let output = Command::new(cc).arg("-Wl,-Ttext=0x0")
+                            .arg("-nostdlib")
+                            .arg("-march=rv64g")
+                            .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
+                            .arg("-o")
+                            .arg(&pieces[0])
+                            .arg(assembly)
+                            .output()
+                            .expect("Failed to generate rv object");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+
+    fn generate_rv_binary(obj: &str) {
+        let objcopy = "llvm-objcopy";
+        let output = Command::new(objcopy).arg("-O")
+                                .arg("binary")
+                                .arg(obj)
+                                .arg(obj.to_owned() + ".bin")
+                                .output()
+                                .expect("Failed to generate rv binary");
+        println!("{}", String::from_utf8_lossy(&output.stderr));
+    }
+
+    fn rv_helper(code: &str, testname: &str, n_clock: usize) -> Result<Cpu, std::io::Error> {
+        let filename = testname.to_owned() + ".s";
+        let mut file = File::create(&filename)?;
+        file.write(&code.as_bytes())?;
+        generate_rv_obj(&filename);
+        generate_rv_binary(testname);
+        let mut file_bin = File::open(testname.to_owned() + ".bin")?;
+        let mut code = Vec::new();
+        file_bin.read_to_end(&mut code)?;
+        let mut cpu = Cpu::new(code, vec![]);
+
+        for _i in 0..n_clock {
+            let inst = match cpu.fetch() {
+                Ok(inst) => inst,
+                Err(_err) => break,
+            };
+            match cpu.execute(inst) {
+                Ok(new_pc) => self.pc = new_pc,
+                Err(err) => println!("{}", err),
+            };
+        }
+
+        return Ok(cpu);
+    }
+
+    macro_rules! riscv_test {
+        ( $code:expr, $name:expr, $clock:expr, $($real:expr => $expect:expr),* ) => {
+            match rv_helper($code, $name, $clock) {
+                Ok(cpu) => { 
+                    $(assert_eq!(cpu.reg($real), $expect);)*
+                }
+                Err(e) => { println!("error: {}", e); assert!(false); }
+            } 
+        };
+    }
+
+    #[test]
+    fn test_addi() {
+        let code = "addi x31, x0, 42";
+        riscv_test!(code, "test_addi", 1, "x31" => 42);
+    }
+
+    #[test]
+    fn test_simple() {
+        // this is the assembly code of simple.c
+        let code = "
+            addi	sp,sp,-16
+            sd	s0,8(sp)
+            addi	s0,sp,16
+            li	a5,42
+            mv	a0,a5
+            ld	s0,8(sp)
+            addi	sp,sp,16
+            jr	ra
+        ";
+        riscv_test!(code, "test_simple", 20, "a0" => 42);
+    }
+
+    #[test]
+    fn test_lui() {
+        let code = "lui a0, 42";
+        riscv_test!(code, "test_lui", 1, "a0" => 42 << 12);
+    }
+
+    #[test]
+    fn test_auipc() {
+        let code = "auipc a0, 42";
+        riscv_test!(code, "test_auipc", 1, "a0" => DRAM_BASE + (42 << 12));
+    }
+
+    #[test]
+    fn test_jal() {
+        let code = "jal a0, 42";
+        riscv_test!(code, "test_jal", 1, "a0" => DRAM_BASE + 4, "pc" => DRAM_BASE + 42);
+    }
+
+    #[test]
+    fn test_jalr() {
+        let code = "
+            addi a1, zero, 42
+            jalr a0, -8(a1)
+        ";
+        riscv_test!(code, "test_jalr", 2, "a0" => DRAM_BASE + 8, "pc" => 34);
+    }
+
+    #[test]
+    fn test_beq() {
+        let code = "
+            beq  x0, x0, 42
+        ";
+        riscv_test!(code, "test_beq", 3, "pc" => DRAM_BASE + 42);
+    }
+
+    #[test]
+    fn test_bne() {
+        let code = "
+            addi x1, x0, 10
+            bne  x0, x1, 42
+        ";
+        riscv_test!(code, "test_bne", 5, "pc" => DRAM_BASE + 42 + 4);
+    }
+
+    #[test]
+    fn test_blt() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            blt  x1, x2, 42
+        ";
+        riscv_test!(code, "test_blt", 10, "pc" => DRAM_BASE + 42 + 8);
+    }
+
+    #[test]
+    fn test_bge() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bge  x2, x1, 42
+        ";
+        riscv_test!(code, "test_bge", 10, "pc" => DRAM_BASE + 42 + 8);
+    }
+
+    #[test]
+    fn test_bltu() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bltu x1, x2, 42
+        ";
+        riscv_test!(code, "test_bltu", 10, "pc" => DRAM_BASE + 42 + 8);
+    }
+
+    #[test]
+    fn test_bgeu() {
+        let code = "
+            addi x1, x0, 10
+            addi x2, x0, 20
+            bgeu x2, x1, 42
+        ";
+        riscv_test!(code, "test_bgeu", 10, "pc" => DRAM_BASE + 42 + 8);
+    }
+
+    #[test]
+    fn test_store_load1() {
+        let code = "
+            addi s0, zero, 256
+            addi sp, sp, -16
+            sd   s0, 8(sp)
+            lb   t1, 8(sp)
+            lh   t2, 8(sp)
+        ";
+        riscv_test!(code, "test_store_load1", 10, "t1" => 0, "t2" => 256);
+    }
+
+    #[test]
+    fn test_slt() {
+        let code = "
+            addi t0, zero, 14
+            addi t1, zero, 24
+            slt  t2, t0, t1
+            slti t3, t0, 42
+            sltiu t4, t0, 84
+        ";
+        riscv_test!(code, "test_slt", 7, "t2" => 1, "t3" => 1, "t4" => 1);
+    }
+
+    #[test]
+    fn test_xor() {
+        let code = "
+            addi a0, zero, 0b10
+            xori a1, a0, 0b01
+            xor a2, a1, a1 
+        ";
+        riscv_test!(code, "test_xor", 5, "a1" => 3, "a2" => 0);
+    }
+
+    #[test]
+    fn test_or() {
+        let code = "
+            addi a0, zero, 0b10
+            ori  a1, a0, 0b01
+            or   a2, a0, a0
+        ";
+        riscv_test!(code, "test_or", 3, "a1" => 0b11, "a2" => 0b10);
+    }
+
+    #[test]
+    fn test_and() {
+        let code = "
+            addi a0, zero, 0b10 
+            andi a1, a0, 0b11
+            and  a2, a0, a1
+        ";
+        riscv_test!(code, "test_and", 3, "a1" => 0b10, "a2" => 0b10);
+    }
+
+    #[test]
+    fn test_sll() {
+        let code = "
+            addi a0, zero, 1
+            addi a1, zero, 5
+            sll  a2, a0, a1
+            slli a3, a0, 5
+            addi s0, zero, 64
+            sll  a4, a0, s0
+        ";
+        riscv_test!(code, "test_sll", 10, "a2" => 1 << 5, "a3" => 1 << 5, "a4" => 1);
+    }
+
+    #[test]
+    fn test_sra_srl() {
+        let code = "
+            addi a0, zero, -8
+            addi a1, zero, 1
+            sra  a2, a0, a1
+            srai a3, a0, 2
+            srli a4, a0, 2
+            srl  a5, a0, a1
+        ";
+        riscv_test!(code, "test_sra_srl", 10, "a2" => -4 as i64 as u64, "a3" => -2 as i64 as u64, 
+                                              "a4" => -8 as i64 as u64 >> 2, "a5" => -8 as i64 as u64 >> 1);
+    }
+
+    #[test]
+    fn test_word_op() {
+        let code = "
+            addi a0, zero, 42 
+            lui  a1, 0x7f000
+            addw a2, a0, a1
+        ";
+        riscv_test!(code, "test_word_op", 29, "a2" => 0x7f00002a);
+    }
+
+    #[test]
+    fn test_csrs1() {
+        let code = "
+            addi t0, zero, 1
+            addi t1, zero, 2
+            addi t2, zero, 3
+            csrrw zero, mstatus, t0
+            csrrs zero, mtvec, t1
+            csrrw zero, mepc, t2
+            csrrc t2, mepc, zero
+            csrrwi zero, sstatus, 4
+            csrrsi zero, stvec, 5
+            csrrwi zero, sepc, 6
+            csrrci zero, sepc, 0 
+        ";
+        riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
+                                            "sstatus" => 0, "stvec" => 5, "sepc" => 6);
+    }
+
+    #[test]
+    fn compile_hello_world() {
+        // You should run it by
+        // -- cargo run helloworld.bin
+        let c_code = r"
+        int main() {
+            volatile char *uart = (volatile char *) 0x10000000;
+            uart[0] = 'H';
+            uart[0] = 'e';
+            uart[0] = 'l';
+            uart[0] = 'l';
+            uart[0] = 'o';
+            uart[0] = ',';
+            uart[0] = ' ';
+            uart[0] = 'w';
+            uart[0] = 'o';
+            uart[0] = 'r';
+            uart[0] = 'l';
+            uart[0] = 'd';
+            uart[0] = '!';
+            uart[0] = '\n';
+            return 0;
+        }";
+        let mut file = File::create("test_helloworld.c").unwrap();
+        file.write(&c_code.as_bytes()).unwrap();
+        generate_rv_assembly("test_helloworld.c");
+        generate_rv_obj("test_helloworld.s");
+        generate_rv_binary("test_helloworld");
+    }
+
+    #[test]
+    fn compile_echoback() {
+        let c_code = r"
+        int main() {
+            while (1) {
+                volatile char *uart = (volatile char *) 0x10000000;
+                while ((uart[5] & 0x01) == 0);
+                char c = uart[0];
+                if ('a' <= c && c <= 'z') {
+                    c = c + 'A' - 'a';
+                }
+                uart[0] = c;
+            }
+        }";
+        let mut file = File::create("test_echoback.c").unwrap();
+        file.write(&c_code.as_bytes()).unwrap();
+        generate_rv_assembly("test_echoback.c");
+        generate_rv_obj("test_echoback.s");
+        generate_rv_binary("test_echoback");
     }
 }
