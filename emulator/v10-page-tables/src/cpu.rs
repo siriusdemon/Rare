@@ -120,7 +120,7 @@ impl Cpu {
         // 6. set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)
         // 7. clear up xIE (SIE in S-mode, MIE in M-mode)
         use Exception::*;
-        let pc = self.pc - 4; 
+        let pc = self.pc; 
         let mode = self.mode;
         let cause = e.code();
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
@@ -516,13 +516,12 @@ impl Cpu {
 
 
     #[inline]
-    pub fn update_pc(&mut self) -> Result<(), Exception> {
-        self.pc += 4;
-        return Ok(());
+    pub fn update_pc(&mut self) -> Result<u64, Exception> {
+        return Ok(self.pc + 4);
     }
 
     /// Execute an instruction after decoding. Return true if an error happens, otherwise false.
-    pub fn execute(&mut self, inst: u64) -> Result<(), Exception> {
+    pub fn execute(&mut self, inst: u64) -> Result<u64, Exception> {
         let opcode = inst & 0x0000007f;
         let rd = ((inst & 0x00000f80) >> 7) as usize;
         let rs1 = ((inst & 0x000f8000) >> 15) as usize;
@@ -581,13 +580,8 @@ impl Cpu {
                         self.regs[rd] = val;
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x}",
-                            opcode, funct3
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
+                    
                 }
             }
             0x0f => {
@@ -597,13 +591,7 @@ impl Cpu {
                     0x0 => { // fence
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x}",
-                            opcode, funct3
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
                 }
             }
             0x13 => {
@@ -653,10 +641,7 @@ impl Cpu {
                                 self.regs[rd] = (self.regs[rs1] as i64).wrapping_shr(shamt) as u64;
                                 return self.update_pc();
                             }
-                            _ => {
-                                println!("go here");
-                                return self.update_pc();
-                            }
+                            _ => Err(Exception::IllegalInstruction(inst)),
                         }
                     }
                     0x6 => {
@@ -667,10 +652,7 @@ impl Cpu {
                         self.regs[rd] = self.regs[rs1] & imm; // andi
                         return self.update_pc();
                     }
-                    _ => {
-                        println!("go here");
-                        return self.update_pc();
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
                 }
             }
             0x17 => {
@@ -708,22 +690,11 @@ impl Cpu {
                                     (self.regs[rs1] as i32).wrapping_shr(shamt) as i64 as u64;
                                 return self.update_pc();
                             }
-                            _ => {
-                                println!(
-                                    "not implemented yet: opcode {:#x} funct7 {:#x}",
-                                    opcode, funct7
-                                );
-                                return Err(Exception::IllegalInstruction(inst));
-                            }
+                            _ => Err(Exception::IllegalInstruction(inst)),
                         }
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x}",
-                            opcode, funct3
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
+                    
                 }
             }
             0x23 => {
@@ -772,13 +743,8 @@ impl Cpu {
                         self.regs[rd] = t;
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x} funct7 {:#x}",
-                            opcode, funct3, funct7
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
+                    
                 }
             }
             0x33 => {
@@ -850,13 +816,7 @@ impl Cpu {
                         self.regs[rd] = self.regs[rs1] & self.regs[rs2];
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x} funct7 {:#x}",
-                            opcode, funct3, funct7
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
                 }
             }
             0x37 => {
@@ -922,13 +882,7 @@ impl Cpu {
                         };
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x} funct7 {:#x}",
-                            opcode, funct3, funct7
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
                 }
             }
             0x63 => {
@@ -942,58 +896,47 @@ impl Cpu {
                     0x0 => {
                         // beq
                         if self.regs[rs1] == self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
                     0x1 => {
                         // bne
                         if self.regs[rs1] != self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
                     0x4 => {
                         // blt
                         if (self.regs[rs1] as i64) < (self.regs[rs2] as i64) {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
                     0x5 => {
                         // bge
                         if (self.regs[rs1] as i64) >= (self.regs[rs2] as i64) {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
                     0x6 => {
                         // bltu
                         if self.regs[rs1] < self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
                     0x7 => {
                         // bgeu
                         if self.regs[rs1] >= self.regs[rs2] {
-                            self.pc = self.pc.wrapping_add(imm);
-                            return Ok(());
+                            return Ok(self.pc.wrapping_add(imm));
                         }
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x}",
-                            opcode, funct3
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
+                    
                 }
             }
             0x67 => {
@@ -1001,10 +944,10 @@ impl Cpu {
                 let t = self.pc + 4;
 
                 let imm = ((((inst & 0xfff00000) as i32) as i64) >> 20) as u64;
-                self.pc = (self.regs[rs1].wrapping_add(imm)) & !1;
+                let new_pc = (self.regs[rs1].wrapping_add(imm)) & !1;
 
                 self.regs[rd] = t;
-                return Ok(());
+                return Ok(new_pc);
             }
             0x6f => {
                 // jal
@@ -1016,8 +959,7 @@ impl Cpu {
                     | ((inst >> 9) & 0x800) // imm[11]
                     | ((inst >> 20) & 0x7fe); // imm[10:1]
 
-                self.pc = self.pc.wrapping_add(imm);
-                return Ok(());
+                return Ok(self.pc.wrapping_add(imm));
             }
             0x73 => {
                 let csr_addr = ((inst & 0xfff00000) >> 20) as usize;
@@ -1030,15 +972,12 @@ impl Cpu {
                                 // environment call exception.
                                 match self.mode {
                                     Mode::User => {
-                                        self.update_pc()?;
                                         return Err(Exception::EnvironmentCallFromUMode(self.pc));
                                     }
                                     Mode::Supervisor => {
-                                        self.update_pc()?;
                                         return Err(Exception::EnvironmentCallFromSMode(self.pc));
                                     }
                                     Mode::Machine => {
-                                        self.update_pc()?;
                                         return Err(Exception::EnvironmentCallFromMMode(self.pc));
                                     }
                                 }
@@ -1047,7 +986,6 @@ impl Cpu {
                                 // ebreak
                                 // Makes a request of the debugger bu raising a Breakpoint
                                 // exception.
-                                self.update_pc()?;
                                 return Err(Exception::Breakpoint(self.pc));
                             }
                             (0x2, 0x8) => {
@@ -1059,7 +997,7 @@ impl Cpu {
                                 // - Sets CSRs[sstatus].SIE to CSRs[sstatus].SPIE.
                                 // - Sets CSRs[sstatus].SPIE to 1.
                                 // - Sets CSRs[sstatus].SPP to 0.
-                                self.pc = self.load_csr(SEPC);
+                                let new_pc = self.load_csr(SEPC);
                                 // When the SRET instruction is executed to return from the trap
                                 // handler, the privilege level is set to user mode if the SPP
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
@@ -1080,7 +1018,7 @@ impl Cpu {
                                 );
                                 self.store_csr(SSTATUS, self.load_csr(SSTATUS) | (1 << 5));
                                 self.store_csr(SSTATUS, self.load_csr(SSTATUS) & !(1 << 8));
-                                return Ok(());
+                                return Ok(new_pc);
                             }
                             (0x2, 0x18) => {
                                 // mret
@@ -1091,7 +1029,7 @@ impl Cpu {
                                 // - Sets CSRs[mstatus].MIE to CSRs[mstatus].MPIE.
                                 // - Sets CSRs[mstatus].MPIE to 1.
                                 // - Sets CSRs[mstatus].MPP to 0.
-                                self.pc = self.load_csr(MEPC);
+                                let new_pc = self.load_csr(MEPC);
                                 // MPP is two bits wide at [11..12] of the MSTATUS csr.
                                 self.mode = match (self.load_csr(MSTATUS) >> 11) & 0b11 {
                                     2 => Mode::Machine,
@@ -1110,20 +1048,14 @@ impl Cpu {
                                 );
                                 self.store_csr(MSTATUS, self.load_csr(MSTATUS) | (1 << 7));
                                 self.store_csr(MSTATUS, self.load_csr(MSTATUS) & !(0b11 << 11));
-                                return Ok(());
+                                return Ok(new_pc);
                             }
                             (_, 0x9) => {
                                 // sfence.vma
                                 // Do nothing.
                                 return self.update_pc();
                             }
-                            _ => {
-                                println!(
-                                    "not implemented yet: opcode {:#x} funct3 {:#x} funct7 {:#x}",
-                                    opcode, funct3, funct7
-                                );
-                                return Err(Exception::IllegalInstruction(inst));
-                            }
+                            _ => Err(Exception::IllegalInstruction(inst)),
                         }
                     }
                     0x1 => {
@@ -1182,20 +1114,10 @@ impl Cpu {
                         self.update_paging(csr_addr);
                         return self.update_pc();
                     }
-                    _ => {
-                        println!(
-                            "not implemented yet: opcode {:#x} funct3 {:#x}",
-                            opcode, funct3
-                        );
-                        return Err(Exception::IllegalInstruction(inst));
-                    }
+                    _ => Err(Exception::IllegalInstruction(inst)),
                 }
             }
-            _ => {
-                dbg!(format!("not implemented yet: opcode {:#x}", opcode));
-                return Err(Exception::IllegalInstruction(inst));
-            }
+            _ => Err(Exception::IllegalInstruction(inst)),
         }
-        // return Ok(());
     }
 }

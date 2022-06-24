@@ -243,7 +243,7 @@ impl Cpu {
         self.csr.store(STATUS, status);
     }
 
-    pub fn check_pending_interrupts(&mut self) -> Option<RvInterrupt> {
+    pub fn check_pending_interrupt(&mut self) -> Option<RvInterrupt> {
         use RvInterrupt::*;
         // 3.1.6.1
         // When a hart is executing in privilege mode x, interrupts are globally enabled when x IE=1 and globally 

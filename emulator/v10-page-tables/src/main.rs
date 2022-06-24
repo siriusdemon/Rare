@@ -40,9 +40,9 @@ fn main() -> io::Result<()> {
         let inst = match cpu.fetch() {
             // Break the loop if an error occurs.
             Ok(inst) => inst,
-            Err(exception) => {
-                cpu.handle_exception(exception);
-                if exception.is_fatal() {
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
                     break;
                 }
                 continue;
@@ -55,24 +55,23 @@ fn main() -> io::Result<()> {
         // 4. Execute.
         match cpu.execute(inst) {
             // Break the loop if an error occurs.
-            Ok(_) => {}
-            Err(exception) => {
-                cpu.handle_exception(exception);
-                if exception.is_fatal() {
+            Ok(new_pc) => cpu.pc = new_pc,
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
                     break;
                 }
             }
-        }
+        };
 
         match cpu.check_pending_interrupt() {
-            // Some(interrupt) => interrupt.take_trap(&mut cpu),
             Some(interrupt) => cpu.handle_interrupt(interrupt),
             None => (),
         }
     }
     cpu.dump_registers();
-    println!("-----------------------------------------------------------------------------------------------------------");
     cpu.dump_csrs();
+    // cpu.dump_pc();
 
     Ok(())
 }
