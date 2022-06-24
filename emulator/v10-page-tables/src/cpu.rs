@@ -12,23 +12,16 @@ use crate::virtio::*;
 use crate::param::*;
 use crate::csr::*;
 
-/// The privileged mode.
-#[derive(Debug, PartialEq, PartialOrd, Eq, Copy, Clone)]
-pub enum Mode {
-    User = 0b00,
-    Supervisor = 0b01,
-    Machine = 0b11,
-}
 
-/// Access type that is used in the virtual address translation process. It decides which exception
-/// should raises (InstructionPageFault, LoadPageFault or StoreAMOPageFault).
-#[derive(Debug, PartialEq, PartialOrd)]
+// Riscv Privilege Mode
+type Mode = u64;
+const User: Mode = 0b00;
+const Supervisor: Mode = 0b01;
+const Machine: Mode = 0b11;
+
 pub enum AccessType {
-    /// Raises the exception InstructionPageFault. It is used for an instruction fetch.
     Instruction,
-    /// Raises the exception LoadPageFault.
     Load,
-    /// Raises the exception StoreAMOPageFault.
     Store,
 }
 
@@ -63,7 +56,7 @@ impl Cpu {
             regs,
             // The program counter starts from the start address of a dram.
             pc: DRAM_BASE,
-            mode: Mode::Machine,
+            mode: Machine,
             bus: Bus::new(binary, disk_image),
             csr: Csr::new(),
             enable_paging: false,
@@ -125,13 +118,13 @@ impl Cpu {
         let cause = e.code();
         // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
         // then this exception should be handled in S-mode.
-        let trap_in_s_mode = mode <= Mode::Supervisor && self.csr.is_medelegated(cause);
+        let trap_in_s_mode = mode <= Supervisor && self.csr.is_medelegated(cause);
         let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
             = if trap_in_s_mode {
-                self.mode = Mode::Supervisor;
+                self.mode = Supervisor;
                 (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
             } else {
-                self.mode = Mode::Machine;
+                self.mode = Machine;
                 (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
             };
         // 3.1.7 & 4.1.2
@@ -175,11 +168,6 @@ impl Cpu {
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
-        let mode = match mode {
-            Mode::Supervisor => 0b01,
-            Mode::Machine => 0b11,
-            Mode::User => 0b00,
-        };
         status = (status & !MASK_PP) | (mode << pp_i);
         self.csr.store(STATUS, status);
     }
@@ -191,13 +179,13 @@ impl Cpu {
         let mode = self.mode;
         let cause = interrupt.code();
         // although cause contains a interrupt bit. Shift the cause make it out.
-        let trap_in_s_mode = mode <= Mode::Supervisor && self.csr.is_midelegated(cause);
+        let trap_in_s_mode = mode <= Supervisor && self.csr.is_midelegated(cause);
         let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
             = if trap_in_s_mode {
-                self.mode = Mode::Supervisor;
+                self.mode = Supervisor;
                 (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
             } else {
-                self.mode = Mode::Machine;
+                self.mode = Machine;
                 (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
             };
         // 3.1.7 & 4.1.2
@@ -234,11 +222,6 @@ impl Cpu {
         // set SIE = 0 / MIE = 0
         status &= !MASK_IE; 
         // set SPP / MPP = previous mode
-        let mode = match mode {
-            Mode::Supervisor => 0b01,
-            Mode::Machine => 0b11,
-            Mode::User => 0b00,
-        };
         status = (status & !MASK_PP) | (mode << pp_i);
         self.csr.store(STATUS, status);
     }
@@ -259,20 +242,11 @@ impl Cpu {
         // the following are true: (a) either the current privilege mode is M and the MIE bit in the mstatus
         // register is set, or the current privilege mode has less privilege than M-mode; (b) bit i is set in both
         // mip and mie; and (c) if register mideleg exists, bit i is not set in mideleg.
-        match self.mode {
-            Mode::Machine => {
-                // Check if the MIE bit is enabled.
-                if (self.load_csr(MSTATUS) >> 3) & 1 == 0 {
-                    return None;
-                }
-            }
-            Mode::Supervisor => {
-                // Check if the SIE bit is enabled.
-                if (self.load_csr(SSTATUS) >> 1) & 1 == 0 {
-                    return None;
-                }
-            }
-            _ => {}
+        if (self.mode == Machine) && (self.csr.load(MSTATUS) & MASK_MIE) == 0 {
+            return None;
+        }
+        if (self.mode == Supervisor) && (self.csr.load(SSTATUS) & MASK_SIE) == 0 {
+            return None;
         }
        
         // 3.1.9 & 4.1.3
@@ -343,7 +317,7 @@ impl Cpu {
             false => {
                 for i in 0..len1 {
                     let data = self.bus.virtio.read_disk(blk_sector * 512 + i);
-                    self.bus.store(addr1 + i, 8, data as u64);
+                    self.bus.store(addr1 + i, 8, data as u64).unwrap();
                 }
             }
         }
@@ -971,22 +945,17 @@ impl Cpu {
                                 // Makes a request of the execution environment by raising an
                                 // environment call exception.
                                 match self.mode {
-                                    Mode::User => {
-                                        return Err(Exception::EnvironmentCallFromUMode(self.pc));
-                                    }
-                                    Mode::Supervisor => {
-                                        return Err(Exception::EnvironmentCallFromSMode(self.pc));
-                                    }
-                                    Mode::Machine => {
-                                        return Err(Exception::EnvironmentCallFromMMode(self.pc));
-                                    }
+                                    User => Err(Exception::EnvironmentCallFromUMode(self.pc)),
+                                    Supervisor => Err(Exception::EnvironmentCallFromSMode(self.pc)),
+                                    Machine => Err(Exception::EnvironmentCallFromMMode(self.pc)),
+                                    _ => unreachable!(),
                                 }
                             }
                             (0x1, 0x0) => {
                                 // ebreak
                                 // Makes a request of the debugger bu raising a Breakpoint
                                 // exception.
-                                return Err(Exception::Breakpoint(self.pc));
+                                return Err(Exception::Breakpoint(0));
                             }
                             (0x2, 0x8) => {
                                 // sret
@@ -1003,8 +972,8 @@ impl Cpu {
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
                                 // is the 8th of the SSTATUS csr.
                                 self.mode = match (self.load_csr(SSTATUS) >> 8) & 1 {
-                                    1 => Mode::Supervisor,
-                                    _ => Mode::User,
+                                    1 => Supervisor,
+                                    _ => User,
                                 };
                                 // The SPIE bit is the 5th and the SIE bit is the 1st of the
                                 // SSTATUS csr.
@@ -1032,9 +1001,9 @@ impl Cpu {
                                 let new_pc = self.load_csr(MEPC);
                                 // MPP is two bits wide at [11..12] of the MSTATUS csr.
                                 self.mode = match (self.load_csr(MSTATUS) >> 11) & 0b11 {
-                                    2 => Mode::Machine,
-                                    1 => Mode::Supervisor,
-                                    _ => Mode::User,
+                                    2 => Machine,
+                                    1 => Supervisor,
+                                    _ => User,
                                 };
                                 // The MPIE bit is the 7th and the MIE bit is the 3rd of the
                                 // MSTATUS csr.
