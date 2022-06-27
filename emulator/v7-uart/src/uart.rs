@@ -1,4 +1,9 @@
+//! The uart module contains the implementation of a universal asynchronous receiver-transmitter
+//! (UART). The device is 16550a UART, which is used in the QEMU virt machine.
 //! See the spec: http://byterunner.com/16550.html
+
+#![allow(dead_code)]
+
 use std::io;
 use std::io::prelude::*;
 use std::sync::{
@@ -7,13 +12,9 @@ use std::sync::{
 };
 use std::thread;
 
-
-
+use crate::bus::*;
+use crate::exception::*;
 use crate::param::*;
-use crate::exception::RvException;
-
-use RvException::*;
-
 
 pub struct Uart {
     /// Pair of an array for UART buffer and a conditional variable.
@@ -22,7 +23,9 @@ pub struct Uart {
     interrupt: Arc<AtomicBool>,
 }
 
+
 impl Uart {
+    /// Create a new `Uart` object.
     pub fn new() -> Self {
         let mut array = [0; UART_SIZE as usize];
         array[UART_LSR as usize] |= MASK_UART_LSR_TX;
@@ -53,12 +56,18 @@ impl Uart {
             }
         });
         
-        Self {uart, interrupt}
+        Self { uart, interrupt }
     }
 
-    pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, RvException> {
+    /// Return true if an interrupt is pending. Clear the interrupt flag by swapping a value.
+    pub fn is_interrupting(&self) -> bool {
+        self.interrupt.swap(false, Ordering::Acquire)
+    }
+
+
+    pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
         if size != 8 {
-            return Err(LoadAccessFault(addr));
+            return Err(Exception::LoadAccessFault(addr));
         }
         let (uart, cvar) = &*self.uart;
         let mut array = uart.lock().unwrap(); 
@@ -68,15 +77,15 @@ impl Uart {
             UART_RHR => {
                 cvar.notify_one();
                 array[UART_LSR as usize] &= !MASK_UART_LSR_RX;
-                return Ok(array[UART_RHR as usize] as u64);
+                Ok(array[UART_RHR as usize] as u64)
             }
             _ => Ok(array[index as usize] as u64),
         } 
     }
 
-    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), RvException> {
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), Exception> {
         if size != 8 {
-            return Err(StoreOrAMOAccessFault(addr));
+            return Err(Exception::StoreAMOAccessFault(addr));
         }
         let (uart, cvar) = &*self.uart;
         let mut array = uart.lock().unwrap();
