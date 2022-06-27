@@ -52,10 +52,8 @@ impl Cpu {
         let bus = Bus::new(code, disk_image);
         let csr = Csr::new();
         let mode = Machine;
-        let page_table = 0;
-        let enable_paging = false;
 
-        Self {regs, pc, bus, csr, mode, page_table, enable_paging}
+        Self {regs, pc, bus, csr, mode}
     }
 
     pub fn reg(&self, r: &str) -> u64 {
@@ -343,20 +341,17 @@ impl Cpu {
 
     /// Load a value from a dram.
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
-        let p_addr = self.translate(addr, AccessType::Load)?;
-        self.bus.load(p_addr, size)
+        self.bus.load(addr, size)
     }
 
     /// Store a value to a dram.
     pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), Exception> {
-        let p_addr = self.translate(addr, AccessType::Store)?;
-        self.bus.store(p_addr, size, value)
+        self.bus.store(addr, size, value)
     }
 
     /// Get an instruction from the dram.
     pub fn fetch(&mut self) -> Result<u64, Exception> {
-        let p_pc = self.translate(self.pc, AccessType::Instruction)?;
-        match self.bus.load(p_pc, 32) {
+        match self.bus.load(self.pc, 32) {
             Ok(inst) => Ok(inst),
             Err(_e) => Err(Exception::InstructionAccessFault(self.pc)),
         }
@@ -992,7 +987,7 @@ mod test {
                 Err(_err) => break,
             };
             match cpu.execute(inst) {
-                Ok(new_pc) => self.pc = new_pc,
+                Ok(new_pc) => cpu.pc = new_pc,
                 Err(err) => println!("{}", err),
             };
         }

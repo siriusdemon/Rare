@@ -1144,7 +1144,7 @@ mod test {
                 Err(_err) => break,
             };
             match cpu.execute(inst) {
-                Ok(new_pc) => self.pc = new_pc,
+                Ok(new_pc) => cpu.pc = new_pc,
                 Err(err) => println!("{}", err),
             };
         }
