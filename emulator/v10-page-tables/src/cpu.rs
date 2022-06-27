@@ -984,7 +984,7 @@ impl Cpu {
                                 // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
                                 let spie = (sstatus & MASK_SPIE) >> 5;
                                 // set SIE = SPIE
-                                sstatus = (sstatus & !MASK_SIE) | (spie << 3);
+                                sstatus = (sstatus & !MASK_SIE) | (spie << 1);
                                 // set SPIE = 1
                                 sstatus |= MASK_SPIE;
                                 // set SPP the least privilege mode (u-mode)
@@ -1002,7 +1002,7 @@ impl Cpu {
                                 // MPP is two bits wide at MSTATUS[12:11]
                                 self.mode = (mstatus & MASK_MPP) >> 11;
                                 // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
-                                let mpie = (mstatus >> 7) & 1;
+                                let mpie = (mstatus & MASK_MPIE) >> 7;
                                 // set MIE = MPIE
                                 mstatus = (mstatus & !MASK_MIE) | (mpie << 3);
                                 // set MPIE = 1
