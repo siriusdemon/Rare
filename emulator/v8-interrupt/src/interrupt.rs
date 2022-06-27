@@ -1,7 +1,7 @@
 pub const MASK_INTERRUPT_BIT: u64 = 1 << 63;
 
 #[derive(Debug, Copy, Clone)]
-pub enum RvInterrupt {
+pub enum Interrupt {
     UserSoftwareInterrupt,
     SupervisorSoftwareInterrupt,
     MachineSoftwareInterrupt,
@@ -15,9 +15,9 @@ pub enum RvInterrupt {
 
 
 
-impl RvInterrupt {
+impl Interrupt {
     pub fn code(self) -> u64 {
-        use RvInterrupt::*;
+        use Interrupt::*;
         match self {
             UserSoftwareInterrupt => 0 | MASK_INTERRUPT_BIT,
             SupervisorSoftwareInterrupt => 1 | MASK_INTERRUPT_BIT,
