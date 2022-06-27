@@ -481,16 +481,6 @@ impl Cpu {
         }
     }
 
-    /// Load a value from a CSR.
-    pub fn load_csr(&self, addr: usize) -> u64 {
-        self.csr.load(addr)
-    }
-
-    /// Store a value to a CSR.
-    pub fn store_csr(&mut self, addr: usize, value: u64) {
-        self.csr.store(addr, value)
-    }
-
     /// Load a value from a dram.
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
         let p_addr = self.translate(addr, AccessType::Load)?;
@@ -1024,8 +1014,8 @@ impl Cpu {
                     }
                     0x1 => {
                         // csrrw
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, self.regs[rs1]);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, self.regs[rs1]);
                         self.regs[rd] = t;
 
                         self.update_paging(csr_addr);
@@ -1033,8 +1023,8 @@ impl Cpu {
                     }
                     0x2 => {
                         // csrrs
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t | self.regs[rs1]);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t | self.regs[rs1]);
                         self.regs[rd] = t;
 
                         self.update_paging(csr_addr);
@@ -1042,8 +1032,8 @@ impl Cpu {
                     }
                     0x3 => {
                         // csrrc
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t & (!self.regs[rs1]));
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t & (!self.regs[rs1]));
                         self.regs[rd] = t;
 
                         self.update_paging(csr_addr);
@@ -1052,8 +1042,8 @@ impl Cpu {
                     0x5 => {
                         // csrrwi
                         let zimm = rs1 as u64;
-                        self.regs[rd] = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, zimm);
+                        self.regs[rd] = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, zimm);
 
                         self.update_paging(csr_addr);
                         return self.update_pc();
@@ -1061,8 +1051,8 @@ impl Cpu {
                     0x6 => {
                         // csrrsi
                         let zimm = rs1 as u64;
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t | zimm);
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t | zimm);
                         self.regs[rd] = t;
 
                         self.update_paging(csr_addr);
@@ -1071,8 +1061,8 @@ impl Cpu {
                     0x7 => {
                         // csrrci
                         let zimm = rs1 as u64;
-                        let t = self.load_csr(csr_addr);
-                        self.store_csr(csr_addr, t & (!zimm));
+                        let t = self.csr.load(csr_addr);
+                        self.csr.store(csr_addr, t & (!zimm));
                         self.regs[rd] = t;
 
                         self.update_paging(csr_addr);

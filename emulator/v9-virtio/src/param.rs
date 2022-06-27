@@ -94,3 +94,6 @@ pub const VIRTIO_QUEUE_NOTIFY: u64 = VIRTIO_BASE + 0x050;
 // Writing non-zero values to this register sets the status flags, indicating the OS/driver
 // progress. Writing zero (0x0) to this register triggers a device reset.
 pub const VIRTIO_STATUS: u64 = VIRTIO_BASE + 0x070;
+
+
+pub const PAGE_SIZE: u64 = 4096;
