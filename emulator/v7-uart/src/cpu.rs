@@ -3,10 +3,7 @@
 #![allow(dead_code)]
 
 use crate::bus::*;
-use crate::dram::*;
-use crate::plic::*;
 use crate::exception::*;
-use crate::uart::*;
 use crate::param::*;
 use crate::csr::*;
 

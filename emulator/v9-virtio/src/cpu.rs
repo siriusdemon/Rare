@@ -3,12 +3,8 @@
 #![allow(dead_code)]
 
 use crate::bus::*;
-use crate::dram::*;
-use crate::plic::*;
 use crate::exception::*;
 use crate::interrupt::*;
-use crate::uart::*;
-use crate::virtio::*;
 use crate::param::*;
 use crate::csr::*;
 
