@@ -62,7 +62,7 @@ fn main() -> io::Result<()> {
     }
     cpu.dump_registers();
     cpu.dump_csrs();
-    // cpu.dump_pc();
+    cpu.dump_pc();
 
     Ok(())
 }
