@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> 控制状态寄存器</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,7 +144,15 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="riscv-模拟器系列教程"><a class="header" href="#riscv-模拟器系列教程">Riscv 模拟器系列教程</a></h1>
+                        <h1 id="rare-rust-a-risc-v-emulator"><a class="header" href="#rare-rust-a-risc-v-emulator">Rare: Rust A RISC-V Emulator</a></h1>
+<p>RISC-V 模拟器教程</p>
+<p>This tutorial is based on <a href="https://book.rvemu.app">Asami's excellent tutorial</a>. Although the author haven't finished it, she have already separated the code into 10 stages, which makes this tutorial become possible.</p>
+<p>When you complete this tutorial, the emulator is able to run xv6, a UNIX-like operation system running on RISC-V.</p>
+<p>I am planning to follow her code build the emulator step by step. When finished, I will write a complete tutorial to help reader to get the details. My tutorial will use the same tool <code>mdbook</code> as the original author, to build.</p>
+<ul>
+<li>Project: <a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
+<li>Tutorial: <a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
+</ul>
 <p>本教程基于<a href="https://github.com/d0iasm">Asami</a> 所写的模拟器<a href="https://book.rvemu.app/">教程</a>。虽然作者只写到第三章，但她已经事先将所有的代码划分成了十个章节。所以看着代码也能够一步一步地构建出这个模拟器。</p>
 <p>最终的模拟器可以运行 <a href="https://pdos.csail.mit.edu/6.828/2012/xv6.html">xv6</a> 操作系统。</p>
 <p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。该教程与原作一样，使用<a href="https://github.com/rust-lang/mdBook">mdbook</a>构建。</p>
@@ -152,25 +160,61 @@
 <li>项目地址：<a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
 <li>在线教程：<a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
 </ul>
-<p>推荐的使用方法：</p>
+<h3 id="prerequisite"><a class="header" href="#prerequisite">Prerequisite</a></h3>
+<p>前置</p>
+<p>This tutorial assumes readers already have been familiar with <code>Rust</code> and <code>RISC-V</code>. If not, you might want to read the following materials to learn about <code>RISC-V</code>.</p>
+<p>本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust &amp; Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。</p>
+<ul>
+<li><a href="https://riscv.org/technical/specifications/">RISC-V Specifications</a></li>
+<li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">RISC-V Reader</a></li>
+<li><a href="https://zh.webbooksnow.art/book/18067855/bd7a8a">手把手教你设计RISC-V处理器</a></li>
+</ul>
+<p>For <code>Rust</code>, you can read <code>the book</code> after you have installed the toolchain. Open your terminal and type <code>rustup docs</code>, your browser will open a new page for you to navigate to <code>the book</code> and other docs.</p>
+<p>至于 Rust，安装好环境之后，可以通过运行 <code>rustup docs</code> 来访问<code>the book</code>以及 Rust 文档。</p>
+<h3 id="develop-envrionment"><a class="header" href="#develop-envrionment">Develop envrionment</a></h3>
+<p>开发环境</p>
+<ul>
+<li>Linux / WSL</li>
+</ul>
+<p>We nned the <code>clang</code> toolchain to generate some files used in testing. You can download the precompiled version from <a href="(https://releases.llvm.org/)">here</a>. The version I used is <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>.</p>
+<p>我们需要用到 clang 的工具来生成测试的二进制文件，可以从<a href="https://releases.llvm.org/">LLVM</a>官网下载预编译版本。我使用的版本是 <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>，更新的版本应该也可以。</p>
+<h3 id="how-to-use"><a class="header" href="#how-to-use">How to use</a></h3>
+<ul>
+<li>clone this project</li>
+<li>use <code>cd Rare/book &amp;&amp; mdbook serve</code> to open this tutorial locally</li>
+<li>use <code>git pull</code> to update when needed</li>
+</ul>
+<p>推荐的使用方法</p>
 <ul>
 <li>clone 该项目到本地</li>
 <li>cd Rare/book &amp;&amp; mdbook serve 打开本地教程</li>
 <li>需要的时候，使用 git pull 更新</li>
 </ul>
-<h3 id="前置"><a class="header" href="#前置">前置</a></h3>
-<p>本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust &amp; Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。</p>
-<ul>
-<li><a href="https://riscv.org/technical/specifications/">Riscv 标准</a></li>
-<li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">Riscv Reader</a></li>
-</ul>
-<p>至于 Rust，安装好环境之后，可以通过运行 <code>rustup docs</code> 来访问<code>the book</code>以及 Rust 文档。</p>
-<h3 id="环境"><a class="header" href="#环境">环境</a></h3>
-<ul>
-<li>Linux / WSL</li>
-</ul>
-<p>我们需要用到 clang 的工具来生成测试的二进制文件，可以从<a href="https://releases.llvm.org/">LLVM</a>官网下载预编译版本。我使用的版本是 <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>，更新的版本应该也可以。</p>
-<h3 id="目录"><a class="header" href="#目录">目录</a></h3>
+<h3 id="catelogue"><a class="header" href="#catelogue">Catelogue</a></h3>
+<p>目录</p>
+<ol>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v1-CPU-Adder.html">Adder</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v2-Memory-and-Bus.html">Memory and Bus</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v3-CSR.html">Control Status Register</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v4-privilege-mode.html">Privilege Mode</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v5-exceptions.html">Exception</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v7-uart.html">UART</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v8-interrupts.html">Interrupt</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v9-virtio.html">Virtio</a></li>
+<li><input disabled="" type="checkbox"/>
+<a href="./v10-page-table.html">Page Table</a></li>
+</ol>
+<p>The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. </p>
 <ol>
 <li><input disabled="" type="checkbox" checked=""/>
 <a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
@@ -191,26 +235,24 @@
 <li><input disabled="" type="checkbox"/>
 <a href="./v9-virtio.html">Virtio</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v10-virtual-memory-system.html">虚拟内存系统</a></li>
+<a href="./v10-page-table.html">页表</a></li>
 </ol>
-<p>说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
-<h3 id="特别说明"><a class="header" href="#特别说明">特别说明</a></h3>
-<p>实践的过程中，读者可能会发现教程上的代码与实际的代码有些不同。这是因为我在编写的过程中会适当地进行重构。如果教程本身写得早，重构之后，就需要对教程进行修改。有时候我会遗漏要修改的地方，有时候则是觉得不必提及，读者看源码即能理解。</p>
-<p>如有任何疑惑，欢迎在项目上提 issue。</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="加法器-cpu"><a class="header" href="#加法器-cpu">加法器 CPU</a></h1>
+<p>原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
+<h3 id="note"><a class="header" href="#note">Note</a></h3>
+<p>When you travel through this tutorial, sometimes, you may notice some code in current chapter is different from last one's. This is because I will do some refactor when needed. Welcome to open an issue on github if you have any questions.</p>
+<p>实践的过程中，读者可能会发现本章的部分代码与上一章的不一样。这是因为我在编写的过程中会适当地进行重构。如有任何疑惑，欢迎在项目上提 issue。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="adder"><a class="header" href="#adder">Adder</a></h1>
+<p>CPU (Center Process Unit) is one of the core components of a computer. But in this chapter, we will use <code>CPU</code> to denote the whole computer, including 32 common integer registers, a program counter register and a DARM (dynamic random-access memory). In next chapter, we will use bus to connect memory and CPU.</p>
+<p>This chapter corresponds to the first chapter <em>CPU with Two instructions</em> of the original tutorial by Asami. When finished, our CPU is able to run two instructions: <code>add</code> and <code>addi</code>.</p>
 <p>CPU 指中心处理单元（Center Process Unit），是一块小小的芯片。它是计算机（computer）最核心的部分。</p>
 <p>不过，为了简单起见，第一节的 CPU 代指的是整个计算机，它包含了 32 个通用寄存器、一个 PC 寄存器和一块内存。在下一节，我们会将内存移出 CPU。</p>
 <p>本节对应原作者的第一节，CPU with Two instructions。这一节的 CPU 只能执行 <code>add</code> 和 <code>addi</code> 两个指令。</p>
-<h3 id="编码实现"><a class="header" href="#编码实现">编码实现</a></h3>
-<pre><code class="language-bash"># 代码总数
-main.rs             : 90
-----------------------------
-total               : 90
-</code></pre>
-<p>首先定义 CPU 的结构</p>
+<h3 id="1-basic-cpu"><a class="header" href="#1-basic-cpu">1. Basic CPU</a></h3>
+<p>Let's define our CPU as follow: It consist of a 64-bit pc register, 32 64-bit integer registers and a DRAM as a vector of u8.</p>
+<p>首先定义 CPU 的结构，它包括一个 64 位的 PC，32 个 64 位的通用整数寄存器以及一个用 u8 向量表示的内存。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">struct Cpu {
-    // Riscv has 32 registers
+    // RISC-V has 32 registers
     regs: [u64; 32],
     // pc register contains the memory address of next instruction
     pc: u64,
@@ -218,7 +260,8 @@ total               : 90
     dram: Vec&lt;u8&gt;,
 }
 </code></pre>
-<p>我们需要定义内存的大小，来初始化 CPU。</p>
+<p>We need to define the size of memory to initialize our CPU. Since the stack pointer register <code>sp</code> (aka x2) should point to the top address of DRAM. We initialize the <code>pc</code> to <code>0</code>, means we will start fetch instruction from address 0.</p>
+<p>我们需要定义内存的大小来初始化 CPU，因为栈指针 (SP) 需要指向栈顶（内存的最高地址），同时，我们将 PC 置 0，意味着我们的程序将从内存地址 0 处开始执行。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">// init memory as 128MB
 pub const DRAM_SIZE: u64 = 1024 * 1024 * 128;
@@ -233,19 +276,30 @@ impl Cpu {
     }
 }
 </code></pre>
-<p>CPU 的工作流程通常包含以下阶段：</p>
+<h3 id="2-cpu-pipeline"><a class="header" href="#2-cpu-pipeline">2. CPU pipeline</a></h3>
+<p>Modern CPU spills its execution procedure into several stages to improve throughput and performance. Here is the classic MIPS five-stage pipeline. It consists of:</p>
 <ol>
-<li>根据<code>pc</code>值读取内存中的指令 (fetch)</li>
-<li>解码指令 (decode)</li>
-<li>执行指令 (execute)</li>
-<li>更新<code>pc</code></li>
+<li>fetch: fetch instruction from memory according to the value of <code>pc</code> register.</li>
+<li>decode: decode instruction so the CPU knows how to execute it.</li>
+<li>execute: do some computation and get the result.</li>
+<li>memory access: store value into memory if necessary. </li>
+<li>write back: update PC and register file.</li>
+</ol>
+<p>CPU do such things again and again.</p>
+<p>现代CPU通过将其工作流程划分成多个子过程，以提升其吞吐量和性能。经典的 MIPS 流水线架构包含以下五个部分</p>
+<ol>
+<li>取指：根据<code>pc</code>值读取内存中的指令 (fetch)</li>
+<li>解码：解码指令 (decode)</li>
+<li>执行：执行指令 (execute)</li>
+<li>访存：将结果写回内存 (memory access)</li>
+<li>写回：将运算结果（包括新的PC值）写回寄存器 (write back)</li>
 </ol>
 <p>周而复始。</p>
-<p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
-<p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
-<p><img src="./images/endianness.jpg" alt="endianness" /></p>
-<p class="comment">图片来自原作者教程</p>
-<p>在本实现中，我们采用小端字节序。在 Riscv 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置<code>mstatus</code>寄存器上特定的位来控制字节序。</p>
+<p><img src="./images/cpu-pipeline.png" alt="cpu-pipeline.png" /></p>
+<p class=comment>classic MIPS Pipeline</p>
+<h3 id="3-instruction-fetch"><a class="header" href="#3-instruction-fetch">3. Instruction fetch</a></h3>
+<p>Let's implement the <code>fetch</code> stage firstly.</p>
+<p>首先是取指的实现。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">impl Cpu {
     // ...
@@ -259,13 +313,27 @@ impl Cpu {
     }
 }
 </code></pre>
+<p>CPU use <code>pc</code> as a base address to fetch 4 continous bytes from DRAM, since RISC-V instruction is 32-bit. Here, we read the <code>u8</code> on [pc, pc+1, pc+2, pc+3] and build up a <code>u32</code>. What we should be careful is the endianness, which is the term refers to how binary data is stored. There are two types of endianness: little-endianness and big-endianness.</p>
+<p>For a multi-byte value, little-endianness stores the least-significant byte at the lowest address and the most-significant byte at the highest address, while big-endianness does the opposite.</p>
+<p>Although RISC-V supports endianness settings for memory operation, instructions are uniformly little-endian for the benefit of both hardware and software. See RISC-V-Privileged section 3.1.6.4.</p>
+<p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于 RISC-V 指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
+<p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
+<p>在本实现中，我们采用小端字节序。在 RISC-V 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置<code>mstatus</code>寄存器上特定的位来控制字节序。</p>
+<p><img src="./images/endianness.jpg" alt="endianness" /></p>
+<p class="comment">Picture from original author</p>
+<h3 id="4-instruction-decode"><a class="header" href="#4-instruction-decode">4. Instruction decode</a></h3>
+<p>The next stage is instruction decode. In real hardware with pipeline, decoding is a separate step. CPU will fetch next instruction while decoding the current one. But in our emulator, we will simpify these stages by merging decode stage, execute stage and memory access stage into a function <code>execute</code>.</p>
+<p>There are four basic encoding format in RISC-V. (There are six if we count for the another two variants.) </p>
 <p>读取指令后就要进行解码。在实际的硬件中，解码是一个独立的步骤，芯片会同时读取和解码多个指令 (pipeline parallel) 以提高运行速度。但在我们的模拟器中，一次只读一个指令，可以将这两部分合并在一起。</p>
 <p>我们先看解码过程。Riscv 目前有四种基本的指令编码格式（包含变体共有6种），</p>
 <p><img src="./images/inst-type.png" alt="inst-type" /></p>
-<p class="comment">图片来自原作者</p>
+<p class="comment">Picture from original author</p>
 <p>现在我们的 CPU 只执行<code>add</code>、<code>addi</code>，它们的功能说明和指令格式如下：</p>
 <p><img src="./images/add-addi.png" alt="add-addi" /></p>
-<p class="comment">图片来自 Riscv Reader</p>
+<p class="comment">Picture from RISC-V Reader</p>
+<p>Designers of RISC-V choose the encoding types carefully to simplify hardware design. All the instructions are 32-bit and the register index is encoding into the same position of different type, which explains why the immediate is spilled into several part in some type.</p>
+<p>When implementing, we can firstly decode the instruction as R-type, then decode other information in specific context when necessary. For example, we will decode <code>imm</code> of <code>addi</code> in its decoding branch.</p>
+<p>RISC-V 的设计者出于简化硬件的考虑，将所有的指令编码设计成整齐的 32 位长度。寄存器的编码也尽可能地位于相同的位置，这也是为什么立即数会被切分成多个部分进行编码的原因。</p>
 <p>因为各个指令格式都有相同的部分，我们不妨先按 R-type 进行解码。对于其他的类型，则在其具体的分支中进一步解码。比如说，<code>addi</code>的<code>imm</code>将会在它的处理分支中进行解码。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">impl Cpu {
@@ -301,6 +369,8 @@ impl Cpu {
     }
 }
 </code></pre>
+<p>Here, we use <code>wrapping_add</code> insteal of <code>+</code> because RISC-V ignore arithmetic overflow.</p>
+<p>Now, our CPU is almost finished. We provide a function to help us to inspect the status of our CPU.</p>
 <p>这里，我们使用 <code>wrapping_add</code> 的原因在于，这两个指令忽略算术溢出错误(arithmetic overflow)，溢出的位(bit)会被直接丢弃（见上面关于这两个指令的说明）。</p>
 <p>CPU 的功能基本上完成了。但我们需要能够方便地查看寄存器的状态，以便验证 CPU 是否正确执行了指令。</p>
 <p class="filename">main.rs</p>
@@ -334,18 +404,21 @@ impl Cpu {
     }
 }
 </code></pre>
-<h3 id="测试"><a class="header" href="#测试">测试</a></h3>
-<p>我们通过执行一个 Riscv 二进制文件来验证我们的实现。</p>
+<h3 id="5-testing"><a class="header" href="#5-testing">5. Testing</a></h3>
+<p>Here, we will simply validate our implementation by executing a pure RISC-V binary. Create a file <code>add-addi.s</code> and append the following code.</p>
+<p>我们通过执行一个 RISC-V 二进制文件来验证我们的实现。</p>
 <p>创建<code>add-addi.s</code>，写入以下内容</p>
 <pre><code class="language-s">addi x29, x0, 5
 addi x30, x0, 37
 add x31, x30, x29
 </code></pre>
-<p>生成 Riscv 二进制文件</p>
+<p>We run the following command to generate the pure RISC-V binary, aka the binary file without any header.</p>
+<p>生成 RISC-V 二进制文件</p>
 <pre><code class="language-bash">clang -Wl,-Ttext=0x0 -nostdlib --target=riscv64 -march=rv64g -mno-relax -o add-addi add-addi.s
 llvm-objcopy -O binary add-addi add-addi.bin
 </code></pre>
-<p>同时，模拟器需要读取<code>add-addi.bin</code>的内容。</p>
+<p>At the same time, we need some code to read data from the binary file <code>add-addi.bin</code>. Then we initialize our CPU with the code and execute every instruction in it. Finally, we dump out the register information and exit.</p>
+<p>同时，模拟器需要读取<code>add-addi.bin</code>的内容，并初始化一个 CPU 实例。CPU 逐个读取和执行每个指令，最后打印寄存器状态。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">use std::env;
 use std::fs::File;
@@ -382,12 +455,13 @@ fn main() -&gt; io::Result&lt;()&gt; {
     Ok(())
 }
 </code></pre>
-<p>执行</p>
+<p>You are expected to see the <code>x31</code> register own the value <code>0x2a</code> if you execute the following command.</p>
+<p>执行以下命令， 应该能够从控制台的输出中看到<code>x31</code>的值为<code>0x2a</code>。</p>
 <pre><code class="language-bash">cargo run add-addi.bin
 </code></pre>
-<p>应该能够从控制台的输出中看到<code>x31</code>的值为<code>0x2a</code>。</p>
-<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
-<p>我们实现了一个加法器 CPU，它可以执行两个 Riscv 指令，<code>addi</code>，<code>add</code>。我们还学习了 CPU 的执行步骤：取指令，解码，执行，更新ＰＣ。下一节，我们将内存从ＣＰＵ中剥离，并添加更多的指令支持和一个测试的框架。</p>
+<h3 id="6-conclusion"><a class="header" href="#6-conclusion">6. Conclusion</a></h3>
+<p>We have implemented a adder CPU, it can execute two RISC-V instruction: <code>addi</code>, <code>add</code>. We learn the CPU work process. In next chapter, we will separate the DRAM from CPU and use a bus to connect them. And we will supports more instruction and build a test framework.</p>
+<p>我们实现了一个加法器 CPU，它可以执行两个 RISC-V 指令，<code>addi</code>，<code>add</code>。我们还学习了 CPU 的执行步骤：取指令，解码，执行，更新ＰＣ。下一节，我们将内存从ＣＰＵ中剥离，并添加更多的指令支持和一个测试的框架。</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="内存和总线"><a class="header" href="#内存和总线">内存和总线</a></h1>
 <p>在上一节，我们把内存和CPU放在同一个结构体中，但在真实的硬件中，这两部分是分开的。如下图所示：</p>
 <p><img src="./images/bus.png" alt="bus" /></p>
@@ -681,9 +755,10 @@ mod test {
     }
 }
 </code></pre>
-<h3 id="总结-1"><a class="header" href="#总结-1">总结</a></h3>
+<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
 <p>我们重构了 CPU 的结构，总线连接了 CPU 和内存。后续我们还会添加更多的设备到总线上。因此，我们添加了多种指令的支持。为了支持跳转指令，我们将更新 PC 的步骤也放到了<code>execute</code>当中。此外，我们实现了一个测试框架，便于及时验证我们的实现。在下一节中，我们将添加对控制状态寄存器（Control Status Register）的读写支持。</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="控制状态寄存器"><a class="header" href="#控制状态寄存器">控制状态寄存器</a></h1>
+<p>In Refactor State</p>
 <h3 id="risc-v-特权等级"><a class="header" href="#risc-v-特权等级">RISC-V 特权等级</a></h3>
 <p>本来特权架构与特权等级是下一节的内容，但这一节稍有涉及，略加说明。</p>
 <p>在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。当前，RISC-V 定义了三种特权等级。</p>
@@ -760,6 +835,7 @@ impl Cpu {
 }
 </code></pre>
 <p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>与此类似。</p>
+<p>实际上，<code>sstatus</code>也是<code>mstatus</code>的一个子集，见 RISC-V 标准卷2 4.1.1 节，但在这本实现中是分开的。</p>
 <h3 id="csr-指令"><a class="header" href="#csr-指令">CSR 指令</a></h3>
 <p>我们已经为 CPU 添加了 CSR 地址空间，现在需要支持执行 CSR 指令。CSR 的指令共有 6 个。</p>
 <p><img src="./images/csr-inst.png" alt="csr-inst" /></p>
@@ -793,7 +869,7 @@ impl Cpu {
     }
 }
 </code></pre>
-<h3 id="总结-2"><a class="header" href="#总结-2">总结</a></h3>
+<h3 id="总结-1"><a class="header" href="#总结-1">总结</a></h3>
 <p>我们添加了对部分控制状态寄存器的读写支持，通过辅助函数模拟了<code>sip</code>、<code>sie</code>两个寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
 
                     </main>

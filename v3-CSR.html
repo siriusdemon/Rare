@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>控制状态寄存器 - Rare: Rust A Riscv Emulator</title>
+        <title>Control Status Register - Rare: Rust A Riscv Emulator</title>
 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">写一个 Riscv 模拟器</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> 加法器 CPU</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> 内存和总线</a></li><li class="chapter-item expanded "><a href="v3-CSR.html" class="active"><strong aria-hidden="true">3.</strong> 控制状态寄存器</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html" class="active"><strong aria-hidden="true">3.</strong> Control Status Register</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -144,6 +144,7 @@
                 <div id="content" class="content">
                     <main>
                         <h1 id="控制状态寄存器"><a class="header" href="#控制状态寄存器">控制状态寄存器</a></h1>
+<p>In Refactor State</p>
 <h3 id="risc-v-特权等级"><a class="header" href="#risc-v-特权等级">RISC-V 特权等级</a></h3>
 <p>本来特权架构与特权等级是下一节的内容，但这一节稍有涉及，略加说明。</p>
 <p>在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。当前，RISC-V 定义了三种特权等级。</p>
@@ -220,6 +221,7 @@ impl Cpu {
 }
 </code></pre>
 <p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>与此类似。</p>
+<p>实际上，<code>sstatus</code>也是<code>mstatus</code>的一个子集，见 RISC-V 标准卷2 4.1.1 节，但在这本实现中是分开的。</p>
 <h3 id="csr-指令"><a class="header" href="#csr-指令">CSR 指令</a></h3>
 <p>我们已经为 CPU 添加了 CSR 地址空间，现在需要支持执行 CSR 指令。CSR 的指令共有 6 个。</p>
 <p><img src="./images/csr-inst.png" alt="csr-inst" /></p>
