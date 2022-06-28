@@ -22,7 +22,7 @@ I am planning to follow her code build the emulator step by step. When finished,
 ### Prerequisite
 前置
 
-This tutorial assumes readers have been familiar with `Rust` and `RISC-V` already. If not, you might want to read the following materials to learn about `RISC-V`.
+This tutorial assumes readers already have been familiar with `Rust` and `RISC-V`. If not, you might want to read the following materials to learn about `RISC-V`.
 
 本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust & Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。
 
@@ -30,7 +30,7 @@ This tutorial assumes readers have been familiar with `Rust` and `RISC-V` alread
 + [RISC-V Reader](https://zh.webbooksnow.art/dl/16429281/d4417e)
 + [手把手教你设计RISC-V处理器](https://zh.webbooksnow.art/book/18067855/bd7a8a)
 
-For `Rust`, you can read `the book` after you have installed the toolchain. Open your terminal and type `rustup docs`.
+For `Rust`, you can read `the book` after you have installed the toolchain. Open your terminal and type `rustup docs`, your browser will open a new page for you to navigate to `the book` and other docs.
 
 至于 Rust，安装好环境之后，可以通过运行 `rustup docs` 来访问`the book`以及 Rust 文档。
 
@@ -46,12 +46,13 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 
 
 ### How to use
-推荐的使用方法
 
 + clone this project
 + use `cd Rare/book && mdbook serve` to open this tutorial locally
 + use `git pull` to update when needed
 
+
+推荐的使用方法
 + clone 该项目到本地
 + cd Rare/book && mdbook serve 打开本地教程
 + 需要的时候，使用 git pull 更新
@@ -69,9 +70,9 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 7. [ ] [UART](./v7-uart.md)
 8. [ ] [Interrupt](./v8-interrupts.md)
 9. [ ] [Virtio](./v9-virtio.md)
-10. [ ] [Virtual Memory System](./v10-virtual-memory-system.md)
+10. [ ] [Page Table](./v10-page-table.md)
 
-Comment: The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
+The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
 
 
 
@@ -84,10 +85,10 @@ Comment: The original author separate the tutorial into two parts: Hardware and 
 7. [ ] [UART](./v7-uart.md)
 8. [ ] [中断](./v8-interrupts.md)
 9. [ ] [Virtio](./v9-virtio.md)
-10. [ ] [虚拟内存系统](./v10-virtual-memory-system.md)
+10. [ ] [页表](./v10-page-table.md)
 
 
-说明: 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。
+原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。
 
 
 ### Note
