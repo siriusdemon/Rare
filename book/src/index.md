@@ -61,35 +61,20 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 ### Catelogue
 目录
 
-1. [x] [Adder](./v1-CPU-Adder.md)
-2. [x] [Memory and Bus](./v2-Memory-and-Bus.md)
-3. [x] [Control Status Register](./v3-CSR.md)
-4. [ ] [Privilege Mode](./v4-privilege-mode.md)
-5. [ ] [Exception](./v5-exceptions.md)
+1. [x] [Adder 加法器](./v1-CPU-Adder.md)
+2. [x] [Memory and Bus 内存和总线](./v2-Memory-and-Bus.md)
+3. [x] [Control Status Register 控制状态寄存器](./v3-CSR.md)
+4. [ ] [Privilege Mode 特权模式](./v4-privilege-mode.md)
+5. [ ] [Exception 异常](./v5-exceptions.md)
 6. [ ] [PLIC & CLINT](./v6-plic-clint.md)
 7. [ ] [UART](./v7-uart.md)
-8. [ ] [Interrupt](./v8-interrupts.md)
+8. [ ] [Interrupt 中断](./v8-interrupts.md)
 9. [ ] [Virtio](./v9-virtio.md)
-10. [ ] [Page Table](./v10-page-table.md)
+10. [ ] [Page Table 页表](./v10-page-table.md)
 
 The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
 
-
-
-1. [x] [加法器 CPU](./v1-CPU-Adder.md)
-2. [x] [内存和总线](./v2-Memory-and-Bus.md)
-3. [x] [控制状态寄存器](./v3-CSR.md)
-4. [ ] [特权模式](./v4-privilege-mode.md)
-5. [ ] [异常](./v5-exceptions.md)
-6. [ ] [PLIC & CLINT](./v6-plic-clint.md)
-7. [ ] [UART](./v7-uart.md)
-8. [ ] [中断](./v8-interrupts.md)
-9. [ ] [Virtio](./v9-virtio.md)
-10. [ ] [页表](./v10-page-table.md)
-
-
 原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。
-
 
 ### Note
 

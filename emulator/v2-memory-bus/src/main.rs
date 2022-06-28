@@ -30,7 +30,6 @@ fn main() -> io::Result<()> {
     let mut cpu = Cpu::new(binary, disk_image);
 
     loop {
-        // 1. Fetch.
         let inst = match cpu.fetch() {
             // Break the loop if an error occurs.
             Ok(inst) => inst,
@@ -39,10 +38,6 @@ fn main() -> io::Result<()> {
             }
         };
 
-        // 2. Add 4 to the program counter.
-        // cpu.pc += 4;
-        // 3. Decode.
-        // 4. Execute.
         match cpu.execute(inst) {
             // Break the loop if an error occurs.
             Ok(new_pc) => cpu.pc = new_pc,
