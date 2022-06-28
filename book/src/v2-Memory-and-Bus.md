@@ -188,8 +188,51 @@ Now, we have finished code refactoring. To run the example in last chapter, we h
 至此，我们已经完成将内存剥离 CPU 的重构工作。我们需要对`main.rs`进一步修改，以便成功运行上一节的汇编程序。你可能想参考一下对应文件夹下的代码。
 
 
-### 5. Support new instructions
+### 5. Return new PC value
 
+Recall that, the final stage of a five-stage pipeline introduced in last chapter is `Write Back`. In this stage, the address of next instruction is written into the PC register. We will imitate such a behaviour by returning a new pc value from the `execute` function. 
+
+We need to do such a change because we are going to support more instructions, including branch instructions, which decides the next PC value according to the condition. We can not simply add 4 get the next PC value right now.
+
+We change our `execute` function as following:
+
+回顾上一节介绍的五阶段流水线，最后一个阶段是写回。在这个阶段，新的 PC 值会被写回 PC 寄存器。我们通过让 `execute` 函数返回一个新的 PC 值来模拟这一行为。之所以要这么做，是因为我们准备支持更多的指令，其中包括分支跳转指令。这些指令会改变 PC 的值。因此，我们无法通过原 PC 值加 4 来得到新的 PC 值。
+新的 `execute` 定义如下：
+
+```rs
+impl Cpu {
+    // ...
+    pub fn execute(&mut self, inst: u64) -> Result<u64, Exception> { 
+        //... 
+    }
+}
+```
+
+Besides, we update PC register using the value returned from `execute` in `main.rs`:
+
+同时，在`main.rs`，我们用新的 execute 的返回值来更新 PC 寄存器。
+
+```rs
+fn main() {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            Ok(inst) => inst,
+            Err(e) => { break; }
+        };
+
+        match cpu.execute(inst) {
+            Ok(new_pc) => cpu.pc = new_pc,
+            Err(e) => { break; }
+        };
+    }
+}
+```
+
+
+
+
+### 6. Support new instructions
 We will support following instructions in this chapter.
 
 这一节我们将支持以下指令
@@ -202,39 +245,25 @@ We will support following instructions in this chapter.
 
 <p class="comment">Picture from original author</p>
 
-Recall that, the final stage of a five-stage pipeline introduced in last chapter is `Write Back`. In this stage, the address of next instruction is written into the PC register. We will imitate such a behaviour by returning a new pc value from the `execute` function.
 
-We change our `execute` function as following:
+It is impractical to explain every instruction here. `RISC-V reader` is a helpful reference if you want to implement every instruction by yourself. In fact, I almost copy the code from [Asami](https://github.com/d0iasm), the original author :).  Nevertheless, I have provided a test framework (see below) and you are really encouraged to implement the instruction by yourself.
 
-回顾上一节介绍的五阶段流水线，最后一个阶段是写回。在这个阶段，新的 PC 值会被写回 PC 寄存器。我们通过让 `execute` 函数返回一个新的 PC 值来模拟这一行为。
-新的 `execute` 定义如下：
-
-```rs
-impl Cpu {
-    // ...
-    pub fn execute(&mut self, inst: u64) -> Result<u64, Exception> { 
-        //... 
-    }
-}
-```
+在教程中逐个解释逐个实现是不切实际的。如果你想自己一个个实现，RISC-V Reader 附录的指令说明会是一个不错的参考。实际上，我基本直接复制了[原作者](https://github.com/d0iasm)的代码。尽管如此，我写了一个测试框架（在后文），可以帮助你验证自己的实现。
 
 
-在教程中逐个解释逐个实现是不切实际的。我的建议是参考 Riscv Reader 附录的指令说明来一个个实现。我在代码中提供了许多测试，可以帮助你验证自己的实现。
+### 7. Testing
 
-当然，如果你已经很熟悉这些指令，或者想暂时先跳过，可以直接使用我的代码。
+We need to add some tests to ensure our implementation is correct. In last chapter, we generate pure RISC-V binary by `clang` and `llvm-objcopy`. We will make the following procedure automatically to ease the testing of our code. 
 
-
-### 指令测试
-
-我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过`clang`，`llvm-objcopy`来生成二进制代码。现在我们将这个过程自动化以便于我们在代码中添加测试。
-
-我们将自动化以下过程
+我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过`clang`，`llvm-objcopy`来生成二进制代码。现在我们将以下过程自动化以便于我们在代码中添加测试。
 
 ```bash
-clang -S simple.c
+clang -S simple.c -nostdlib -march=rv64i -mabi=lp64 -mno-relax
 clang -Wl,-Ttext=0x0 -nostdlib -march=rv64i -mabi=lp64 -mno-relax -o simple simple.s
 llvm-objcopy -O binary simple simple.bin
 ```
+
+The first command generates the assembly code, then the second command generates a binary file in ELF format. Finally, the third command remove the ELF header and a RISC-V pure binary is generated. Implementation is as follow:
 
 其中第一行从C代码中生成汇编代码，第二行编译成了一个ELF格式的二进制文件，第三行去掉了ELF格式，只保存了其中的二进制代码。我们分别实现如下：
 
@@ -249,22 +278,28 @@ mod test {
     use std::process::Command;
     use super::*;
 
-    fn generate_rv_assembly(c_src: &str) {
-        let RV_GCC = "clang";
-        let output = Command::new(RV_GCC).arg("-S")
+  fn generate_rv_assembly(c_src: &str) {
+        let cc = "clang";
+        let output = Command::new(cc).arg("-S")
                             .arg(c_src)
+                            .arg("-nostdlib")
+                            .arg("-march=rv64g")
+                            .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
+                            .arg("-mno-relax")
                             .output()
                             .expect("Failed to generate rv assembly");
         println!("{}", String::from_utf8_lossy(&output.stderr));
     }
 
     fn generate_rv_obj(assembly: &str) {
-        let RV_GCC = "clang";
+        let cc = "clang";
         let pieces: Vec<&str> = assembly.split(".").collect();
-        let output = Command::new(RV_GCC).arg("-Wl,-Ttext=0x0")
+        let output = Command::new(cc).arg("-Wl,-Ttext=0x0")
                             .arg("-nostdlib")
-                            .arg("-march=rv64i")
+                            .arg("-march=rv64g")
                             .arg("-mabi=lp64")
+                            .arg("--target=riscv64")
                             .arg("-mno-relax")
                             .arg("-o")
                             .arg(&pieces[0])
@@ -275,8 +310,8 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &str) {
-        let RV_OBJCOPY = "llvm-objcopy";
-        let output = Command::new(RV_OBJCOPY).arg("-O")
+        let objcopy = "llvm-objcopy";
+        let output = Command::new(objcopy).arg("-O")
                                 .arg("binary")
                                 .arg(obj)
                                 .arg(obj.to_owned() + ".bin")
@@ -287,31 +322,31 @@ mod test {
 }
 ```
 
-有了以上辅助函数之后，我们可以让 CPU 跑起来。
+Aimed with the auxiliary function above, we can let the CPU running up. 有了以上辅助函数之后，我们可以让 CPU 跑起来。
 
 <p class="filename">cpu.rs</p>
 
 ```rs
 mod test {
     // ...
-    fn rv_helper(code: &str, testname: &str, n_clock: usize) -> Result<Cpu, std::io::Error> {
+       fn rv_helper(code: &str, testname: &str, n_clock: usize) -> Result<Cpu, std::io::Error> {
         let filename = testname.to_owned() + ".s";
         let mut file = File::create(&filename)?;
-        file.write(&code.as_bytes());
+        file.write(&code.as_bytes())?;
         generate_rv_obj(&filename);
         generate_rv_binary(testname);
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
         let mut code = Vec::new();
         file_bin.read_to_end(&mut code)?;
-        let mut cpu = Cpu::new(code);
+        let mut cpu = Cpu::new(code, vec![]);
 
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {
                 Ok(inst) => inst,
-                Err(err) => break,
+                Err(_err) => break,
             };
             match cpu.execute(inst) {
-                Ok(_) => (),
+                Ok(new_pc) => cpu.pc = new_pc,
                 Err(err) => println!("{}", err),
             };
         }
@@ -320,7 +355,12 @@ mod test {
     }
 }
 ```
-以上代码将 Riscv 汇编代码写入文件，并生成相应的二进制代码文件，然后创建一个 CPU 进行执行，最终返回该 CPU 实例。我这里没有用到 C 代码，您可以自行添加。
+
+The code above writes the RISC-V assembly code into a file and generate a pure binary file. Then a CPU is created and execute for `n_clock`. Finally, the CPU is returned because we want to check its status.
+
+Now, we can add a simple test for `addi`.
+
+以上代码将 Riscv 汇编代码写入文件，并生成相应的二进制代码文件，然后创建一个 CPU 进行执行，最终返回该 CPU 实例。
 
 现在，我们对`addi`添加一个简单的测试。
 
@@ -340,9 +380,16 @@ mod test {
 }
 ```
 
-至此，我们的测试框架也完成了！
+Running the test by 执行测试
 
-### riscv_test 宏
+```sh
+cargo test
+```
+
+
+### 8. Macro `riscv_test` for easier testing
+
+We use the following macro to abstract the testing procedure.
 
 以下宏用于简化测试过程。关于宏，我以前在[一篇博文](https://zhuanlan.zhihu.com/p/260707957)中写过一段简短的解释。故不赘述。
 
@@ -364,7 +411,34 @@ mod test {
 }
 ```
 
-有了这个宏，以上的测试可以简化成这样：
+We need another function for easier register lookup. 我们需要另一个函数来方便我们查看寄存器的值。
+
+```rs
+impl Cpu {
+    // ...
+    pub fn reg(&self, r: &str) -> u64 {
+        match RVABI.iter().position(|&x| x == r) {
+            Some(i) => self.regs[i],
+            None => match r {
+                "pc" => self.pc,
+                "fp" => self.reg("s0"),
+                r if r.starts_with("x") => {
+                    if let Ok(i) = r[1..].parse::<usize>() {
+                        if i <= 31 { return self.regs[i]; }
+                        panic!("Invalid register {}", r);
+                    }
+                    panic!("Invalid register {}", r);
+                }
+                _ => panic!("Invalid register {}", r),
+            }
+        }
+    }
+}
+```
+
+With the `riscv_test` macro and `reg` function, we can simplify the test as follow:
+
+有了 riscv_test 宏以及 reg 函数，以上的测试可以简化成这样：
 
 ```rs
 mod test {
@@ -377,6 +451,8 @@ mod test {
 }
 ```
 
-### 总结
+### Conclusion
 
-我们重构了 CPU 的结构，总线连接了 CPU 和内存。后续我们还会添加更多的设备到总线上。因此，我们添加了多种指令的支持。为了支持跳转指令，我们将更新 PC 的步骤也放到了`execute`当中。此外，我们实现了一个测试框架，便于及时验证我们的实现。在下一节中，我们将添加对控制状态寄存器（Control Status Register）的读写支持。
+We have performed code refactoring to the CPU structure by using bus to connect the CPU and DRAM. We will add more devices on bus. Besides, we imitate the `Write Back` stage by returning a new PC value from `execute`. We also support more instructions and design a test framework to ease testing. On next chapter, we will add the `Control Status Register` to CPU and support corresponding instruction.
+
+我们重构了 CPU 的结构，总线连接了 CPU 和内存。后续我们还会添加更多的设备到总线上。同时，我们模拟了写回阶段，`execute`函数返回一个新的PC值用于PC寄存器的更新。此外，我们实现了一个测试框架，便于及时验证我们的实现。在下一节中，我们将添加对控制状态寄存器（Control Status Register）的读写支持。
