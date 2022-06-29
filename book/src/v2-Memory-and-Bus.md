@@ -451,7 +451,7 @@ mod test {
 }
 ```
 
-### Conclusion
+### 9. Conclusion
 
 We have performed code refactoring to the CPU structure by using bus to connect the CPU and DRAM. We will add more devices on bus. Besides, we imitate the `Write Back` stage by returning a new PC value from `execute`. We also support more instructions and design a test framework to ease testing. On next chapter, we will add the `Control Status Register` to CPU and support corresponding instruction.
 

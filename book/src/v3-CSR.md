@@ -1,6 +1,5 @@
-# 控制状态寄存器
+# Control Status Register
 
-In Refactor State
 
 ### RISC-V 特权等级
 
