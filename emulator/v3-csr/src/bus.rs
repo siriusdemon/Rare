@@ -11,10 +11,8 @@ pub struct Bus {
 
 // Bus is used to transfer data, so check data access size here is appropriate
 impl Bus {
-    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Bus {
-        Self { 
-            dram: Dram::new(code),
-        }
+    pub fn new(code: Vec<u8>) -> Bus {
+        Self { dram: Dram::new(code) }
     }
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
         match addr {

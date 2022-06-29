@@ -130,7 +130,7 @@ Bus also provides two function: `store` and `load`.
 
 ```rs
 impl Bus {
-    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Bus {
+    pub fn new(code: Vec<u8>) -> Bus {
         Self { dram: Dram::new(code) }
     }
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
@@ -180,6 +180,7 @@ impl Cpu {
     pub fn fetch(&mut self) -> Result<u64, Exception> {
         self.bus.load(self.pc, 32)
     } 
+}
 ```
 
 
@@ -338,7 +339,7 @@ mod test {
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
         let mut code = Vec::new();
         file_bin.read_to_end(&mut code)?;
-        let mut cpu = Cpu::new(code, vec![]);
+        let mut cpu = Cpu::new(code);
 
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {

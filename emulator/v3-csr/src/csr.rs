@@ -74,7 +74,7 @@ pub const MASK_SSTATUS: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_
                             | MASK_XS  | MASK_SUM  | MASK_MXR | MASK_UXL | MASK_SD;
 
 
-// MIP / SIP field
+// MIP / SIP field mask
 pub const MASK_SSIP: u64 = 1 << 1;
 pub const MASK_MSIP: u64 = 1 << 3;
 pub const MASK_STIP: u64 = 1 << 5;

@@ -187,32 +187,34 @@ CPU 的功能基本上完成了。但我们需要能够方便地查看寄存器�
 <p class="filename">main.rs</p>
 
 ```rs
+const RVABI: [&str; 32] = [
+    "zero", "ra", "sp", "gp", "tp", "t0", "t1", "t2", 
+    "s0", "s1", "a0", "a1", "a2", "a3", "a4", "a5", 
+    "a6", "a7", "s2", "s3", "s4", "s5", "s6", "s7", 
+    "s8", "s9", "s10", "s11", "t3", "t4", "t5", "t6",
+];
+
 impl Cpu {
     // ...
-    pub fn dump_registers(&self) {
+    pub fn dump_registers(&mut self) {
+        println!("{:-^80}", "registers");
         let mut output = String::new();
-        let abi = [
-            "zero", " ra ", " sp ", " gp ", " tp ", " t0 ", " t1 ", " t2 ", 
-            " s0 ", " s1 ", " a0 ", " a1 ", " a2 ", " a3 ", " a4 ", " a5 ", 
-            " a6 ", " a7 ", " s2 ", " s3 ", " s4 ", " s5 ", " s6 ", " s7 ", 
-            " s8 ", " s9 ", " s10", " s11", " t3 ", " t4 ", " t5 ", " t6 ",
-        ];
-        
+        self.regs[0] = 0;
+
         for i in (0..32).step_by(4) {
             let i0 = format!("x{}", i);
             let i1 = format!("x{}", i + 1); 
             let i2 = format!("x{}", i + 2);
             let i3 = format!("x{}", i + 3); 
             let line = format!(
-                "{:3}({}) = {:<#18x} {:3}({}) = {:<#18x} {:3}({}) = {:<#18x} {:3}({}) = {:<#18x}\n",
-                i0, abi[i], self.regs[i], 
-                i1, abi[i + 1], self.regs[i + 1], 
-                i2, abi[i + 2], self.regs[i + 2], 
-                i3, abi[i + 3], self.regs[i + 3],
+                "{:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x} {:3}({:^4}) = {:<#18x}\n",
+                i0, RVABI[i], self.regs[i], 
+                i1, RVABI[i + 1], self.regs[i + 1], 
+                i2, RVABI[i + 2], self.regs[i + 2], 
+                i3, RVABI[i + 3], self.regs[i + 3],
             );
             output = output + &line;
         }
-
         println!("{}", output);
     }
 }
@@ -271,7 +273,6 @@ fn main() -> io::Result<()> {
     file.read_to_end(&mut code)?;
 
     let mut cpu = Cpu::new(code);
-
 
     while cpu.pc < cpu.dram.len() as u64 {
         let inst = cpu.fetch();
