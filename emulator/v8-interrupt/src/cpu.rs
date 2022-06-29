@@ -41,11 +41,11 @@ const RVABI: [&str; 32] = [
  
 impl Cpu {
     /// Create a new `Cpu` object.
-    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Self {
+    pub fn new(code: Vec<u8>) -> Self {
         let mut regs = [0; 32];
         regs[2] = DRAM_END;
         let pc = DRAM_BASE;
-        let bus = Bus::new(code, disk_image);
+        let bus = Bus::new(code);
         let csr = Csr::new();
         let mode = Machine;
 
@@ -934,7 +934,7 @@ mod test {
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
         let mut code = Vec::new();
         file_bin.read_to_end(&mut code)?;
-        let mut cpu = Cpu::new(code, vec![]);
+        let mut cpu = Cpu::new(code);
 
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {

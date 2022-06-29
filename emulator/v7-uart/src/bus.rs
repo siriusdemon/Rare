@@ -17,7 +17,7 @@ pub struct Bus {
 
 // Bus is used to transfer data, so check data access size here is appropriate
 impl Bus {
-    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Bus {
+    pub fn new(code: Vec<u8>) -> Bus {
         Self { 
             dram: Dram::new(code),
             clint: Clint::new(),
