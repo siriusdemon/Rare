@@ -40,11 +40,11 @@ const RVABI: [&str; 32] = [
  
 impl Cpu {
     /// Create a new `Cpu` object.
-    pub fn new(code: Vec<u8>, disk_image: Vec<u8>) -> Self {
+    pub fn new(code: Vec<u8>) -> Self {
         let mut regs = [0; 32];
         regs[2] = DRAM_END;
         let pc = DRAM_BASE;
-        let bus = Bus::new(code, disk_image);
+        let bus = Bus::new(code);
         let csr = Csr::new();
         let mode = Machine;
 
@@ -740,7 +740,7 @@ mod test {
         let mut file_bin = File::open(testname.to_owned() + ".bin")?;
         let mut code = Vec::new();
         file_bin.read_to_end(&mut code)?;
-        let mut cpu = Cpu::new(code, vec![]);
+        let mut cpu = Cpu::new(code);
 
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {
@@ -981,56 +981,5 @@ mod test {
         ";
         riscv_test!(code, "test_csrs1", 20, "mstatus" => 1, "mtvec" => 2, "mepc" => 3,
                                             "sstatus" => 0, "stvec" => 5, "sepc" => 6);
-    }
-
-    #[test]
-    fn compile_hello_world() {
-        // You should run it by
-        // -- cargo run helloworld.bin
-        let c_code = r"
-        int main() {
-            volatile char *uart = (volatile char *) 0x10000000;
-            uart[0] = 'H';
-            uart[0] = 'e';
-            uart[0] = 'l';
-            uart[0] = 'l';
-            uart[0] = 'o';
-            uart[0] = ',';
-            uart[0] = ' ';
-            uart[0] = 'w';
-            uart[0] = 'o';
-            uart[0] = 'r';
-            uart[0] = 'l';
-            uart[0] = 'd';
-            uart[0] = '!';
-            uart[0] = '\n';
-            return 0;
-        }";
-        let mut file = File::create("test_helloworld.c").unwrap();
-        file.write(&c_code.as_bytes()).unwrap();
-        generate_rv_assembly("test_helloworld.c");
-        generate_rv_obj("test_helloworld.s");
-        generate_rv_binary("test_helloworld");
-    }
-
-    #[test]
-    fn compile_echoback() {
-        let c_code = r"
-        int main() {
-            while (1) {
-                volatile char *uart = (volatile char *) 0x10000000;
-                while ((uart[5] & 0x01) == 0);
-                char c = uart[0];
-                if ('a' <= c && c <= 'z') {
-                    c = c + 'A' - 'a';
-                }
-                uart[0] = c;
-            }
-        }";
-        let mut file = File::create("test_echoback.c").unwrap();
-        file.write(&c_code.as_bytes()).unwrap();
-        generate_rv_assembly("test_echoback.c");
-        generate_rv_obj("test_echoback.s");
-        generate_rv_binary("test_echoback");
     }
 }

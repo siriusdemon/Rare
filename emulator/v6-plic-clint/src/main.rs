@@ -24,13 +24,7 @@ fn main() -> io::Result<()> {
     let mut binary = Vec::new();
     file.read_to_end(&mut binary)?;
 
-    let mut disk_image = Vec::new();
-    if args.len() == 3 {
-        let mut file = File::open(&args[2])?;
-        file.read_to_end(&mut disk_image)?;
-    }
-
-    let mut cpu = Cpu::new(binary, disk_image);
+    let mut cpu = Cpu::new(binary);
 
     loop {
         let inst = match cpu.fetch() {
