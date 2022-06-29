@@ -143,94 +143,181 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="控制状态寄存器"><a class="header" href="#控制状态寄存器">控制状态寄存器</a></h1>
-<p>In Refactor State</p>
-<h3 id="risc-v-特权等级"><a class="header" href="#risc-v-特权等级">RISC-V 特权等级</a></h3>
-<p>本来特权架构与特权等级是下一节的内容，但这一节稍有涉及，略加说明。</p>
-<p>在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。当前，RISC-V 定义了三种特权等级。</p>
+                        <h1 id="control-status-register"><a class="header" href="#control-status-register">Control Status Register</a></h1>
+<p>RISC-V defines a separate address space of 4096 Control and Status registers associated with each hart. This chapter focuses on the CSR instructions that operate on these CSRs, which are defined in Chapter 9 of RISC-V unprivileged ISA. We will talk more about the functionality of these CSRs in chapter 4 and chapter 5.</p>
+<p>RISC-V has defined three privilege level. At any time, a RISC-V hardware thread (hart) is running at some privilege level encoded as a mode
+in one or more CSRs. We will talk more about privilege levels in next chapter.</p>
+<p>RISC-V 为每一个 hart 定义了一个独立的控制状态寄存器的地址空间，有 4096 个之多。本章主要着重于实现相应的指令集，这部分内容在 RISC-V 非特权 ISA 标准的第九章中。我们将会在第四和第五章讨论这些寄存器的功能。</p>
+<p>RISC-V 定义了三种特权等级。在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。我们会在下一章节中讨论特权等级。</p>
 <p><img src="./images/privilege-level.png" alt="privilege-level" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
-<p>通常称为<code>M-mode</code>，<code>S-mode</code>和 <code>U-mode</code>。</p>
-<h3 id="控制状态寄存器-1"><a class="header" href="#控制状态寄存器-1">控制状态寄存器</a></h3>
-<p>RISC-V 为每一个 hart 定义了一个独立的控制状态寄存器的地址空间，有 4096 个之多。其中已经分配的地址相对较少，具体可参见 RISC-V 标准卷二的说明。</p>
-<p>下表基本包含了我们这个小项目需要用到的（也就是 xv6 所需要的）寄存器。</p>
+<p class="comment">Picture from RISC-V Privileged</p>
+<h3 id="1-csrs"><a class="header" href="#1-csrs">1. CSRs</a></h3>
+<p>The table below includes all the CSRs we need in this tutorial. I suggest you stop to read the corresponding chapter in RISC-V privileged if you are curious.</p>
+<p>下表基本包含了我们这个小项目需要用到的（也就是 xv6 所需要的）寄存器。你可以停下来去翻翻 RISC-V 特权标准中的相关的章节。</p>
 <p><img src="./images/misa-csr.png" alt="misa-csr" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
+<p class="comment">Picture from RISC-V Privileged</p>
 <p><img src="./images/sisa-csr.png" alt="sisa-csr" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
-<p>这些寄存器的具体意义可参考 RISC-V 标准中的说明，故不赘述。唯一值得一提的是，<code>sie</code>和<code>sip</code>是<code>mie</code>和<code>mip</code>的子集。实际上并不存在<code>sie</code>和<code>sip</code>这两个寄存器。</p>
-<p>标准中说：通过在<code>mideleg</code>中设置特定的位，将一个中断从 M-mode 代理给 S-mode，则这个中断在<code>sip</code>中可见且可被 <code>sie</code>屏蔽。反之，该位在<code>sip</code>和<code>sie</code>中皆为 0。此外，读写<code>sip</code>和<code>sie</code>相当于读写<code>mip</code>和<code>mie</code>。它们的关系可表述为</p>
-<pre><code class="language-rs">sip == mip &amp; mideleg 
-sie == mie &amp; mideleg
-</code></pre>
-<h3 id="添加-csrs"><a class="header" href="#添加-csrs">添加 CSRs</a></h3>
+<p class="comment">Picture from RISC-V Privileged</p>
+<p>What I want to point out is that the <code>sie</code>, <code>sip</code> and <code>sstatus</code> is the restricted view of <code>mie</code>, <code>mip</code> and <code>mstatus</code>. In a straightforward implementation, reading or writing any field in sie, sip, sstatus is equivalent to reading or writing the homonymous field in mie, mip and mstatus respectively.</p>
+<p>我想指出的是，sie，sip，sstatus 是 mie，mip，mstatus 的子集。在一个简单的实现中，读写 sie，sip，sstatus 中的任意字段相当于读写 mie，mip，mstatus 中对应的字段。</p>
+<h3 id="2-csrs-address"><a class="header" href="#2-csrs-address">2. CSRs' address</a></h3>
+<p>Firstly, let's record the address of the CSRs we need.</p>
 <p>根据上表，我们先录入所需要的寄存器地址。</p>
-<p class="filename">cpu.rs</p>
-<pre><code class="language-rs">// Machine-level CSRs.
-pub const MHARTID: usize = 0xf14;
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">pub const MHARTID: usize = 0xf14;
+/// Machine status register.
 pub const MSTATUS: usize = 0x300;
+/// Machine exception delefation register.
 pub const MEDELEG: usize = 0x302;
+/// Machine interrupt delefation register.
 pub const MIDELEG: usize = 0x303;
+/// Machine interrupt-enable register.
 pub const MIE: usize = 0x304;
+/// Machine trap-handler base address.
 pub const MTVEC: usize = 0x305;
+/// Machine counter enable.
 pub const MCOUNTEREN: usize = 0x306;
+/// Scratch register for machine trap handlers.
 pub const MSCRATCH: usize = 0x340;
+/// Machine exception program counter.
 pub const MEPC: usize = 0x341;
+/// Machine trap cause.
 pub const MCAUSE: usize = 0x342;
+/// Machine bad address or instruction.
 pub const MTVAL: usize = 0x343;
+/// Machine interrupt pending.
 pub const MIP: usize = 0x344;
 
 // Supervisor-level CSRs.
+/// Supervisor status register.
 pub const SSTATUS: usize = 0x100;
+/// Supervisor interrupt-enable register.
 pub const SIE: usize = 0x104;
+/// Supervisor trap handler base address.
 pub const STVEC: usize = 0x105;
+/// Scratch register for supervisor trap handlers.
 pub const SSCRATCH: usize = 0x140;
+/// Supervisor exception program counter.
 pub const SEPC: usize = 0x141;
+/// Supervisor trap cause.
 pub const SCAUSE: usize = 0x142;
+/// Supervisor bad address or instruction.
 pub const STVAL: usize = 0x143;
+/// Supervisor interrupt pending.
 pub const SIP: usize = 0x144;
+/// Supervisor address translation and protection.
 pub const SATP: usize = 0x180;
 </code></pre>
-<p>CPU 需要开辟一个 4096 的地址空间，同时，为了模拟<code>sie</code>和<code>sip</code>，我们还需要定义两个辅助函数（这是原作者的设计）。</p>
-<p class="filename">cpu.rs</p>
-<pre><code class="language-rs">pub struct Cpu {
-    pub regs: [u64; 32],
-    pub pc: u64,
-    pub bus: Bus,
-    pub csrs: [u64; 4096],
-}
+<p>We will need to perform bit-operation on CSRs. So let's define some useful constant here.</p>
+<p>我们需要对一些 CSR 做位操作，所以这里先定义一些后面会用到的常量。</p>
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">// mstatus and sstatus field mask
+pub const MASK_SIE: u64 = 1 &lt;&lt; 1; 
+pub const MASK_MIE: u64 = 1 &lt;&lt; 3;
+pub const MASK_SPIE: u64 = 1 &lt;&lt; 5; 
+pub const MASK_UBE: u64 = 1 &lt;&lt; 6; 
+pub const MASK_MPIE: u64 = 1 &lt;&lt; 7;
+pub const MASK_SPP: u64 = 1 &lt;&lt; 8; 
+pub const MASK_VS: u64 = 0b11 &lt;&lt; 9;
+pub const MASK_MPP: u64 = 0b11 &lt;&lt; 11;
+pub const MASK_FS: u64 = 0b11 &lt;&lt; 13; 
+pub const MASK_XS: u64 = 0b11 &lt;&lt; 15; 
+pub const MASK_MPRV: u64 = 1 &lt;&lt; 17;
+pub const MASK_SUM: u64 = 1 &lt;&lt; 18; 
+pub const MASK_MXR: u64 = 1 &lt;&lt; 19; 
+pub const MASK_TVM: u64 = 1 &lt;&lt; 20;
+pub const MASK_TW: u64 = 1 &lt;&lt; 21;
+pub const MASK_TSR: u64 = 1 &lt;&lt; 22;
+pub const MASK_UXL: u64 = 0b11 &lt;&lt; 32; 
+pub const MASK_SXL: u64 = 0b11 &lt;&lt; 34;
+pub const MASK_SBE: u64 = 1 &lt;&lt; 36;
+pub const MASK_MBE: u64 = 1 &lt;&lt; 37;
+pub const MASK_SD: u64 = 1 &lt;&lt; 63; 
+pub const MASK_SSTATUS: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS 
+                            | MASK_XS  | MASK_SUM  | MASK_MXR | MASK_UXL | MASK_SD;
 
-impl Cpu {
-    // new 函数也需要相应修改
-    // ...
-    pub fn load_csr(&amp;self, addr: usize) -&gt; u64 {
+// MIP / SIP field mask
+pub const MASK_SSIP: u64 = 1 &lt;&lt; 1;
+pub const MASK_MSIP: u64 = 1 &lt;&lt; 3;
+pub const MASK_STIP: u64 = 1 &lt;&lt; 5;
+pub const MASK_MTIP: u64 = 1 &lt;&lt; 7;
+pub const MASK_SEIP: u64 = 1 &lt;&lt; 9;
+pub const MASK_MEIP: u64 = 1 &lt;&lt; 11;
+</code></pre>
+<h3 id="3-csr-struct-and-api"><a class="header" href="#3-csr-struct-and-api">3. Csr struct and API</a></h3>
+<p>We define a <code>Csr</code> struct to manage the CSRs. <code>Csr</code> also provides two major APIs: store and load. </p>
+<p>我们定义一个 Csr 结构体来管理 CSR。Csr 同样提供两个主要的 API：load，store。</p>
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">const NUM_CSRS: usize = 4096;
+
+pub struct Csr {
+    csrs: [u64; NUM_CSRS],
+}
+impl Csr {
+    pub fn new() -&gt; Csr {
+        Self { csrs: [0; NUM_CSRS] }
+    }
+
+    pub fn load(&amp;self, addr: usize) -&gt; u64 {
         match addr {
             SIE =&gt; self.csrs[MIE] &amp; self.csrs[MIDELEG],
             SIP =&gt; self.csrs[MIP] &amp; self.csrs[MIDELEG],
+            SSTATUS =&gt; self.csrs[MSTATUS] &amp; MASK_SSTATUS,
             _ =&gt; self.csrs[addr],
         }
     }
 
-    pub fn store_csr(&amp;mut self, addr: usize, value: u64) {
+    pub fn store(&amp;mut self, addr: usize, value: u64) {
         match addr {
             SIE =&gt; self.csrs[MIE] = (self.csrs[MIE] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
-            SIP =&gt; self.csrs[MIP] = (self.csrs[MIP] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            SIP =&gt; self.csrs[MIP] = (self.csrs[MIE] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            SSTATUS =&gt; self.csrs[MSTATUS] = (self.csrs[MSTATUS] &amp; !MASK_SSTATUS) | (value &amp; MASK_SSTATUS),
             _ =&gt; self.csrs[addr] = value,
         }
     }
 }
 </code></pre>
-<p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>与此类似。</p>
-<p>实际上，<code>sstatus</code>也是<code>mstatus</code>的一个子集，见 RISC-V 标准卷2 4.1.1 节，但在这本实现中是分开的。</p>
-<h3 id="csr-指令"><a class="header" href="#csr-指令">CSR 指令</a></h3>
-<p>我们已经为 CPU 添加了 CSR 地址空间，现在需要支持执行 CSR 指令。CSR 的指令共有 6 个。</p>
+<p>Register <code>mideleg</code> controls whether an interrupt is delegated to S-mode. If certain bit in mideleg is set, the corresponding field in <code>sie</code> become visible when a read or write operation is performed. The same rule applies to  <code>sip</code> and <code>sstatus</code>.</p>
+<p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>，<code>sstatus</code>与此类似。</p>
+<p>We need to update the CPU 我们需要更新 CPU 的结构。</p>
+<pre><code class="language-rs">pub struct Cpu {
+    /// 32 64-bit integer registers.
+    pub regs: [u64; 32],
+    /// Program counter to hold the the dram address of the next instruction that would be executed.
+    pub pc: u64,
+    /// System bus that transfers data between CPU and peripheral devices.
+    pub bus: Bus,
+    /// Control and status registers. RISC-V ISA sets aside a 12-bit encoding space (csr[11:0]) for
+    /// up to 4096 CSRs.
+    pub csr: Csr,
+}
+
+impl Cpu {
+    /// Create a new `Cpu` object.
+    pub fn new(code: Vec&lt;u8&gt;) -&gt; Self {
+        let mut regs = [0; 32];
+        regs[2] = DRAM_END;
+        let pc = DRAM_BASE;
+        let bus = Bus::new(code);
+        let csr = Csr::new();
+
+        Self {regs, pc, bus, csr}
+    }
+    // ...
+}
+</code></pre>
+<h3 id="4-support-csrs-instructions"><a class="header" href="#4-support-csrs-instructions">4. support CSRs Instructions</a></h3>
+<p>CSR instructions are described in the <code>Zicsr</code> chapter in RISC-V unprivileged ISA. There are six instructions totally defined.</p>
+<p>CSR 指令在 RISC-V 非特权 ISA 中的第九章 <code>Zicsr</code> 中描述。CSR 的指令共有 6 个。</p>
 <p><img src="./images/csr-inst.png" alt="csr-inst" /></p>
-<p class="comment">图片来自 RISC-V Volumn 1: Zicsr</p>
+<p class="comment">Picture RISC-V unprivileged ISA: Zicsr</p>
+<p>The <code>csr</code> field encodes the address of CSRs. (2^12 = 4096)。The description of each CSR instruction is as follow:</p>
 <p>指令的<code>csr</code>字段有 12 位，编码的是寄存器的地址。(2^12 = 4096)。指令的含义如下：</p>
 <p><img src="./images/csr-inst1.png" alt="csr-inst1" />
 <img src="./images/csr-inst2.png" alt="csr-inst2" />
 <img src="./images/csr-inst3.png" alt="csr-inst3" /></p>
-<p class="comment">图片来自 RISC-V Reader</p>
+<p class="comment">Picture from RISC-V Reader</p>
+<p>You are encouraged to implement these instructions by yourself. When you complete, you can pass the following test.</p>
 <p>可以自行实现，也可以复制项目中的源码。实现以上六个指令之后，可以进行下面的测试。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">mod test {
@@ -251,12 +338,13 @@ impl Cpu {
             csrrci zero, sepc, 0 
         &quot;;
         riscv_test!(code, &quot;test_csrs1&quot;, 20, &quot;mstatus&quot; =&gt; 1, &quot;mtvec&quot; =&gt; 2, &quot;mepc&quot; =&gt; 3,
-                                            &quot;sstatus&quot; =&gt; 4, &quot;stvec&quot; =&gt; 5, &quot;sepc&quot; =&gt; 6);
+                                            &quot;sstatus&quot; =&gt; 0, &quot;stvec&quot; =&gt; 5, &quot;sepc&quot; =&gt; 6);
     }
 }
 </code></pre>
-<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
-<p>我们添加了对部分控制状态寄存器的读写支持，通过辅助函数模拟了<code>sip</code>、<code>sie</code>两个寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
+<h3 id="5-conclusion"><a class="header" href="#5-conclusion">5. Conclusion</a></h3>
+<p>This is a short chapter. We have added CSRs to our CPU and supported CSR instructions set. We have also imitated the restrict view of certain CSR register. On next chapter, we will support three RISC-V privilege levels and add more instructions.</p>
+<p>这一章节较短，我们添加了对部分控制状态寄存器的读写支持，同时，我们模拟了部分寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
 
                     </main>
 

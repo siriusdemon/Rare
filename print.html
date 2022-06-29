@@ -194,49 +194,27 @@
 <p>目录</p>
 <ol>
 <li><input disabled="" type="checkbox" checked=""/>
-<a href="./v1-CPU-Adder.html">Adder</a></li>
+<a href="./v1-CPU-Adder.html">Adder 加法器</a></li>
 <li><input disabled="" type="checkbox" checked=""/>
-<a href="./v2-Memory-and-Bus.html">Memory and Bus</a></li>
+<a href="./v2-Memory-and-Bus.html">Memory and Bus 内存和总线</a></li>
 <li><input disabled="" type="checkbox" checked=""/>
-<a href="./v3-CSR.html">Control Status Register</a></li>
+<a href="./v3-CSR.html">Control Status Register 控制状态寄存器</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v4-privilege-mode.html">Privilege Mode</a></li>
+<a href="./v4-privilege-mode.html">Privilege Mode 特权模式</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v5-exceptions.html">Exception</a></li>
+<a href="./v5-exceptions.html">Exception 异常</a></li>
 <li><input disabled="" type="checkbox"/>
 <a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
 <li><input disabled="" type="checkbox"/>
 <a href="./v7-uart.html">UART</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v8-interrupts.html">Interrupt</a></li>
+<a href="./v8-interrupts.html">Interrupt 中断</a></li>
 <li><input disabled="" type="checkbox"/>
 <a href="./v9-virtio.html">Virtio</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v10-page-table.html">Page Table</a></li>
+<a href="./v10-page-table.html">Page Table 页表</a></li>
 </ol>
 <p>The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. </p>
-<ol>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v1-CPU-Adder.html">加法器 CPU</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v2-Memory-and-Bus.html">内存和总线</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v3-CSR.html">控制状态寄存器</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v4-privilege-mode.html">特权模式</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v5-exceptions.html">异常</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v7-uart.html">UART</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v8-interrupts.html">中断</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v9-virtio.html">Virtio</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v10-page-table.html">页表</a></li>
-</ol>
 <p>原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
 <h3 id="note"><a class="header" href="#note">Note</a></h3>
 <p>When you travel through this tutorial, sometimes, you may notice some code in current chapter is different from last one's. This is because I will do some refactor when needed. Welcome to open an issue on github if you have any questions.</p>
@@ -315,7 +293,7 @@ impl Cpu {
 </code></pre>
 <p>CPU use <code>pc</code> as a base address to fetch 4 continous bytes from DRAM, since RISC-V instruction is 32-bit. Here, we read the <code>u8</code> on [pc, pc+1, pc+2, pc+3] and build up a <code>u32</code>. What we should be careful is the endianness, which is the term refers to how binary data is stored. There are two types of endianness: little-endianness and big-endianness.</p>
 <p>For a multi-byte value, little-endianness stores the least-significant byte at the lowest address and the most-significant byte at the highest address, while big-endianness does the opposite.</p>
-<p>Although RISC-V supports endianness settings for memory operation, instructions are uniformly little-endian for the benefit of both hardware and software. See RISC-V-Privileged section 3.1.6.4.</p>
+<p>In our emulator, we will adopt little-endianness. Although RISC-V supports endianness settings for memory operation, instructions are uniformly little-endian for the benefit of both hardware and software. See RISC-V-Privileged section 3.1.6.4.</p>
 <p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于 RISC-V 指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
 <p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
 <p>在本实现中，我们采用小端字节序。在 RISC-V 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置<code>mstatus</code>寄存器上特定的位来控制字节序。</p>
@@ -374,32 +352,34 @@ impl Cpu {
 <p>这里，我们使用 <code>wrapping_add</code> 的原因在于，这两个指令忽略算术溢出错误(arithmetic overflow)，溢出的位(bit)会被直接丢弃（见上面关于这两个指令的说明）。</p>
 <p>CPU 的功能基本上完成了。但我们需要能够方便地查看寄存器的状态，以便验证 CPU 是否正确执行了指令。</p>
 <p class="filename">main.rs</p>
-<pre><code class="language-rs">impl Cpu {
+<pre><code class="language-rs">const RVABI: [&amp;str; 32] = [
+    &quot;zero&quot;, &quot;ra&quot;, &quot;sp&quot;, &quot;gp&quot;, &quot;tp&quot;, &quot;t0&quot;, &quot;t1&quot;, &quot;t2&quot;, 
+    &quot;s0&quot;, &quot;s1&quot;, &quot;a0&quot;, &quot;a1&quot;, &quot;a2&quot;, &quot;a3&quot;, &quot;a4&quot;, &quot;a5&quot;, 
+    &quot;a6&quot;, &quot;a7&quot;, &quot;s2&quot;, &quot;s3&quot;, &quot;s4&quot;, &quot;s5&quot;, &quot;s6&quot;, &quot;s7&quot;, 
+    &quot;s8&quot;, &quot;s9&quot;, &quot;s10&quot;, &quot;s11&quot;, &quot;t3&quot;, &quot;t4&quot;, &quot;t5&quot;, &quot;t6&quot;,
+];
+
+impl Cpu {
     // ...
-    pub fn dump_registers(&amp;self) {
+    pub fn dump_registers(&amp;mut self) {
+        println!(&quot;{:-^80}&quot;, &quot;registers&quot;);
         let mut output = String::new();
-        let abi = [
-            &quot;zero&quot;, &quot; ra &quot;, &quot; sp &quot;, &quot; gp &quot;, &quot; tp &quot;, &quot; t0 &quot;, &quot; t1 &quot;, &quot; t2 &quot;, 
-            &quot; s0 &quot;, &quot; s1 &quot;, &quot; a0 &quot;, &quot; a1 &quot;, &quot; a2 &quot;, &quot; a3 &quot;, &quot; a4 &quot;, &quot; a5 &quot;, 
-            &quot; a6 &quot;, &quot; a7 &quot;, &quot; s2 &quot;, &quot; s3 &quot;, &quot; s4 &quot;, &quot; s5 &quot;, &quot; s6 &quot;, &quot; s7 &quot;, 
-            &quot; s8 &quot;, &quot; s9 &quot;, &quot; s10&quot;, &quot; s11&quot;, &quot; t3 &quot;, &quot; t4 &quot;, &quot; t5 &quot;, &quot; t6 &quot;,
-        ];
-        
+        self.regs[0] = 0;
+
         for i in (0..32).step_by(4) {
             let i0 = format!(&quot;x{}&quot;, i);
             let i1 = format!(&quot;x{}&quot;, i + 1); 
             let i2 = format!(&quot;x{}&quot;, i + 2);
             let i3 = format!(&quot;x{}&quot;, i + 3); 
             let line = format!(
-                &quot;{:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x}\n&quot;,
-                i0, abi[i], self.regs[i], 
-                i1, abi[i + 1], self.regs[i + 1], 
-                i2, abi[i + 2], self.regs[i + 2], 
-                i3, abi[i + 3], self.regs[i + 3],
+                &quot;{:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x}\n&quot;,
+                i0, RVABI[i], self.regs[i], 
+                i1, RVABI[i + 1], self.regs[i + 1], 
+                i2, RVABI[i + 2], self.regs[i + 2], 
+                i3, RVABI[i + 3], self.regs[i + 3],
             );
             output = output + &amp;line;
         }
-
         println!(&quot;{}&quot;, output);
     }
 }
@@ -444,7 +424,6 @@ fn main() -&gt; io::Result&lt;()&gt; {
 
     let mut cpu = Cpu::new(code);
 
-
     while cpu.pc &lt; cpu.dram.len() as u64 {
         let inst = cpu.fetch();
         cpu.execute(inst);
@@ -462,11 +441,14 @@ fn main() -&gt; io::Result&lt;()&gt; {
 <h3 id="6-conclusion"><a class="header" href="#6-conclusion">6. Conclusion</a></h3>
 <p>We have implemented a adder CPU, it can execute two RISC-V instruction: <code>addi</code>, <code>add</code>. We learn the CPU work process. In next chapter, we will separate the DRAM from CPU and use a bus to connect them. And we will supports more instruction and build a test framework.</p>
 <p>我们实现了一个加法器 CPU，它可以执行两个 RISC-V 指令，<code>addi</code>，<code>add</code>。我们还学习了 CPU 的执行步骤：取指令，解码，执行，更新ＰＣ。下一节，我们将内存从ＣＰＵ中剥离，并添加更多的指令支持和一个测试的框架。</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="内存和总线"><a class="header" href="#内存和总线">内存和总线</a></h1>
-<p>在上一节，我们把内存和CPU放在同一个结构体中，但在真实的硬件中，这两部分是分开的。如下图所示：</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="memory-and-bus"><a class="header" href="#memory-and-bus">Memory and Bus</a></h1>
+<p>内存和总线</p>
+<p>In last chapter, our CPU contains a DRAM. But in real hardware, they are connected by the bus and exchange data through the bus.</p>
+<p>在上一节，我们把内存和 CPU 放在同一个结构体中，但在真实的硬件中，这两部分是分开的。CPU 和内存通过总线（bus）进行数据交换。如下图所示：</p>
 <p><img src="./images/bus.png" alt="bus" /></p>
-<p class="comment">图片来自 Operation System: Three Easy Pieces</p>
-<p>CPU 和内存通过总线（bus）进行数据交换。</p>
+<p class="comment">Picture from Operation System: Three Easy Pieces</p>
+<h3 id="1-connect-cpu-and-dram-by-bus"><a class="header" href="#1-connect-cpu-and-dram-by-bus">1. Connect CPU and DRAM by Bus</a></h3>
+<p>Thus, we have defined thw following struct.</p>
 <p>因此，我们定义以下结构：</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">pub struct Cpu {
@@ -475,6 +457,7 @@ fn main() -&gt; io::Result&lt;()&gt; {
     pub bus: Bus,
 }
 </code></pre>
+<p>Now, CPU contains a bus instead of DRAM. There are possible many devices connected on bus. But we have only one device (DRAM) right now.</p>
 <p>CPU 现在不包含内存，而是连接了总线。总线上可能有多个 IO 设备，但目前我们只有一个（DRAM）。</p>
 <p class="filename">bus.rs</p>
 <pre><code class="language-rs">pub struct Bus {
@@ -486,10 +469,12 @@ fn main() -&gt; io::Result&lt;()&gt; {
     pub dram: Vec&lt;u8&gt;,
 }
 </code></pre>
-<h3 id="内存-api"><a class="header" href="#内存-api">内存 API</a></h3>
+<h3 id="2-memory-api"><a class="header" href="#2-memory-api">2. Memory API</a></h3>
+<p>Memory has two function: <code>store</code> and <code>load</code>. Only store and load a 8-bit, 16-bit, 32-bit and 64-bit are allowed. Recall that we use little-endian byte ordering. We implement the memory API as following:</p>
 <p>内存（DRAM）只有两个功能：store，load。保存和读取的有效位数是 8，16，32，64。回顾上一节，我们采用的是小端字节序。实现如下</p>
 <p class="filename">dram.rs</>
-<pre><code class="language-rs">impl Dram {
+<pre><code class="language-rs">
+impl Dram {
     pub fn new(code: Vec&lt;u8&gt;) -&gt; Dram {
         let mut dram = vec![0; DRAM_SIZE as usize];
         dram.splice(..code.len(), code.into_iter());
@@ -497,15 +482,14 @@ fn main() -&gt; io::Result&lt;()&gt; {
     }
 
     // addr/size must be valid. Check in bus
-    pub fn load(&amp;self, addr: u64, size: u64) -&gt; Result&lt;u64, RvException&gt; {
-        let nbytes = size / 8;
-        if (nbytes + addr - 1) &gt; DRAM_END {
-            return Err(RvException::InvalidAddress(addr));
+    pub fn load(&amp;self, addr: u64, size: u64) -&gt; Result&lt;u64, Exception&gt; {
+        if ![8, 16, 32, 64].contains(&amp;size) {
+            return Err(LoadAccessFault(addr));
         }
-
+        let nbytes = size / 8;
         let index = (addr - DRAM_BASE) as usize;
         let mut code = self.dram[index] as u64;
-        // little-endian!
+        // shift the bytes to build up the desired value
         for i in 1..nbytes {
             code |= (self.dram[index + i as usize] as u64) &lt;&lt; (i * 8);
         }
@@ -514,14 +498,12 @@ fn main() -&gt; io::Result&lt;()&gt; {
     }
 
     // addr/size must be valid. Check in bus
-    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), RvException&gt; {
-        let nbytes = size / 8;
-        if (nbytes + addr - 1) &gt; DRAM_END {
-            return Err(RvException::InvalidAddress(addr));
+    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), Exception&gt; {
+        if ![8, 16, 32, 64].contains(&amp;size) {
+            return Err(StoreAMOAccessFault(addr));
         }
-
+        let nbytes = size / 8;
         let index = (addr - DRAM_BASE) as usize;
-        // little-endian!
         for i in 0..nbytes {
             let offset = 8 * i as usize;
             self.dram[index + i as usize] = ((value &gt;&gt; offset) &amp; 0xff) as u8;
@@ -530,112 +512,123 @@ fn main() -&gt; io::Result&lt;()&gt; {
     }
 }
 </code></pre>
-<p>这里用到了一些全局变量和异常，定义如下</p>
-<p class="filename">param.rs</>
-<pre><code class="language-rs">pub const DRAM_SIZE: u64 = 1024 * 1024 * 128;
-pub const DRAM_BASE: u64 = 0x8000_0000;
+<p>Here, we have use some global value and <code>Exception</code>. They are in <code>param.rs</code> and <code>exception.rs</code>.  We won't talk about Exception until Chapter 5. For now, we only need three exception type:</p>
+<p>这里用到了一些全局变量和异常，定义在 <code>param.rs</code> 和 <code>exception.rs</code> 中，我们将会在第五章的时候讨论异常。现在只需要了解以下三种异常即可。</p>
+<ul>
+<li>LoadAccessFault</li>
+<li>StoreAMOAccessFault</li>
+<li>IllegalInstruction</li>
+</ul>
+<p>Refer to RISC-V Specification if you are curious. 如果你是好奇宝宝，可以去看下 RISC-V 标准。</p>
+<p>The <code>param.rs</code> contains the following code. We choose <code>DRAM_BASE</code> the same value, 0x8000_0000, as in qemu. It will be the initial value of the PC register.</p>
+<p><code>param.rs</code> 中包含了以下代码。我们选择了跟 QEMU 一样的内存起始地址 0x8000_0000。PC 寄存器初始化的时候会被赋予这个值。</p>
+<p class="filename">param.rs</p>
+<pre><code class="language-rs">pub const DRAM_BASE: u64 = 0x8000_0000;
+pub const DRAM_SIZE: u64 = 1024 * 1024 * 128;
 pub const DRAM_END: u64 = DRAM_SIZE + DRAM_BASE - 1;
 </code></pre>
-<p class="filename">exception.rs</p>
-<pre><code class="language-rs">#[derive(Debug)]
-pub enum RvException {
-    InvalidAddress(u64),
-    InvalidSize(u64),
-    InvalidInstruction(u64),
-}
-</code></pre>
-<h3 id="总线-api"><a class="header" href="#总线-api">总线 API</a></h3>
+<h3 id="3-bus-api"><a class="header" href="#3-bus-api">3. Bus API</a></h3>
+<p>Bus is a communication medium of CPU and various IO devices. Bus allocates different address for differet devices. By sending instruction through bus, CPU can operate the IO devices indirectly. </p>
+<p>Bus also provides two function: <code>store</code> and <code>load</code>.</p>
 <p>总线是 CPU 与各种 IO 设备（如键盘、鼠标、屏幕等）通信的渠道。总线上不同的地址范围对应了不同的设备。CPU 通过给总线发指令来间接操作其他的设备。</p>
 <p>总线同样仅提供两个操作：store，load。</p>
 <p class="filename">bus.rs</p>
-<pre><code class="language-rs">pub fn valid_size(size: u64) -&gt; bool {
-    [8, 16, 32, 64].contains(&amp;size)
-}
-
-impl Bus {
+<pre><code class="language-rs">impl Bus {
     pub fn new(code: Vec&lt;u8&gt;) -&gt; Bus {
         Self { dram: Dram::new(code) }
     }
-    pub fn load(&amp;self, addr: u64, size: u64) -&gt; Result&lt;u64, RvException&gt; {
-        if !valid_size(size) {
-            return Err(RvException::InvalidSize(size));
-        }
+    pub fn load(&amp;mut self, addr: u64, size: u64) -&gt; Result&lt;u64, Exception&gt; {
         match addr {
             DRAM_BASE..=DRAM_END =&gt; self.dram.load(addr, size),
-            _ =&gt; Err(RvException::InvalidAddress(addr)),
+            _ =&gt; Err(Exception::LoadAccessFault(addr)),
         }
     }
 
-    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), RvException&gt; {
-        if !valid_size(size) {
-            return Err(RvException::InvalidSize(size));
-        }
+    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), Exception&gt; {
         match addr {
             DRAM_BASE..=DRAM_END =&gt; self.dram.store(addr, size, value),
-            _ =&gt; Err(RvException::InvalidAddress(addr)),
+            _ =&gt; Err(Exception::StoreAMOAccessFault(addr)),
         }
     }
 }
 </code></pre>
-<p>这里，我们检查<code>addr</code>是否包含在<code>DRAM</code>的地址范围，否则报错。</p>
-<h3 id="cpu-api"><a class="header" href="#cpu-api">CPU API</a></h3>
-<p>现在 CPU 不直接读写内存，而是通过向总线发指令来读写内存。</p>
+<h3 id="4-cpu-api"><a class="header" href="#4-cpu-api">4. CPU API</a></h3>
+<p>CPU loads and stores data through the bus connected to it. Note that our CPU will start execution at address DRAM_BASE from now on.</p>
+<p>现在 CPU 不直接读写内存，而是通过向总线发指令来读写内存。现在我们的 CPU 将会从 DRAM_BASE 处开始执行。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn new(code: Vec&lt;u8&gt;) -&gt; Self {
         let mut regs = [0; 32];
         regs[2] = DRAM_END;
-
         let bus = Bus::new(code);
-
         Self {regs, pc: DRAM_BASE, bus}
     }
 
-    pub fn load(&amp;self, addr: u64, size: u64) -&gt; Result&lt;u64, RvException&gt;{
+    /// Load a value from a dram.
+    pub fn load(&amp;mut self, addr: u64, size: u64) -&gt; Result&lt;u64, Exception&gt; {
         self.bus.load(addr, size)
     }
 
-    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), RvException&gt; {
+    /// Store a value to a dram.
+    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), Exception&gt; {
         self.bus.store(addr, size, value)
     }
+
+    /// Get an instruction from the dram.
+    pub fn fetch(&amp;mut self) -&gt; Result&lt;u64, Exception&gt; {
+        self.bus.load(self.pc, 32)
+    } 
 }
 </code></pre>
-<p>至此，我们已经完成将内存剥离 CPU 的重构工作。您现在可以对<code>main.rs</code>进一步修改，以便成功运行上一节的汇编程序。要改的地方包括：</p>
-<p class="filename">main.rs</p>
-<pre><code class="language-rs">mod param;
-mod dram;
-mod cpu;
-mod bus;
-mod exception;
-</code></pre>
-<p>以及<code>main</code>函数。这是一个小小的练习。</p>
-<h3 id="支持新的指令"><a class="header" href="#支持新的指令">支持新的指令</a></h3>
-<p>这一节我们将支持以下指令</p>
-<p><img src="./images/rv32-inst.png" alt="rv32" /></p>
-<p class="comment">图片来自原作者的教程</p>
-<p><img src="./images/rv64-inst.png" alt="rv64" /></p>
-<p class="comment">图片来自原作者的教程</p>
-<p>我们将实现跳转指令<code>JAL, JALR, BEQ, BNE, BLT, BGE, BLTU, BGEU</code>。这些跳转指令会修改<code>PC</code>寄存器的值。因此，我把对<code>PC</code>的更新放到了<code>execute</code>函数当中。</p>
-<p>具体而言，我移除了<code>main.rs</code>中主循环的<code>cpu.pc += 4</code>，同时在每个不修改<code>PC</code>的指令后添加一个<code>self.update_pc()</code>。</p>
-<p class="filename">cpu.rs</p>
+<p>Now, we have finished code refactoring. To run the example in last chapter, we have to modify <code>main.rs</code>. You may want to refer the code in according folder.</p>
+<p>至此，我们已经完成将内存剥离 CPU 的重构工作。我们需要对<code>main.rs</code>进一步修改，以便成功运行上一节的汇编程序。你可能想参考一下对应文件夹下的代码。</p>
+<h3 id="5-return-new-pc-value"><a class="header" href="#5-return-new-pc-value">5. Return new PC value</a></h3>
+<p>Recall that, the final stage of a five-stage pipeline introduced in last chapter is <code>Write Back</code>. In this stage, the address of next instruction is written into the PC register. We will imitate such a behaviour by returning a new pc value from the <code>execute</code> function. </p>
+<p>We need to do such a change because we are going to support more instructions, including branch instructions, which decides the next PC value according to the condition. We can not simply add 4 get the next PC value right now.</p>
+<p>We change our <code>execute</code> function as following:</p>
+<p>回顾上一节介绍的五阶段流水线，最后一个阶段是写回。在这个阶段，新的 PC 值会被写回 PC 寄存器。我们通过让 <code>execute</code> 函数返回一个新的 PC 值来模拟这一行为。之所以要这么做，是因为我们准备支持更多的指令，其中包括分支跳转指令。这些指令会改变 PC 的值。因此，我们无法通过原 PC 值加 4 来得到新的 PC 值。
+新的 <code>execute</code> 定义如下：</p>
 <pre><code class="language-rs">impl Cpu {
-    // ... 
-    #[inline]
-    pub fn update_pc(&amp;mut self) -&gt; Result&lt;(), RvException&gt; {
-        self.pc += 4;
-        return Ok(());
+    // ...
+    pub fn execute(&amp;mut self, inst: u64) -&gt; Result&lt;u64, Exception&gt; { 
+        //... 
     }
 }
 </code></pre>
-<p>在教程中逐个解释逐个实现是不切实际的。我的建议是参考 Riscv Reader 附录的指令说明来一个个实现。我在代码中提供了许多测试，可以帮助你验证自己的实现。</p>
-<p>当然，如果你已经很熟悉这些指令，或者想暂时先跳过，可以直接使用我的代码。</p>
-<h3 id="指令测试"><a class="header" href="#指令测试">指令测试</a></h3>
-<p>我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过<code>clang</code>，<code>llvm-objcopy</code>来生成二进制代码。现在我们将这个过程自动化以便于我们在代码中添加测试。</p>
-<p>我们将自动化以下过程</p>
-<pre><code class="language-bash">clang -S simple.c
+<p>Besides, we update PC register using the value returned from <code>execute</code> in <code>main.rs</code>:</p>
+<p>同时，在<code>main.rs</code>，我们用新的 execute 的返回值来更新 PC 寄存器。</p>
+<pre><code class="language-rs">fn main() {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            Ok(inst) =&gt; inst,
+            Err(e) =&gt; { break; }
+        };
+
+        match cpu.execute(inst) {
+            Ok(new_pc) =&gt; cpu.pc = new_pc,
+            Err(e) =&gt; { break; }
+        };
+    }
+}
+</code></pre>
+<h3 id="6-support-new-instructions"><a class="header" href="#6-support-new-instructions">6. Support new instructions</a></h3>
+<p>We will support following instructions in this chapter.</p>
+<p>这一节我们将支持以下指令</p>
+<p><img src="./images/rv32-inst.png" alt="rv32" /></p>
+<p class="comment">Picture from original author</p>
+<p><img src="./images/rv64-inst.png" alt="rv64" /></p>
+<p class="comment">Picture from original author</p>
+<p>It is impractical to explain every instruction here. <code>RISC-V reader</code> is a helpful reference if you want to implement every instruction by yourself. In fact, I almost copy the code from <a href="https://github.com/d0iasm">Asami</a>, the original author :).  Nevertheless, I have provided a test framework (see below) and you are really encouraged to implement the instruction by yourself.</p>
+<p>在教程中逐个解释逐个实现是不切实际的。如果你想自己一个个实现，RISC-V Reader 附录的指令说明会是一个不错的参考。实际上，我基本直接复制了<a href="https://github.com/d0iasm">原作者</a>的代码。尽管如此，我写了一个测试框架（在后文），可以帮助你验证自己的实现。</p>
+<h3 id="7-testing"><a class="header" href="#7-testing">7. Testing</a></h3>
+<p>We need to add some tests to ensure our implementation is correct. In last chapter, we generate pure RISC-V binary by <code>clang</code> and <code>llvm-objcopy</code>. We will make the following procedure automatically to ease the testing of our code. </p>
+<p>我们需要对指令的解释做单元测试，以便我们排查 BUG。在上一节，我们通过<code>clang</code>，<code>llvm-objcopy</code>来生成二进制代码。现在我们将以下过程自动化以便于我们在代码中添加测试。</p>
+<pre><code class="language-bash">clang -S simple.c -nostdlib -march=rv64i -mabi=lp64 -mno-relax
 clang -Wl,-Ttext=0x0 -nostdlib -march=rv64i -mabi=lp64 -mno-relax -o simple simple.s
 llvm-objcopy -O binary simple simple.bin
 </code></pre>
+<p>The first command generates the assembly code, then the second command generates a binary file in ELF format. Finally, the third command remove the ELF header and a RISC-V pure binary is generated. Implementation is as follow:</p>
 <p>其中第一行从C代码中生成汇编代码，第二行编译成了一个ELF格式的二进制文件，第三行去掉了ELF格式，只保存了其中的二进制代码。我们分别实现如下：</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">#[cfg(test)]
@@ -645,22 +638,28 @@ mod test {
     use std::process::Command;
     use super::*;
 
-    fn generate_rv_assembly(c_src: &amp;str) {
-        let RV_GCC = &quot;clang&quot;;
-        let output = Command::new(RV_GCC).arg(&quot;-S&quot;)
+  fn generate_rv_assembly(c_src: &amp;str) {
+        let cc = &quot;clang&quot;;
+        let output = Command::new(cc).arg(&quot;-S&quot;)
                             .arg(c_src)
+                            .arg(&quot;-nostdlib&quot;)
+                            .arg(&quot;-march=rv64g&quot;)
+                            .arg(&quot;-mabi=lp64&quot;)
+                            .arg(&quot;--target=riscv64&quot;)
+                            .arg(&quot;-mno-relax&quot;)
                             .output()
                             .expect(&quot;Failed to generate rv assembly&quot;);
         println!(&quot;{}&quot;, String::from_utf8_lossy(&amp;output.stderr));
     }
 
     fn generate_rv_obj(assembly: &amp;str) {
-        let RV_GCC = &quot;clang&quot;;
+        let cc = &quot;clang&quot;;
         let pieces: Vec&lt;&amp;str&gt; = assembly.split(&quot;.&quot;).collect();
-        let output = Command::new(RV_GCC).arg(&quot;-Wl,-Ttext=0x0&quot;)
+        let output = Command::new(cc).arg(&quot;-Wl,-Ttext=0x0&quot;)
                             .arg(&quot;-nostdlib&quot;)
-                            .arg(&quot;-march=rv64i&quot;)
+                            .arg(&quot;-march=rv64g&quot;)
                             .arg(&quot;-mabi=lp64&quot;)
+                            .arg(&quot;--target=riscv64&quot;)
                             .arg(&quot;-mno-relax&quot;)
                             .arg(&quot;-o&quot;)
                             .arg(&amp;pieces[0])
@@ -671,8 +670,8 @@ mod test {
     }
 
     fn generate_rv_binary(obj: &amp;str) {
-        let RV_OBJCOPY = &quot;llvm-objcopy&quot;;
-        let output = Command::new(RV_OBJCOPY).arg(&quot;-O&quot;)
+        let objcopy = &quot;llvm-objcopy&quot;;
+        let output = Command::new(objcopy).arg(&quot;-O&quot;)
                                 .arg(&quot;binary&quot;)
                                 .arg(obj)
                                 .arg(obj.to_owned() + &quot;.bin&quot;)
@@ -682,14 +681,14 @@ mod test {
     }
 }
 </code></pre>
-<p>有了以上辅助函数之后，我们可以让 CPU 跑起来。</p>
+<p>Aimed with the auxiliary function above, we can let the CPU running up. 有了以上辅助函数之后，我们可以让 CPU 跑起来。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">mod test {
     // ...
-    fn rv_helper(code: &amp;str, testname: &amp;str, n_clock: usize) -&gt; Result&lt;Cpu, std::io::Error&gt; {
+       fn rv_helper(code: &amp;str, testname: &amp;str, n_clock: usize) -&gt; Result&lt;Cpu, std::io::Error&gt; {
         let filename = testname.to_owned() + &quot;.s&quot;;
         let mut file = File::create(&amp;filename)?;
-        file.write(&amp;code.as_bytes());
+        file.write(&amp;code.as_bytes())?;
         generate_rv_obj(&amp;filename);
         generate_rv_binary(testname);
         let mut file_bin = File::open(testname.to_owned() + &quot;.bin&quot;)?;
@@ -700,10 +699,10 @@ mod test {
         for _i in 0..n_clock {
             let inst = match cpu.fetch() {
                 Ok(inst) =&gt; inst,
-                Err(err) =&gt; break,
+                Err(_err) =&gt; break,
             };
             match cpu.execute(inst) {
-                Ok(_) =&gt; (),
+                Ok(new_pc) =&gt; cpu.pc = new_pc,
                 Err(err) =&gt; println!(&quot;{}&quot;, err),
             };
         }
@@ -712,7 +711,9 @@ mod test {
     }
 }
 </code></pre>
-<p>以上代码将 Riscv 汇编代码写入文件，并生成相应的二进制代码文件，然后创建一个 CPU 进行执行，最终返回该 CPU 实例。我这里没有用到 C 代码，您可以自行添加。</p>
+<p>The code above writes the RISC-V assembly code into a file and generate a pure binary file. Then a CPU is created and execute for <code>n_clock</code>. Finally, the CPU is returned because we want to check its status.</p>
+<p>Now, we can add a simple test for <code>addi</code>.</p>
+<p>以上代码将 Riscv 汇编代码写入文件，并生成相应的二进制代码文件，然后创建一个 CPU 进行执行，最终返回该 CPU 实例。</p>
 <p>现在，我们对<code>addi</code>添加一个简单的测试。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">mod test {
@@ -727,8 +728,11 @@ mod test {
     }
 }
 </code></pre>
-<p>至此，我们的测试框架也完成了！</p>
-<h3 id="riscv_test-宏"><a class="header" href="#riscv_test-宏">riscv_test 宏</a></h3>
+<p>Running the test by 执行测试</p>
+<pre><code class="language-sh">cargo test
+</code></pre>
+<h3 id="8-macro-riscv_test-for-easier-testing"><a class="header" href="#8-macro-riscv_test-for-easier-testing">8. Macro <code>riscv_test</code> for easier testing</a></h3>
+<p>We use the following macro to abstract the testing procedure.</p>
 <p>以下宏用于简化测试过程。关于宏，我以前在<a href="https://zhuanlan.zhihu.com/p/260707957">一篇博文</a>中写过一段简短的解释。故不赘述。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">mod test {
@@ -745,7 +749,30 @@ mod test {
     }
 }
 </code></pre>
-<p>有了这个宏，以上的测试可以简化成这样：</p>
+<p>We need another function for easier register lookup. 我们需要另一个函数来方便我们查看寄存器的值。</p>
+<pre><code class="language-rs">impl Cpu {
+    // ...
+    pub fn reg(&amp;self, r: &amp;str) -&gt; u64 {
+        match RVABI.iter().position(|&amp;x| x == r) {
+            Some(i) =&gt; self.regs[i],
+            None =&gt; match r {
+                &quot;pc&quot; =&gt; self.pc,
+                &quot;fp&quot; =&gt; self.reg(&quot;s0&quot;),
+                r if r.starts_with(&quot;x&quot;) =&gt; {
+                    if let Ok(i) = r[1..].parse::&lt;usize&gt;() {
+                        if i &lt;= 31 { return self.regs[i]; }
+                        panic!(&quot;Invalid register {}&quot;, r);
+                    }
+                    panic!(&quot;Invalid register {}&quot;, r);
+                }
+                _ =&gt; panic!(&quot;Invalid register {}&quot;, r),
+            }
+        }
+    }
+}
+</code></pre>
+<p>With the <code>riscv_test</code> macro and <code>reg</code> function, we can simplify the test as follow:</p>
+<p>有了 riscv_test 宏以及 reg 函数，以上的测试可以简化成这样：</p>
 <pre><code class="language-rs">mod test {
     //...
     #[test]
@@ -755,96 +782,184 @@ mod test {
     }
 }
 </code></pre>
-<h3 id="总结"><a class="header" href="#总结">总结</a></h3>
-<p>我们重构了 CPU 的结构，总线连接了 CPU 和内存。后续我们还会添加更多的设备到总线上。因此，我们添加了多种指令的支持。为了支持跳转指令，我们将更新 PC 的步骤也放到了<code>execute</code>当中。此外，我们实现了一个测试框架，便于及时验证我们的实现。在下一节中，我们将添加对控制状态寄存器（Control Status Register）的读写支持。</p>
-<div style="break-before: page; page-break-before: always;"></div><h1 id="控制状态寄存器"><a class="header" href="#控制状态寄存器">控制状态寄存器</a></h1>
-<p>In Refactor State</p>
-<h3 id="risc-v-特权等级"><a class="header" href="#risc-v-特权等级">RISC-V 特权等级</a></h3>
-<p>本来特权架构与特权等级是下一节的内容，但这一节稍有涉及，略加说明。</p>
-<p>在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。当前，RISC-V 定义了三种特权等级。</p>
+<h3 id="9-conclusion"><a class="header" href="#9-conclusion">9. Conclusion</a></h3>
+<p>We have performed code refactoring to the CPU structure by using bus to connect the CPU and DRAM. We will add more devices on bus. Besides, we imitate the <code>Write Back</code> stage by returning a new PC value from <code>execute</code>. We also support more instructions and design a test framework to ease testing. On next chapter, we will add the <code>Control Status Register</code> to CPU and support corresponding instruction.</p>
+<p>我们重构了 CPU 的结构，总线连接了 CPU 和内存。后续我们还会添加更多的设备到总线上。同时，我们模拟了写回阶段，<code>execute</code>函数返回一个新的PC值用于PC寄存器的更新。此外，我们实现了一个测试框架，便于及时验证我们的实现。在下一节中，我们将添加对控制状态寄存器（Control Status Register）的读写支持。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="control-status-register"><a class="header" href="#control-status-register">Control Status Register</a></h1>
+<p>RISC-V defines a separate address space of 4096 Control and Status registers associated with each hart. This chapter focuses on the CSR instructions that operate on these CSRs, which are defined in Chapter 9 of RISC-V unprivileged ISA. We will talk more about the functionality of these CSRs in chapter 4 and chapter 5.</p>
+<p>RISC-V has defined three privilege level. At any time, a RISC-V hardware thread (hart) is running at some privilege level encoded as a mode
+in one or more CSRs. We will talk more about privilege levels in next chapter.</p>
+<p>RISC-V 为每一个 hart 定义了一个独立的控制状态寄存器的地址空间，有 4096 个之多。本章主要着重于实现相应的指令集，这部分内容在 RISC-V 非特权 ISA 标准的第九章中。我们将会在第四和第五章讨论这些寄存器的功能。</p>
+<p>RISC-V 定义了三种特权等级。在任意时刻，一个 hart 总是跑在某种特权等级上。这个特权等级编码在一个或者多个控制状态寄存器之中。我们会在下一章节中讨论特权等级。</p>
 <p><img src="./images/privilege-level.png" alt="privilege-level" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
-<p>通常称为<code>M-mode</code>，<code>S-mode</code>和 <code>U-mode</code>。</p>
-<h3 id="控制状态寄存器-1"><a class="header" href="#控制状态寄存器-1">控制状态寄存器</a></h3>
-<p>RISC-V 为每一个 hart 定义了一个独立的控制状态寄存器的地址空间，有 4096 个之多。其中已经分配的地址相对较少，具体可参见 RISC-V 标准卷二的说明。</p>
-<p>下表基本包含了我们这个小项目需要用到的（也就是 xv6 所需要的）寄存器。</p>
+<p class="comment">Picture from RISC-V Privileged</p>
+<h3 id="1-csrs"><a class="header" href="#1-csrs">1. CSRs</a></h3>
+<p>The table below includes all the CSRs we need in this tutorial. I suggest you stop to read the corresponding chapter in RISC-V privileged if you are curious.</p>
+<p>下表基本包含了我们这个小项目需要用到的（也就是 xv6 所需要的）寄存器。你可以停下来去翻翻 RISC-V 特权标准中的相关的章节。</p>
 <p><img src="./images/misa-csr.png" alt="misa-csr" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
+<p class="comment">Picture from RISC-V Privileged</p>
 <p><img src="./images/sisa-csr.png" alt="sisa-csr" /></p>
-<p class="comment">图片来自 RISC-V 卷2</p>
-<p>这些寄存器的具体意义可参考 RISC-V 标准中的说明，故不赘述。唯一值得一提的是，<code>sie</code>和<code>sip</code>是<code>mie</code>和<code>mip</code>的子集。实际上并不存在<code>sie</code>和<code>sip</code>这两个寄存器。</p>
-<p>标准中说：通过在<code>mideleg</code>中设置特定的位，将一个中断从 M-mode 代理给 S-mode，则这个中断在<code>sip</code>中可见且可被 <code>sie</code>屏蔽。反之，该位在<code>sip</code>和<code>sie</code>中皆为 0。此外，读写<code>sip</code>和<code>sie</code>相当于读写<code>mip</code>和<code>mie</code>。它们的关系可表述为</p>
-<pre><code class="language-rs">sip == mip &amp; mideleg 
-sie == mie &amp; mideleg
-</code></pre>
-<h3 id="添加-csrs"><a class="header" href="#添加-csrs">添加 CSRs</a></h3>
+<p class="comment">Picture from RISC-V Privileged</p>
+<p>What I want to point out is that the <code>sie</code>, <code>sip</code> and <code>sstatus</code> is the restricted view of <code>mie</code>, <code>mip</code> and <code>mstatus</code>. In a straightforward implementation, reading or writing any field in sie, sip, sstatus is equivalent to reading or writing the homonymous field in mie, mip and mstatus respectively.</p>
+<p>我想指出的是，sie，sip，sstatus 是 mie，mip，mstatus 的子集。在一个简单的实现中，读写 sie，sip，sstatus 中的任意字段相当于读写 mie，mip，mstatus 中对应的字段。</p>
+<h3 id="2-csrs-address"><a class="header" href="#2-csrs-address">2. CSRs' address</a></h3>
+<p>Firstly, let's record the address of the CSRs we need.</p>
 <p>根据上表，我们先录入所需要的寄存器地址。</p>
-<p class="filename">cpu.rs</p>
-<pre><code class="language-rs">// Machine-level CSRs.
-pub const MHARTID: usize = 0xf14;
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">pub const MHARTID: usize = 0xf14;
+/// Machine status register.
 pub const MSTATUS: usize = 0x300;
+/// Machine exception delefation register.
 pub const MEDELEG: usize = 0x302;
+/// Machine interrupt delefation register.
 pub const MIDELEG: usize = 0x303;
+/// Machine interrupt-enable register.
 pub const MIE: usize = 0x304;
+/// Machine trap-handler base address.
 pub const MTVEC: usize = 0x305;
+/// Machine counter enable.
 pub const MCOUNTEREN: usize = 0x306;
+/// Scratch register for machine trap handlers.
 pub const MSCRATCH: usize = 0x340;
+/// Machine exception program counter.
 pub const MEPC: usize = 0x341;
+/// Machine trap cause.
 pub const MCAUSE: usize = 0x342;
+/// Machine bad address or instruction.
 pub const MTVAL: usize = 0x343;
+/// Machine interrupt pending.
 pub const MIP: usize = 0x344;
 
 // Supervisor-level CSRs.
+/// Supervisor status register.
 pub const SSTATUS: usize = 0x100;
+/// Supervisor interrupt-enable register.
 pub const SIE: usize = 0x104;
+/// Supervisor trap handler base address.
 pub const STVEC: usize = 0x105;
+/// Scratch register for supervisor trap handlers.
 pub const SSCRATCH: usize = 0x140;
+/// Supervisor exception program counter.
 pub const SEPC: usize = 0x141;
+/// Supervisor trap cause.
 pub const SCAUSE: usize = 0x142;
+/// Supervisor bad address or instruction.
 pub const STVAL: usize = 0x143;
+/// Supervisor interrupt pending.
 pub const SIP: usize = 0x144;
+/// Supervisor address translation and protection.
 pub const SATP: usize = 0x180;
 </code></pre>
-<p>CPU 需要开辟一个 4096 的地址空间，同时，为了模拟<code>sie</code>和<code>sip</code>，我们还需要定义两个辅助函数（这是原作者的设计）。</p>
-<p class="filename">cpu.rs</p>
-<pre><code class="language-rs">pub struct Cpu {
-    pub regs: [u64; 32],
-    pub pc: u64,
-    pub bus: Bus,
-    pub csrs: [u64; 4096],
-}
+<p>We will need to perform bit-operation on CSRs. So let's define some useful constant here.</p>
+<p>我们需要对一些 CSR 做位操作，所以这里先定义一些后面会用到的常量。</p>
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">// mstatus and sstatus field mask
+pub const MASK_SIE: u64 = 1 &lt;&lt; 1; 
+pub const MASK_MIE: u64 = 1 &lt;&lt; 3;
+pub const MASK_SPIE: u64 = 1 &lt;&lt; 5; 
+pub const MASK_UBE: u64 = 1 &lt;&lt; 6; 
+pub const MASK_MPIE: u64 = 1 &lt;&lt; 7;
+pub const MASK_SPP: u64 = 1 &lt;&lt; 8; 
+pub const MASK_VS: u64 = 0b11 &lt;&lt; 9;
+pub const MASK_MPP: u64 = 0b11 &lt;&lt; 11;
+pub const MASK_FS: u64 = 0b11 &lt;&lt; 13; 
+pub const MASK_XS: u64 = 0b11 &lt;&lt; 15; 
+pub const MASK_MPRV: u64 = 1 &lt;&lt; 17;
+pub const MASK_SUM: u64 = 1 &lt;&lt; 18; 
+pub const MASK_MXR: u64 = 1 &lt;&lt; 19; 
+pub const MASK_TVM: u64 = 1 &lt;&lt; 20;
+pub const MASK_TW: u64 = 1 &lt;&lt; 21;
+pub const MASK_TSR: u64 = 1 &lt;&lt; 22;
+pub const MASK_UXL: u64 = 0b11 &lt;&lt; 32; 
+pub const MASK_SXL: u64 = 0b11 &lt;&lt; 34;
+pub const MASK_SBE: u64 = 1 &lt;&lt; 36;
+pub const MASK_MBE: u64 = 1 &lt;&lt; 37;
+pub const MASK_SD: u64 = 1 &lt;&lt; 63; 
+pub const MASK_SSTATUS: u64 = MASK_SIE | MASK_SPIE | MASK_UBE | MASK_SPP | MASK_FS 
+                            | MASK_XS  | MASK_SUM  | MASK_MXR | MASK_UXL | MASK_SD;
 
-impl Cpu {
-    // new 函数也需要相应修改
-    // ...
-    pub fn load_csr(&amp;self, addr: usize) -&gt; u64 {
+// MIP / SIP field mask
+pub const MASK_SSIP: u64 = 1 &lt;&lt; 1;
+pub const MASK_MSIP: u64 = 1 &lt;&lt; 3;
+pub const MASK_STIP: u64 = 1 &lt;&lt; 5;
+pub const MASK_MTIP: u64 = 1 &lt;&lt; 7;
+pub const MASK_SEIP: u64 = 1 &lt;&lt; 9;
+pub const MASK_MEIP: u64 = 1 &lt;&lt; 11;
+</code></pre>
+<h3 id="3-csr-struct-and-api"><a class="header" href="#3-csr-struct-and-api">3. Csr struct and API</a></h3>
+<p>We define a <code>Csr</code> struct to manage the CSRs. <code>Csr</code> also provides two major APIs: store and load. </p>
+<p>我们定义一个 Csr 结构体来管理 CSR。Csr 同样提供两个主要的 API：load，store。</p>
+<p class="filename">csr.rs</p>
+<pre><code class="language-rs">const NUM_CSRS: usize = 4096;
+
+pub struct Csr {
+    csrs: [u64; NUM_CSRS],
+}
+impl Csr {
+    pub fn new() -&gt; Csr {
+        Self { csrs: [0; NUM_CSRS] }
+    }
+
+    pub fn load(&amp;self, addr: usize) -&gt; u64 {
         match addr {
             SIE =&gt; self.csrs[MIE] &amp; self.csrs[MIDELEG],
             SIP =&gt; self.csrs[MIP] &amp; self.csrs[MIDELEG],
+            SSTATUS =&gt; self.csrs[MSTATUS] &amp; MASK_SSTATUS,
             _ =&gt; self.csrs[addr],
         }
     }
 
-    pub fn store_csr(&amp;mut self, addr: usize, value: u64) {
+    pub fn store(&amp;mut self, addr: usize, value: u64) {
         match addr {
             SIE =&gt; self.csrs[MIE] = (self.csrs[MIE] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
-            SIP =&gt; self.csrs[MIP] = (self.csrs[MIP] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            SIP =&gt; self.csrs[MIP] = (self.csrs[MIE] &amp; !self.csrs[MIDELEG]) | (value &amp; self.csrs[MIDELEG]),
+            SSTATUS =&gt; self.csrs[MSTATUS] = (self.csrs[MSTATUS] &amp; !MASK_SSTATUS) | (value &amp; MASK_SSTATUS),
             _ =&gt; self.csrs[addr] = value,
         }
     }
 }
 </code></pre>
-<p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>与此类似。</p>
-<p>实际上，<code>sstatus</code>也是<code>mstatus</code>的一个子集，见 RISC-V 标准卷2 4.1.1 节，但在这本实现中是分开的。</p>
-<h3 id="csr-指令"><a class="header" href="#csr-指令">CSR 指令</a></h3>
-<p>我们已经为 CPU 添加了 CSR 地址空间，现在需要支持执行 CSR 指令。CSR 的指令共有 6 个。</p>
+<p>Register <code>mideleg</code> controls whether an interrupt is delegated to S-mode. If certain bit in mideleg is set, the corresponding field in <code>sie</code> become visible when a read or write operation is performed. The same rule applies to  <code>sip</code> and <code>sstatus</code>.</p>
+<p>当我们读取<code>sie</code>时，我们读的是<code>mie</code>与<code>mideleg</code>相与的结果，当我们写<code>sie</code>时，我们同样只写<code>mideleg</code>中为<code>1</code>的位，其他的位保持不变。读写<code>sip</code>，<code>sstatus</code>与此类似。</p>
+<p>We need to update the CPU 我们需要更新 CPU 的结构。</p>
+<pre><code class="language-rs">pub struct Cpu {
+    /// 32 64-bit integer registers.
+    pub regs: [u64; 32],
+    /// Program counter to hold the the dram address of the next instruction that would be executed.
+    pub pc: u64,
+    /// System bus that transfers data between CPU and peripheral devices.
+    pub bus: Bus,
+    /// Control and status registers. RISC-V ISA sets aside a 12-bit encoding space (csr[11:0]) for
+    /// up to 4096 CSRs.
+    pub csr: Csr,
+}
+
+impl Cpu {
+    /// Create a new `Cpu` object.
+    pub fn new(code: Vec&lt;u8&gt;) -&gt; Self {
+        let mut regs = [0; 32];
+        regs[2] = DRAM_END;
+        let pc = DRAM_BASE;
+        let bus = Bus::new(code);
+        let csr = Csr::new();
+
+        Self {regs, pc, bus, csr}
+    }
+    // ...
+}
+</code></pre>
+<h3 id="4-support-csrs-instructions"><a class="header" href="#4-support-csrs-instructions">4. support CSRs Instructions</a></h3>
+<p>CSR instructions are described in the <code>Zicsr</code> chapter in RISC-V unprivileged ISA. There are six instructions totally defined.</p>
+<p>CSR 指令在 RISC-V 非特权 ISA 中的第九章 <code>Zicsr</code> 中描述。CSR 的指令共有 6 个。</p>
 <p><img src="./images/csr-inst.png" alt="csr-inst" /></p>
-<p class="comment">图片来自 RISC-V Volumn 1: Zicsr</p>
+<p class="comment">Picture RISC-V unprivileged ISA: Zicsr</p>
+<p>The <code>csr</code> field encodes the address of CSRs. (2^12 = 4096)。The description of each CSR instruction is as follow:</p>
 <p>指令的<code>csr</code>字段有 12 位，编码的是寄存器的地址。(2^12 = 4096)。指令的含义如下：</p>
 <p><img src="./images/csr-inst1.png" alt="csr-inst1" />
 <img src="./images/csr-inst2.png" alt="csr-inst2" />
 <img src="./images/csr-inst3.png" alt="csr-inst3" /></p>
-<p class="comment">图片来自 RISC-V Reader</p>
+<p class="comment">Picture from RISC-V Reader</p>
+<p>You are encouraged to implement these instructions by yourself. When you complete, you can pass the following test.</p>
 <p>可以自行实现，也可以复制项目中的源码。实现以上六个指令之后，可以进行下面的测试。</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">mod test {
@@ -865,12 +980,13 @@ impl Cpu {
             csrrci zero, sepc, 0 
         &quot;;
         riscv_test!(code, &quot;test_csrs1&quot;, 20, &quot;mstatus&quot; =&gt; 1, &quot;mtvec&quot; =&gt; 2, &quot;mepc&quot; =&gt; 3,
-                                            &quot;sstatus&quot; =&gt; 4, &quot;stvec&quot; =&gt; 5, &quot;sepc&quot; =&gt; 6);
+                                            &quot;sstatus&quot; =&gt; 0, &quot;stvec&quot; =&gt; 5, &quot;sepc&quot; =&gt; 6);
     }
 }
 </code></pre>
-<h3 id="总结-1"><a class="header" href="#总结-1">总结</a></h3>
-<p>我们添加了对部分控制状态寄存器的读写支持，通过辅助函数模拟了<code>sip</code>、<code>sie</code>两个寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
+<h3 id="5-conclusion"><a class="header" href="#5-conclusion">5. Conclusion</a></h3>
+<p>This is a short chapter. We have added CSRs to our CPU and supported CSR instructions set. We have also imitated the restrict view of certain CSR register. On next chapter, we will support three RISC-V privilege levels and add more instructions.</p>
+<p>这一章节较短，我们添加了对部分控制状态寄存器的读写支持，同时，我们模拟了部分寄存器。下一节，我们将添加 RISC-V 的特权等级，并支持相应的指令。</p>
 
                     </main>
 

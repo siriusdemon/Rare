@@ -217,7 +217,7 @@ impl Cpu {
 </code></pre>
 <p>CPU use <code>pc</code> as a base address to fetch 4 continous bytes from DRAM, since RISC-V instruction is 32-bit. Here, we read the <code>u8</code> on [pc, pc+1, pc+2, pc+3] and build up a <code>u32</code>. What we should be careful is the endianness, which is the term refers to how binary data is stored. There are two types of endianness: little-endianness and big-endianness.</p>
 <p>For a multi-byte value, little-endianness stores the least-significant byte at the lowest address and the most-significant byte at the highest address, while big-endianness does the opposite.</p>
-<p>Although RISC-V supports endianness settings for memory operation, instructions are uniformly little-endian for the benefit of both hardware and software. See RISC-V-Privileged section 3.1.6.4.</p>
+<p>In our emulator, we will adopt little-endianness. Although RISC-V supports endianness settings for memory operation, instructions are uniformly little-endian for the benefit of both hardware and software. See RISC-V-Privileged section 3.1.6.4.</p>
 <p>CPU 将<code>pc</code>的值发送给内存，内存返回对应的地址上的值。由于 RISC-V 指令是 32 位的，因此，内存需要读取的是 [pc, pc+1, pc+2, pc+3] 这四个地址上的值，并组合成一个 32 位的指令。这里有一个大端字节序 (big-endian) 与小端字节序 (small-endian) 的问题。</p>
 <p>小端字节序指的是，一个由多个字节组成的数，它的最低位字节存储于内存中的低地址处，最高位字节存储于内存中的高地址处。大端则与之相反。</p>
 <p>在本实现中，我们采用小端字节序。在 RISC-V 标准中，指令读取是小端字节序，而内存的加载和储存（memory load and store）则可以通过设置<code>mstatus</code>寄存器上特定的位来控制字节序。</p>
@@ -276,32 +276,34 @@ impl Cpu {
 <p>这里，我们使用 <code>wrapping_add</code> 的原因在于，这两个指令忽略算术溢出错误(arithmetic overflow)，溢出的位(bit)会被直接丢弃（见上面关于这两个指令的说明）。</p>
 <p>CPU 的功能基本上完成了。但我们需要能够方便地查看寄存器的状态，以便验证 CPU 是否正确执行了指令。</p>
 <p class="filename">main.rs</p>
-<pre><code class="language-rs">impl Cpu {
+<pre><code class="language-rs">const RVABI: [&amp;str; 32] = [
+    &quot;zero&quot;, &quot;ra&quot;, &quot;sp&quot;, &quot;gp&quot;, &quot;tp&quot;, &quot;t0&quot;, &quot;t1&quot;, &quot;t2&quot;, 
+    &quot;s0&quot;, &quot;s1&quot;, &quot;a0&quot;, &quot;a1&quot;, &quot;a2&quot;, &quot;a3&quot;, &quot;a4&quot;, &quot;a5&quot;, 
+    &quot;a6&quot;, &quot;a7&quot;, &quot;s2&quot;, &quot;s3&quot;, &quot;s4&quot;, &quot;s5&quot;, &quot;s6&quot;, &quot;s7&quot;, 
+    &quot;s8&quot;, &quot;s9&quot;, &quot;s10&quot;, &quot;s11&quot;, &quot;t3&quot;, &quot;t4&quot;, &quot;t5&quot;, &quot;t6&quot;,
+];
+
+impl Cpu {
     // ...
-    pub fn dump_registers(&amp;self) {
+    pub fn dump_registers(&amp;mut self) {
+        println!(&quot;{:-^80}&quot;, &quot;registers&quot;);
         let mut output = String::new();
-        let abi = [
-            &quot;zero&quot;, &quot; ra &quot;, &quot; sp &quot;, &quot; gp &quot;, &quot; tp &quot;, &quot; t0 &quot;, &quot; t1 &quot;, &quot; t2 &quot;, 
-            &quot; s0 &quot;, &quot; s1 &quot;, &quot; a0 &quot;, &quot; a1 &quot;, &quot; a2 &quot;, &quot; a3 &quot;, &quot; a4 &quot;, &quot; a5 &quot;, 
-            &quot; a6 &quot;, &quot; a7 &quot;, &quot; s2 &quot;, &quot; s3 &quot;, &quot; s4 &quot;, &quot; s5 &quot;, &quot; s6 &quot;, &quot; s7 &quot;, 
-            &quot; s8 &quot;, &quot; s9 &quot;, &quot; s10&quot;, &quot; s11&quot;, &quot; t3 &quot;, &quot; t4 &quot;, &quot; t5 &quot;, &quot; t6 &quot;,
-        ];
-        
+        self.regs[0] = 0;
+
         for i in (0..32).step_by(4) {
             let i0 = format!(&quot;x{}&quot;, i);
             let i1 = format!(&quot;x{}&quot;, i + 1); 
             let i2 = format!(&quot;x{}&quot;, i + 2);
             let i3 = format!(&quot;x{}&quot;, i + 3); 
             let line = format!(
-                &quot;{:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x} {:3}({}) = {:&lt;#18x}\n&quot;,
-                i0, abi[i], self.regs[i], 
-                i1, abi[i + 1], self.regs[i + 1], 
-                i2, abi[i + 2], self.regs[i + 2], 
-                i3, abi[i + 3], self.regs[i + 3],
+                &quot;{:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x} {:3}({:^4}) = {:&lt;#18x}\n&quot;,
+                i0, RVABI[i], self.regs[i], 
+                i1, RVABI[i + 1], self.regs[i + 1], 
+                i2, RVABI[i + 2], self.regs[i + 2], 
+                i3, RVABI[i + 3], self.regs[i + 3],
             );
             output = output + &amp;line;
         }
-
         println!(&quot;{}&quot;, output);
     }
 }
@@ -345,7 +347,6 @@ fn main() -&gt; io::Result&lt;()&gt; {
     file.read_to_end(&amp;mut code)?;
 
     let mut cpu = Cpu::new(code);
-
 
     while cpu.pc &lt; cpu.dram.len() as u64 {
         let inst = cpu.fetch();
