@@ -1,0 +1,5 @@
+# Privilege Mode
+
+As we have mentioned in last chapter, RISC-V defines three privilege levels: User, Supervisor and Machine. Machine mode is mandatory while other two are optional. The `xv6` operation system requires all the three privilege mode. In this chapter, we will dive into the details of how RISC-V change its privilege mode from one to another. Specifically, we will support two instructions: `sret` and `mret`. These two instructions are used to return from certain privilege mode after trap. We will talk about trap when we move to next chapter `Exception`. 
+
+Additionally, we will also support the standard `A` extension and `M` extension. However, since our simple emulator doesn't support multi-hart, the `A` extension is degenerated as non-atomical instruction. For the same reason, `fence` and `sfence.vma` is implemented as `nop`.
