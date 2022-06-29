@@ -251,7 +251,7 @@ mod test {
 }
 ```
 
-### Conclusion
+### 5. Conclusion
 
 This is a short chapter. We have added CSRs to our CPU and supported CSR instructions set. We have also imitated the restrict view of certain CSR register. On next chapter, we will support three RISC-V privilege levels and add more instructions.
 
