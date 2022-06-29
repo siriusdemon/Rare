@@ -6,7 +6,7 @@ OBJCOPY=llvm-objcopy
 OBJFORMAT=-O binary
 
 
-add-addi.bin: add-addi.s
-	${CC} ${LFLASG} ${CFLAGS} -o add-addi add-addi.s
+add-addi.bin: add-addi.S
+	${CC} ${LFLASG} ${CFLAGS} -o add-addi add-addi.S
 	${OBJCOPY} ${OBJFORMAT} add-addi add-addi.bin
 
