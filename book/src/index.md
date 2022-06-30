@@ -1,4 +1,4 @@
-# Rare: Rust A RISC-V Emulator
+# Rare: build your own RISC-V emulator in Rust
 RISC-V 模拟器教程
 
 This tutorial is based on [Asami's excellent tutorial](https://book.rvemu.app). Although the author haven't finished it, she have already separated the code into 10 stages, which makes this tutorial become possible.

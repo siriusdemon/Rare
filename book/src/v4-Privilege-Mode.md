@@ -3,3 +3,71 @@
 As we have mentioned in last chapter, RISC-V defines three privilege levels: User, Supervisor and Machine. Machine mode is mandatory while other two are optional. The `xv6` operation system requires all the three privilege mode. In this chapter, we will dive into the details of how RISC-V change its privilege mode from one to another. Specifically, we will support two instructions: `sret` and `mret`. These two instructions are used to return from certain privilege mode after trap. We will talk about trap when we move to next chapter `Exception`. 
 
 Additionally, we will also support the standard `A` extension and `M` extension. However, since our simple emulator doesn't support multi-hart, the `A` extension is degenerated as non-atomical instruction. For the same reason, `fence` and `sfence.vma` is implemented as `nop`.
+
+正如我们在上一章所提到过的，RISC-V 定义了三种特权等级：用户、监督和机器。机器模式是必须实现的，而其他模式则是可选的。我们的目标是运行 xv6 操作系统，也就意味着三种模式都要实现才行。
+
+在本章中，我们将探索 RISC-V 特权模式的迁移过程。具体而言，我们将实现两个指令：sret 以及 mret。这两个指令可在陷入（trap in）对应的特权模式之后从中返回。我们会在下一章中讨论陷阱（trap）。
+
+此外，我们还会直接标准拓展 A 和 M。由于我们的模拟器不支持多个 hart 同时运行，因此，A（原意为原子）中的指令退化为普通的非原子操作指令。同样的，fence 和 sfence.vma 也退化为 nop。
+
+### 1. CPU with privilege mode
+
+Let's start with appending a field `mode` in `Cpu` structure. When a hart is running up, its privilege mode is `Machine`.
+
+我们首先给 CPU 新增一个 mode 字段，且其初始值为 Machine。
+
+```rs
+// Riscv Privilege Mode
+type Mode = u64;
+const User: Mode = 0b00;
+const Supervisor: Mode = 0b01;
+const Machine: Mode = 0b11;
+
+pub struct Cpu {
+    pub regs: [u64; 32],
+    pub pc: u64,
+    pub mode: Mode,
+    pub bus: Bus,
+    pub csr: Csr,
+}
+
+impl Cpu {
+    pub fn new(code: Vec<u8>) -> Self {
+        let mut regs = [0; 32];
+        regs[2] = DRAM_END;
+        let pc = DRAM_BASE;
+        let bus = Bus::new(code);
+        let csr = Csr::new();
+        let mode = Machine;
+
+        Self {regs, pc, bus, csr, mode}
+    }
+}
+```
+
+### 2. mstatus / sstatus
+
+Before we talk about the behaviour of sret & mret, we need to understand the meaning of different fields in the sstatus & mstatus register.  What I try to descript here is refered to the section 3.1.6 of RISC-V Privileged.
+
+The mstatus register for RV64 is an 64-bit read/write register formatted as following. 
+
+![mstatus](./images/mstatus.png)
+<p class="comment">mstatus: Picture from RISC-V Privileged</p>
+
+The mstatus register keeps track of and controls the hart’s current operating state. A restricted view of mstatus appears as the sstatus register in S-mode.
+
+![sstatus](./images/sstatus.png)
+<p class="comment">sstatus: Picture from RISC-V Privileged</p>
+
+You may have noticed some fields in both status registers are marked as *WPRI* aka. *Write Preserved, Read Ignore*. It means when you perform a write on it, you should keep the fields marked as WPRI unchanged. And when you perform a read on it, you should ignore the value of those fields and regard them as 0. This explains the behavior we read and store the sie, sip and sstatus register in `csr.rs`.
+
+你可能注意到了，在两个状态寄存器中，有些字段被标识为 WPRI，是“写时保留，读时忽略”的缩写。意思是说，当你写这样一个寄存器的时候，不要修改那些标识为 WPRI 的字段；当你读的时候，忽略那些字段，将之视为 0。这可以解释我们在`csr.rs`中对 sie，sip，sstatus 的读写行为。
+
+Global interrupt-enable bits, MIE and SIE, are provided for M-mode and S-mode respectively. When a hart is executing in privilege mode `x`, interrupts are globally enabled when `xIE=1` and globally disabled when `xIE=0`.
+
+To support nested traps, each privilege mode `x` that can respond to interrupts has a two-level stack of interrupt-enable bits and privilege modes. `xPIE` holds the value of the interrupt-enable bit active prior to the trap, and `xPP` holds the previous privilege mode. The `xPP` fields can only hold privilege modes up to `x`, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode `y` into privilege mode `x`, `xPIE` is set to the value of `xIE`; `xIE` is set to 0; and `xPP` is set to `y`.
+
+We will implement such a trap token procedure in next chapter.
+
+An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing xPP holds the value y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is implemented, else M). If xPP != M, xRET also sets MPRV=0.
+

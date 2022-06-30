@@ -577,10 +577,6 @@ impl Cpu {
                         match (rs2, funct7) {
                              (0x2, 0x8) => {
                                 // sret
-                                // set the pc to CSRs[sepc].
-                                // whenever IALIGN=32, bit sepc[1] is masked on reads so that it appears to be 0. This
-                                // masking occurs also for the implicit read by the SRET instruction. 
-                                self.pc = self.csr.load(SEPC) & !0b11;
                                 // When the SRET instruction is executed to return from the trap
                                 // handler, the privilege level is set to user mode if the SPP
                                 // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
@@ -615,6 +611,8 @@ impl Cpu {
                                 mstatus |= MASK_MPIE;
                                 // set MPP the least privilege mode (u-mode)
                                 mstatus &= !MASK_MPP;
+                                // If MPP != M, sets MPRV=0
+                                mstatus &= !MASK_MPRV;
                                 self.csr.store(MSTATUS, mstatus);
                                 // set the pc to CSRs[mepc].
                                 let new_pc = self.csr.load(MEPC) & !0b11;
