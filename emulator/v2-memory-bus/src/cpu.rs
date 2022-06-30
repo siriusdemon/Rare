@@ -166,16 +166,6 @@ impl Cpu {
                     
                 }
             }
-            0x0f => {
-                // A fence instruction does nothing because this emulator executes an
-                // instruction sequentially on a single thread.
-                match funct3 {
-                    0x0 => { // fence
-                        return self.update_pc();
-                    }
-                    _ => Err(Exception::IllegalInstruction(inst)),
-                }
-            }
             0x13 => {
                 // imm[11:0] = inst[31:20]
                 let imm = ((inst & 0xfff00000) as i32 as i64 >> 20) as u64;
@@ -287,44 +277,6 @@ impl Cpu {
                     _ => unreachable!(),
                 }
             }
-            0x2f => {
-                // RV64A: "A" standard extension for atomic instructions
-                let funct5 = (funct7 & 0b1111100) >> 2;
-                let _aq = (funct7 & 0b0000010) >> 1; // acquire access
-                let _rl = funct7 & 0b0000001; // release access
-                match (funct3, funct5) {
-                    (0x2, 0x00) => {
-                        // amoadd.w
-                        let t = self.load(self.regs[rs1], 32)?;
-                        self.store(self.regs[rs1], 32, t.wrapping_add(self.regs[rs2]))?;
-                        self.regs[rd] = t;
-                        return self.update_pc();
-                    }
-                    (0x3, 0x00) => {
-                        // amoadd.d
-                        let t = self.load(self.regs[rs1], 64)?;
-                        self.store(self.regs[rs1], 64, t.wrapping_add(self.regs[rs2]))?;
-                        self.regs[rd] = t;
-                        return self.update_pc();
-                    }
-                    (0x2, 0x01) => {
-                        // amoswap.w
-                        let t = self.load(self.regs[rs1], 32)?;
-                        self.store(self.regs[rs1], 32, self.regs[rs2])?;
-                        self.regs[rd] = t;
-                        return self.update_pc();
-                    }
-                    (0x3, 0x01) => {
-                        // amoswap.d
-                        let t = self.load(self.regs[rs1], 64)?;
-                        self.store(self.regs[rs1], 64, self.regs[rs2])?;
-                        self.regs[rd] = t;
-                        return self.update_pc();
-                    }
-                    _ => Err(Exception::IllegalInstruction(inst)),
-                    
-                }
-            }
             0x33 => {
                 // "SLL, SRL, and SRA perform logical left, logical right, and arithmetic right
                 // shifts on the value in register rs1 by the shift amount held in register rs2.
@@ -420,36 +372,9 @@ impl Cpu {
                         self.regs[rd] = (self.regs[rs1] as u32).wrapping_shr(shamt) as i32 as u64;
                         return self.update_pc();
                     }
-                    (0x5, 0x01) => {
-                        // divu
-                        self.regs[rd] = match self.regs[rs2] {
-                            0 => {
-                                // TODO: Set DZ (Divide by Zero) in the FCSR csr flag to 1.
-                                0xffffffff_ffffffff
-                            }
-                            _ => {
-                                let dividend = self.regs[rs1];
-                                let divisor = self.regs[rs2];
-                                dividend.wrapping_div(divisor)
-                            }
-                        };
-                        return self.update_pc();
-                    }
                     (0x5, 0x20) => {
                         // sraw
                         self.regs[rd] = ((self.regs[rs1] as i32) >> (shamt as i32)) as u64;
-                        return self.update_pc();
-                    }
-                    (0x7, 0x01) => {
-                        // remuw
-                        self.regs[rd] = match self.regs[rs2] {
-                            0 => self.regs[rs1],
-                            _ => {
-                                let dividend = self.regs[rs1] as u32;
-                                let divisor = self.regs[rs2] as u32;
-                                dividend.wrapping_rem(divisor) as i32 as u64
-                            }
-                        };
                         return self.update_pc();
                     }
                     _ => Err(Exception::IllegalInstruction(inst)),
