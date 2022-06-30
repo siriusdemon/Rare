@@ -51,10 +51,12 @@ Before we talk about the behaviour of sret & mret, we need to understand the mea
 
 The mstatus register for RV64 is an 64-bit read/write register formatted as following. 
 
+在我们讨论 sret 以及 mret 的行为之前，我们必须先理解 sstatus 以及 mstatus 寄存器上不同字段的含义 。我在此描述的内容出自 RISC-V 特权指令标准的第 3.1.6 节。
+
 ![mstatus](./images/mstatus.png)
 <p class="comment">mstatus: Picture from RISC-V Privileged</p>
 
-The mstatus register keeps track of and controls the hart’s current operating state. A restricted view of mstatus appears as the sstatus register in S-mode.
+The mstatus register keeps track of and controls the hart’s current operating state. A restricted view of mstatus appears as the sstatus register in S-mode. mstatus 寄存器表示的当前 hart 的工作状态。sstatus 是它的一个子集。
 
 ![sstatus](./images/sstatus.png)
 <p class="comment">sstatus: Picture from RISC-V Privileged</p>
@@ -69,9 +71,17 @@ To support nested traps, each privilege mode `x` that can respond to interrupts 
 
 We will implement such a trap token procedure in next chapter.
 
+MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。
+
+为了支持嵌套陷阱（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入陷阱之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。
+
 An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing `xPP` holds the value `y`, `xIE` is set to `xPIE`; the privilege mode is changed to `y`; `xPIE` is set to 1; and `xPP` is set to the least-privileged supported mode (U if U-mode is implemented, else M). If `xPP != M`, `xRET` also sets `MPRV=0`. Additionally, `xRET` sets the `pc` to the value stored in the `xepc` register.
 
 Now, we can implement the `sret` and `mret` as following:
+
+MRET 和 SRET 分别用于从 M-mode 和 S-mode 的陷阱中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。
+
+现在我们可以实现这两个指令了！
 
 <p class="filename">cpu.rs</p>
 
@@ -144,6 +154,10 @@ Since our emulator is single-threaded, we don't need to worry about atomic opera
 
 The M extension defines several instructions that can be used to perform multiplication and division. It seems that we just need the following instructions to run xv6 up.
 
+由于我们的模拟器是单线程的，我们不需要考虑原子操作。因此，我们只按非原子操作的方式实现 A 拓展中的指令。
+
+M 拓展中定义了用于执行乘除的指令，不过，为了让 xv6 能够运行起来，我们只需要实现以下指令即可。
+
 ![mul](./images/mul.png)
 
 ![divu](./images/divu.png)
@@ -155,7 +169,9 @@ The M extension defines several instructions that can be used to perform multipl
 
 ### 4. FENCE / SFENCE.VMA
 
-Since our emulator is single-threaded, we simplify both instructions as nop.
+For the reason we have mentioned above, we simplify both instructions as nop.
+
+基于以上原因，这两个指令可以简化为 nop。
 
 ![fence](./images/fence.png)
 
@@ -165,4 +181,6 @@ Since our emulator is single-threaded, we simplify both instructions as nop.
 
 ### 5. Conclusion
 
-We have introduced RISC-V privilege level in this chapter and implement the SRET and MRET instructions according to the RISC-V Privileged. We also support the standard A & M extension. Since our emulator is single-threaded, we simplify many instructions in such a context.  However, the story in this chapter is imcomplete since we haven't mentioned how the CPU trap in certain privilege mode. This is the topic of next chapter.
+We have introduced RISC-V privilege level in this chapter and implement the SRET and MRET instructions according to the RISC-V Privileged. We also support the standard A & M extension. Since our emulator is single-threaded, we simplify many instructions in such a context.  However, the story in this chapter is incomplete since we haven't mentioned how CPU trap in certain privilege mode. This is the topic of next chapter.
+
+这一章中，我们引入了 RISC-V 的特权模式并实现了 SRET 和 MRET 两个指令。我们还添加了对标准拓展 A 和 M 的支持。由于我们的模拟器是单线程的，我们简化了许多指令。然而，本章的故事其实是不完整的，因为我们不知道 CPU 是如何陷入到特定特权模式的，我们将在下一章中探讨这个话题。
