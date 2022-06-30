@@ -164,3 +164,5 @@ Since our emulator is single-threaded, we simplify both instructions as nop.
 <p class="comment">Picture from RISC-V Reader</p>
 
 ### 5. Conclusion
+
+We have introduced RISC-V privilege level in this chapter and implement the SRET and MRET instructions according to the RISC-V Privileged. We also support the standard A & M extension. Since our emulator is single-threaded, we simplify many instructions in such a context.  However, the story in this chapter is imcomplete since we haven't mentioned how the CPU trap in certain privilege mode. This is the topic of next chapter.
