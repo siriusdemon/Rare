@@ -639,10 +639,7 @@ impl Cpu {
                     (0x5, 0x01) => {
                         // divu
                         self.regs[rd] = match self.regs[rs2] {
-                            0 => {
-                                // TODO: Set DZ (Divide by Zero) in the FCSR csr flag to 1.
-                                0xffffffff_ffffffff
-                            }
+                            0 => 0xffffffff_ffffffff,
                             _ => {
                                 let dividend = self.regs[rs1];
                                 let divisor = self.regs[rs2];

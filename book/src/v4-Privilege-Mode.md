@@ -45,7 +45,7 @@ impl Cpu {
 }
 ```
 
-### 2. mstatus / sstatus
+### 2. SRET & MRET
 
 Before we talk about the behaviour of sret & mret, we need to understand the meaning of different fields in the sstatus & mstatus register.  What I try to descript here is refered to the section 3.1.6 of RISC-V Privileged.
 
@@ -69,5 +69,98 @@ To support nested traps, each privilege mode `x` that can respond to interrupts 
 
 We will implement such a trap token procedure in next chapter.
 
-An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing xPP holds the value y, xIE is set to xPIE; the privilege mode is changed to y; xPIE is set to 1; and xPP is set to the least-privileged supported mode (U if U-mode is implemented, else M). If xPP != M, xRET also sets MPRV=0.
+An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing `xPP` holds the value `y`, `xIE` is set to `xPIE`; the privilege mode is changed to `y`; `xPIE` is set to 1; and `xPP` is set to the least-privileged supported mode (U if U-mode is implemented, else M). If `xPP != M`, `xRET` also sets `MPRV=0`. Additionally, `xRET` sets the `pc` to the value stored in the `xepc` register.
 
+Now, we can implement the `sret` and `mret` as following:
+
+<p class="filename">cpu.rs</p>
+
+```rs
+impl Cpu {
+    // ...
+    pub fn execute(&mut self, inst: u64) -> Result<u64, Exception> {
+        // ...
+        match opcode {
+            0x73 => {
+                match funct3 {
+                    0x0 => {
+                        match (rs2, funct7) {
+                             (0x2, 0x8) => {
+                                // sret
+                                // When the SRET instruction is executed to return from the trap
+                                // handler, the privilege level is set to user mode if the SPP
+                                // bit is 0, or supervisor mode if the SPP bit is 1. The SPP bit
+                                // is SSTATUS[8].
+                                let mut sstatus = self.csr.load(SSTATUS);
+                                self.mode = (sstatus & MASK_SPP) >> 8;
+                                // The SPIE bit is SSTATUS[5] and the SIE bit is the SSTATUS[1]
+                                let spie = (sstatus & MASK_SPIE) >> 5;
+                                // set SIE = SPIE
+                                sstatus = (sstatus & !MASK_SIE) | (spie << 1);
+                                // set SPIE = 1
+                                sstatus |= MASK_SPIE;
+                                // set SPP the least privilege mode (u-mode)
+                                sstatus &= !MASK_SPP;
+                                self.csr.store(SSTATUS, sstatus);
+                                // set the pc to CSRs[sepc].
+                                // whenever IALIGN=32, bit sepc[1] is masked on reads so that it appears to be 0. This
+                                // masking occurs also for the implicit read by the SRET instruction. 
+                                let new_pc = self.csr.load(SEPC) & !0b11;
+                                return Ok(new_pc);
+                            }
+                            (0x2, 0x18) => {
+                                // mret
+                                let mut mstatus = self.csr.load(MSTATUS);
+                                // MPP is two bits wide at MSTATUS[12:11]
+                                self.mode = (mstatus & MASK_MPP) >> 11;
+                                // The MPIE bit is MSTATUS[7] and the MIE bit is the MSTATUS[3].
+                                let mpie = (mstatus & MASK_MPIE) >> 7;
+                                // set MIE = MPIE
+                                mstatus = (mstatus & !MASK_MIE) | (mpie << 3);
+                                // set MPIE = 1
+                                mstatus |= MASK_MPIE;
+                                // set MPP the least privilege mode (u-mode)
+                                mstatus &= !MASK_MPP;
+                                // If MPP != M, sets MPRV=0
+                                mstatus &= !MASK_MPRV;
+                                self.csr.store(MSTATUS, mstatus);
+                                // set the pc to CSRs[mepc].
+                                let new_pc = self.csr.load(MEPC) & !0b11;
+                                return Ok(new_pc);
+                            }
+                            // ...
+                        }
+                    }
+                }
+            }
+        }
+    }
+}
+```
+
+### 3. A & M extension
+
+Since our emulator is single-threaded, we don't need to worry about atomic operations. Thus the instruction set defined in A extension is implemented as non-atomic operations. 
+
+The M extension defines several instructions that can be used to perform multiplication and division. It seems that we just need the following instructions to run xv6 up.
+
+![mul](./images/mul.png)
+
+![divu](./images/divu.png)
+
+![remuw](./images/remuw.png)
+
+<p class="comment">Picture from RISC-V Reader</p>
+
+
+### 4. FENCE / SFENCE.VMA
+
+Since our emulator is single-threaded, we simplify both instructions as nop.
+
+![fence](./images/fence.png)
+
+![sfence.vma](./images/sfence-vma.png)
+
+<p class="comment">Picture from RISC-V Reader</p>
+
+### 5. Conclusion
