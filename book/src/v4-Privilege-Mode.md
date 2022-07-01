@@ -6,7 +6,7 @@ Additionally, we will also support the standard `A` extension and `M` extension.
 
 正如我们在上一章所提到过的，RISC-V 定义了三种特权等级：用户、监督和机器。机器模式是必须实现的，而其他模式则是可选的。我们的目标是运行 xv6 操作系统，也就意味着三种模式都要实现才行。
 
-在本章中，我们将探索 RISC-V 特权模式的迁移过程。具体而言，我们将实现两个指令：sret 以及 mret。这两个指令可在陷入（trap in）对应的特权模式之后从中返回。我们会在下一章中讨论陷阱（trap）。
+在本章中，我们将探索 RISC-V 特权模式的迁移过程。具体而言，我们将实现两个指令：sret 以及 mret。这两个指令可在陷入（trap in）对应的特权模式之后从中返回。我们会在下一章中讨论异常（trap）。
 
 此外，我们还会直接标准拓展 A 和 M。由于我们的模拟器不支持多个 hart 同时运行，因此，A（原意为原子）中的指令退化为普通的非原子操作指令。同样的，fence 和 sfence.vma 也退化为 nop。
 
@@ -71,15 +71,17 @@ To support nested traps, each privilege mode `x` that can respond to interrupts 
 
 We will implement such a trap token procedure in next chapter.
 
-MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。
 
-为了支持嵌套陷阱（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入陷阱之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。
 
 An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing `xPP` holds the value `y`, `xIE` is set to `xPIE`; the privilege mode is changed to `y`; `xPIE` is set to 1; and `xPP` is set to the least-privileged supported mode (U if U-mode is implemented, else M). If `xPP != M`, `xRET` also sets `MPRV=0`. Additionally, `xRET` sets the `pc` to the value stored in the `xepc` register.
 
 Now, we can implement the `sret` and `mret` as following:
 
-MRET 和 SRET 分别用于从 M-mode 和 S-mode 的陷阱中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。
+MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。
+
+为了支持嵌套异常（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入异常之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。
+
+MRET 和 SRET 分别用于从 M-mode 和 S-mode 的异常中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。
 
 现在我们可以实现这两个指令了！
 
