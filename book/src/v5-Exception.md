@@ -18,14 +18,24 @@ The cause registers contain an interrupt bit and a 15-bit exception code. The in
 <p class="comment">mcause or scause register. From RISC-V Privileged<p>
 
 ![exception](./images/exception.png)
-<p class="comment">Exception type and code. From RISC-V Privileged<p>
+<p class="comment">Exception table. From RISC-V Privileged<p>
 
 For trap value register, RISC-V defines following rules:
 + If stval or mtval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the faulting virtual address.  
 + If stval or mtval is written with a nonzero value when a misaligned load or store causes an access-fault or page-fault exception, then stval will contain the virtual address of the portion of the access that caused the fault
 + The stval and mtval register can optionally also be used to return the faulting instruction bits on an illegal instruction exception.
 
-### 2. Exception Implementation
+### 2. Exception Delegation
+
+By default, all traps at any privilege level are handled in machine mode, though a machine-mode handler can redirect traps back to the appropriate level with the MRET instruction. To increase performance, implementations can provide individual read/write bits within `medeleg` and `mideleg` to indicate that certain exceptions and interrupts should be processed directly by a lower privilege level. 
+
+In systems with S-mode, the medeleg and mideleg registers must exist, and setting a bit in `medeleg` or `mideleg` will delegate the corresponding trap, when occurring in S-mode or U-mode, to the S-mode trap handler.
+
+`medeleg` has a bit position allocated for every synchronous exception shown in the Exception Table above, with the index of the bit position equal to the value returned in the `mcause` register.
+
+Refer to Section 3.1.8 of RISC-V Privileged for more details.
+
+### 3. Exception Implementation
 
 Let's take a close look at the `exception.rs`, which have stayed in our src directory for a long time.
 
@@ -111,21 +121,20 @@ impl Exception {
 }
 ```
 
-### 3. Handle exception in CPU
+### 4. Handle exception in CPU
 
 We summarize the whole procedure of handling exception as following:
 
-1. set xPP to current mode.
-2. update hart's privilege mode (M or S according to current mode and exception setting).
-3. save current pc in epc (sepc in S-mode, mepc in M-mode)
-4. set pc to trap vector (stvec in S-mode, mtvec in M-mode)
-5. set cause register with exception code (scause in S-mode, mcause in M-mode)
-6. set trap value properly (stval in S-mode, mtval in M-mode)
-7. set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)
-8. clear up xIE (SIE in S-mode, MIE in M-mode)
+1. update hart's privilege mode (M or S according to current mode and exception setting).
+2. save current pc in epc (sepc in S-mode, mepc in M-mode)
+3. set pc to trap vector (stvec in S-mode, mtvec in M-mode)
+4. set cause register with exception code (scause in S-mode, mcause in M-mode)
+5. set trap value properly (stval in S-mode, mtval in M-mode)
+6. set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)
+7. clear up xIE (SIE in S-mode, MIE in M-mode)
+8. set xPP to previous mode.
 
-The code to implement such a procedure is straightforward.
-
+The translation is straightforward.
 
 <p class="filename">cpu.rs</p>
 
@@ -180,3 +189,43 @@ impl Cpu {
     }
 }
 ```
+
+Finally, we update the loop in `main` function as following:
+
+<p class="filename">main.rs</p>
+
+```rs
+fn main() -> io::Result<()> {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            // Break the loop if an error occurs.
+            Ok(inst) => inst,
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!("{}", e);
+                    break;
+                }
+                continue;
+            }
+        };
+        match cpu.execute(inst) {
+            // Break the loop if an error occurs.
+            Ok(new_pc) => cpu.pc = new_pc,
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!("{}", e);
+                    break;
+                }
+            }
+        };
+    }
+}
+```
+
+
+### 5. Conclusion
+
+In this chapter, we learn the exception type in RISC-V and the full story of exception handling. Now our emulator is able to handle exceptions, though the valuable exception we can handle only happen in the last chapter, which introduce virtual memory system and page table. From the next chapter, we will gradually introduce several devices and complete the interrupt handling.
