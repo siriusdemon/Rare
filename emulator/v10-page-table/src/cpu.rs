@@ -143,7 +143,6 @@ impl Cpu {
         // 5. set trap value properly (stval in S-mode, mtval in M-mode)
         // 6. set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)
         // 7. clear up xIE (SIE in S-mode, MIE in M-mode)
-        use Exception::*;
         let pc = self.pc; 
         let mode = self.mode;
         let cause = e.code();
