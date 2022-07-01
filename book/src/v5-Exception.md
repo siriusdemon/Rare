@@ -1,6 +1,6 @@
 # Exception
 
-In last chapter, we have learned that how RISC-V hart return from traps in certain privilege mode. But we still don't know the condition which causes a hart take traps. In RISC-V, there are two conditions: exception and interrupt can triggle that.
+In fact, we have already learned how to use `Exception`. In the preceding chapter, when `execute` encounters an illegal instruction, it returns an exception to the `main` function. Then the `main` function will print the exception, break the loop and finally exits. In this chapter, we will handle exception properly rather than just terminate the program.
 
 The following text comes from the RISC-V unprivileged ISA:
 
@@ -10,10 +10,12 @@ RISC-V also defines four types of trap. What we need here is the fatal trap. Whe
 
 ### 1. Exception type
 
-We have already learned how to use Exception. In the preceding chapter, when `execute` encounters an illegal instruction, it returns an exception to the `main` function. Then the `main` function will print the exception, break the loop and finally exits. 
+RISC-V has defined 14 exception types. When a trap is taken into M-mode or S-mode , mcause or scause is written with a code indicating the event that caused the trap respectively.
+
+![cause register](./images/mcause-scause.png)
+<p class="comment">mcause or scause register. From RISC-V Privileged<p>
 
 ![exception](./images/exception.png)
-
 <p class="comment">Exception type and code. From RISC-V Privileged<p>
 
 Let's take a close look at the `exception.rs`.
@@ -68,40 +70,6 @@ impl Exception {
             InstructionPageFault(addr) => addr,
             LoadPageFault(addr) => addr,
             StoreAMOPageFault(addr) => addr,
-        }
-    }
-}
-```
-
-
-
-
-
-
-
-We have also implemented the `Display` trap for debug.
-
-<p class="filename">exception.rs</p>
-
-```rs
-use Exception::*;
-impl fmt::Display for Exception {
-    fn fmt(&self, f: &mut fmt::Formatter<'_>) -> fmt::Result {
-        match self {
-            InstructionAddrMisaligned(addr) => write!(f, "Instruction address misaligned {:#x}", addr),
-            InstructionAccessFault(addr) => write!(f, "Instruction access fault {:#x}", addr),
-            IllegalInstruction(inst) => write!(f, "Illegal instruction {:#x}", inst),
-            Breakpoint(pc) => write!(f, "Breakpoint {:#x}", pc),
-            LoadAccessMisaligned(addr) => write!(f, "Load access {:#x}", addr),
-            LoadAccessFault(addr) => write!(f, "Load access fault {:#x}", addr),
-            StoreAMOAddrMisaligned(addr) => write!(f, "Store or AMO address misaliged {:#x}", addr),
-            StoreAMOAccessFault(addr) => write!(f, "Store or AMO access fault {:#x}", addr),
-            EnvironmentCallFromUMode(pc) => write!(f, "Environment call from U-mode {:#x}", pc),
-            EnvironmentCallFromSMode(pc) => write!(f, "Environment call from S-mode {:#x}", pc),
-            EnvironmentCallFromMMode(pc) => write!(f, "Environment call from M-mode {:#x}", pc),
-            InstructionPageFault(addr) => write!(f, "Instruction page fault {:#x}", addr),
-            LoadPageFault(addr) => write!(f, "Load page fault {:#x}", addr),
-            StoreAMOPageFault(addr) => write!(f, "Store or AMO page fault {:#x}", addr),
         }
     }
 }
