@@ -28,6 +28,7 @@ fn main() -> io::Result<()> {
             // Break the loop if an error occurs.
             Ok(inst) => inst,
             Err(e) => {
+                println("{}", e);
                 break;
             }
         };
@@ -36,6 +37,7 @@ fn main() -> io::Result<()> {
             // Break the loop if an error occurs.
             Ok(new_pc) => cpu.pc = new_pc,
             Err(e) => {
+                println("{}", e);
                 break;
             }
         };

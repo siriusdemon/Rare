@@ -219,12 +219,18 @@ fn main() {
     loop {
         let inst = match cpu.fetch() {
             Ok(inst) => inst,
-            Err(e) => { break; }
+            Err(e) => { 
+                println("{}", e);                
+                break; 
+            }
         };
 
         match cpu.execute(inst) {
             Ok(new_pc) => cpu.pc = new_pc,
-            Err(e) => { break; }
+            Err(e) => { 
+                println("{}", e);                
+                break; 
+            }
         };
     }
 }

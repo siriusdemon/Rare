@@ -42,6 +42,7 @@ fn main() -> io::Result<()> {
             Err(e) => {
                 cpu.handle_exception(e);
                 if e.is_fatal() {
+                    println!("{}", e);
                     break;
                 }
                 continue;
@@ -54,6 +55,7 @@ fn main() -> io::Result<()> {
             Err(e) => {
                 cpu.handle_exception(e);
                 if e.is_fatal() {
+                    println!("{}", e);
                     break;
                 }
             }
