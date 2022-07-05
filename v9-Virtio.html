@@ -3,7 +3,7 @@
     <head>
         <!-- Book generated using mdBook -->
         <meta charset="UTF-8">
-        <title>Rust A RISC-V Emulator - Rare: Rust A Riscv Emulator</title>
+        <title>Virtio - Rare: Rust A Riscv Emulator</title>
 
 
         <!-- Custom HTML head -->
@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html" class="active">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html" class="active"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -143,88 +143,17 @@
 
                 <div id="content" class="content">
                     <main>
-                        <h1 id="rare-rust-a-riscv-emulator"><a class="header" href="#rare-rust-a-riscv-emulator">Rare: Rust A Riscv Emulator</a></h1>
-<p>RISC-V 模拟器教程</p>
-<p>This tutorial is based on <a href="https://book.rvemu.app">Asami's excellent tutorial</a>. Although the author haven't finished it, she have already separated the code into 10 stages, which makes this tutorial become possible.</p>
-<p>When you complete this tutorial, the emulator is able to run xv6, a UNIX-like operation system running on RISC-V.</p>
-<p>I am planning to follow her code build the emulator step by step. When finished, I will write a complete tutorial to help reader to get the details. My tutorial will use the same tool <code>mdbook</code> as the original author, to build.</p>
-<ul>
-<li>Project: <a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
-<li>Tutorial: <a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
-</ul>
-<p>本教程基于<a href="https://github.com/d0iasm">Asami</a> 所写的模拟器<a href="https://book.rvemu.app/">教程</a>。虽然作者只写到第三章，但她已经事先将所有的代码划分成了十个章节。所以看着代码也能够一步一步地构建出这个模拟器。</p>
-<p>最终的模拟器可以运行 <a href="https://pdos.csail.mit.edu/6.828/2012/xv6.html">xv6</a> 操作系统。</p>
-<p>我的计划是：跟着她的代码和教程一步一步地做出这个模拟器，然后写一个系列完整的中文教程加以说明。该教程与原作一样，使用<a href="https://github.com/rust-lang/mdBook">mdbook</a>构建。</p>
-<ul>
-<li>项目地址：<a href="https://github.com/siriusdemon/Rare">Github Rare</a></li>
-<li>在线教程：<a href="https://siriusdemon.github.io/Rare/">Github.io Rare</a></li>
-</ul>
-<h3 id="prerequisite"><a class="header" href="#prerequisite">Prerequisite</a></h3>
-<p>前置</p>
-<p>This tutorial assumes readers already have been familiar with <code>Rust</code> and <code>RISC-V</code>. If not, you might want to read the following materials to learn about <code>RISC-V</code>.</p>
-<p>本教程假设读者已经对 Rust 和 Riscv 有一定的了解，因此教程中不会对 Rust &amp; Riscv 作过多的解释，而是专注于模拟器本身。推荐通过阅读以下资料来了解 Riscv。</p>
-<ul>
-<li><a href="https://riscv.org/technical/specifications/">RISC-V Specifications</a></li>
-<li><a href="https://zh.webbooksnow.art/dl/16429281/d4417e">RISC-V Reader</a></li>
-<li><a href="https://zh.webbooksnow.art/book/18067855/bd7a8a">手把手教你设计RISC-V处理器</a></li>
-</ul>
-<p>For <code>Rust</code>, you can read <code>the book</code> after you have installed the toolchain. Open your terminal and type <code>rustup docs</code>, your browser will open a new page for you to navigate to <code>the book</code> and other docs.</p>
-<p>至于 Rust，安装好环境之后，可以通过运行 <code>rustup docs</code> 来访问<code>the book</code>以及 Rust 文档。</p>
-<h3 id="develop-envrionment"><a class="header" href="#develop-envrionment">Develop envrionment</a></h3>
-<p>开发环境</p>
-<ul>
-<li>Linux / WSL</li>
-</ul>
-<p>We nned the <code>clang</code> toolchain to generate some files used in testing. You can download the precompiled version from <a href="(https://releases.llvm.org/)">here</a>. The version I used is <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>.</p>
-<p>我们需要用到 clang 的工具来生成测试的二进制文件，可以从<a href="https://releases.llvm.org/">LLVM</a>官网下载预编译版本。我使用的版本是 <a href="https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0">clang-12</a>，更新的版本应该也可以。</p>
-<h3 id="how-to-use"><a class="header" href="#how-to-use">How to use</a></h3>
-<ul>
-<li>clone this project</li>
-<li>use <code>cd Rare/book &amp;&amp; mdbook serve</code> to open this tutorial locally</li>
-<li>use <code>git pull</code> to update when needed</li>
-</ul>
-<p>推荐的使用方法</p>
-<ul>
-<li>clone 该项目到本地</li>
-<li>cd Rare/book &amp;&amp; mdbook serve 打开本地教程</li>
-<li>需要的时候，使用 git pull 更新</li>
-</ul>
-<h3 id="catelogue"><a class="header" href="#catelogue">Catelogue</a></h3>
-<p>目录</p>
-<ol>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v1-CPU-Adder.html">Adder 加法器</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v2-Memory-and-Bus.html">Memory and Bus 内存和总线</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v3-CSR.html">Control Status Register 控制状态寄存器</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v4-Privilege-Mode.html">Privilege Mode 特权模式</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v5-Exceptions.html">Exception 异常</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v6-Plic-Clint.html">PLIC &amp; CLINT</a></li>
-<li><input disabled="" type="checkbox" checked=""/>
-<a href="./v7-Uart.html">UART</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v8-Interrupts.html">Interrupt 中断</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v9-Virtio.html">Virtio</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v10-Page-Table.html">Page Table 页表</a></li>
-</ol>
-<p>The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. </p>
-<p>原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
-<h3 id="note"><a class="header" href="#note">Note</a></h3>
-<p>When you travel through this tutorial, sometimes, you may notice some code in current chapter is different from last one's. This is because I will do some refactor when needed. Welcome to open an issue on github if you have any questions.</p>
-<p>实践的过程中，读者可能会发现本章的部分代码与上一章的不一样。这是因为我在编写的过程中会适当地进行重构。如有任何疑惑，欢迎在项目上提 issue。</p>
+                        <h1 id="virtio"><a class="header" href="#virtio">Virtio</a></h1>
 
                     </main>
 
                     <nav class="nav-wrapper" aria-label="Page navigation">
                         <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="v8-Interrupt.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
 
-                            <a rel="next" href="v1-CPU-Adder.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                            <a rel="next" href="v10-Page-Table.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                                 <i class="fa fa-angle-right"></i>
                             </a>
 
@@ -234,8 +163,11 @@
             </div>
 
             <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="v8-Interrupt.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
 
-                    <a rel="next" href="v1-CPU-Adder.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                    <a rel="next" href="v10-Page-Table.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
                         <i class="fa fa-angle-right"></i>
                     </a>
             </nav>

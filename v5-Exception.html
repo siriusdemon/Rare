@@ -1,0 +1,439 @@
+<!DOCTYPE HTML>
+<html lang="zh" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>Exception - Rare: Rust A Riscv Emulator</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html" class="active"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Rare: Rust A Riscv Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="exception"><a class="header" href="#exception">Exception</a></h1>
+<p>In fact, we have already learned how to use <code>Exception</code>. In the preceding chapter, when <code>execute</code> encounters an illegal instruction, it returns an exception to the <code>main</code> function. Then the <code>main</code> function will print the exception, break the loop and finally exits. In this chapter, we will handle exception properly rather than just terminate the program.</p>
+<p>The following text comes from the RISC-V unprivileged ISA:</p>
+<p>In RISC-V hart, we use the term exception to refer to an unusual condition occurring at run time associated with an instruction in the current RISC-V hart. We use the term interrupt to refer to an external asynchronous event that may cause a RISC-V hart to experience an unexpected transfer of control.  We use the term trap to refer to the transfer of control to a trap handler caused by either an exception or an interrupt.</p>
+<p>RISC-V also defines four types of trap. What we need here is the fatal trap. When we encounter a fatal trap, we will terminate the emulator.</p>
+<p>事实上，我们已经用过异常了。在前面的章节中，当 execute 函数遇到一个非法指令时，它会返回一个异常给 main 函数。main 函数则会打印该异常。随后中止循环并退出。以下引用了 RISC-V 非特权架构文档的内容：</p>
+<p>在一个 RISC-V hart 中，我们采用术语“异常”来表示当前这个 hart 在运行某一条指令时所遇到的异常状况。我们使用术语“中断”来表示一个能够引起 RISC-V hart 进行控制权转移的外部事件。使用“陷阱”（trap）表示由异常或者中断引起的控制权转移。在《手把手教你设计 RISC-V》一书中，作者用异常表示 trap，并用狭义异常表示 exception，用狭义中断表示 interrupt。</p>
+<p>RISC-V 还定义了四种属性的 trap，我们只关注 fatal trap。当发生一个 fatal（严重的）的异常时，我们就退出模拟器程序。</p>
+<h3 id="1-exception-type"><a class="header" href="#1-exception-type">1. Exception type</a></h3>
+<p>RISC-V has defined 14 exception types. When a trap is taken into M-mode, <code>mcause</code> is written with a code indicating the event that causes the trap, while <code>mtval</code> may be written with exception-specific information to assist software in handling the trap. Trap taken in S-mode is similar.</p>
+<p>The cause registers contain an interrupt bit and a 15-bit exception code. The interrupt bit is set when the trap is caused by an interrupt. We will talk more about interrupt in next three chapters.</p>
+<p>RISC-V 定义了 14 种异常类型。当陷入 M 模式的时候，造成该 trap 的异常编码会被写进 mcause，同时根据异常的类型，mtval 可能会写入一些辅助的信息以帮助软件 处理该异常。陷入 S 模型时也是相似的。 </p>
+<p><img src="./images/mcause-scause.png" alt="cause register" /></p>
+<p class="comment">mcause or scause register. From RISC-V Privileged<p>
+<p><img src="./images/exception.png" alt="exception" /></p>
+<p class="comment">Exception table. From RISC-V Privileged<p>
+<p>For trap value register, RISC-V defines following rules:</p>
+<ul>
+<li>If stval or mtval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the faulting virtual address.</li>
+<li>If stval or mtval is written with a nonzero value when a misaligned load or store causes an access-fault or page-fault exception, then stval will contain the virtual address of the portion of the access that caused the fault</li>
+<li>The stval and mtval register can optionally also be used to return the faulting instruction bits on an illegal instruction exception.</li>
+</ul>
+<p>对于 mtval 寄存器，RISC-V 规定：</p>
+<ul>
+<li>当进行取指和访存时，若发生断点、地址不对齐、访问错误或者页错误等异常，则将发生异常的那个虚拟地址写入 mtval。</li>
+<li>当一个没对齐的访存造成访问错误或者页错误的时候，则将发生异常的那个虚拟地址写入 mtval。</li>
+<li>在遇到非法指令时，mtval 还可以用于保存该非法指令的值。</li>
+</ul>
+<p>对于 stval 也是一样的。</p>
+<h3 id="2-exception-delegation"><a class="header" href="#2-exception-delegation">2. Exception Delegation</a></h3>
+<p>By default, all traps at any privilege level are handled in machine mode, though a machine-mode handler can redirect traps back to the appropriate level with the MRET instruction. To increase performance, implementations can provide individual read/write bits within <code>medeleg</code> and <code>mideleg</code> to indicate that certain exceptions and interrupts should be processed directly by a lower privilege level. </p>
+<p>In systems with S-mode, the medeleg and mideleg registers must exist, and setting a bit in <code>medeleg</code> or <code>mideleg</code> will delegate the corresponding trap, when occurring in S-mode or U-mode, to the S-mode trap handler.</p>
+<p><code>medeleg</code> has a bit position allocated for every synchronous exception shown in the Exception Table above, with the index of the bit position equal to the value returned in the <code>mcause</code> register.</p>
+<p>Refer to Section 3.1.8 of RISC-V Privileged for more details.</p>
+<p>默认情况下，所有的 trap 都是在机器模式下处理的。虽然机器模式的处理程序可以通过 mret 指令将 trap 重定向至其他合适的特权等级。但是，这样的性能不如直接通过在<code>medeleg</code>和<code>mideleg</code>寄存器中设置特定的位，将异常和中断直接在低等级的模式（通常是 S 模式）中处理。</p>
+<p>对于一个实现了 S 模式的系统，<code>medeleg</code>和<code>mideleg</code>寄存器必须存在。在其中设置特定的位，将会使得在 S 模式或者 U 模型中发生的相应的 trap 交由 S 模式进行处理。</p>
+<p><code>medeleg</code> 是一个 64 位的寄存器，每一个位对应于上面异常类型表格中的一种异常。欲知详情，可以查看 RISC-V 特权架构文档。</p>
+<h3 id="3-exception-implementation"><a class="header" href="#3-exception-implementation">3. Exception Implementation</a></h3>
+<p>Let's take a close look at the <code>exception.rs</code>, which have stayed in our src directory for a long time.</p>
+<p>现在我们可以看下 <code>exception.rs</code>，这份代码已经存在许久了。</p>
+<p class="filename">exception.rs</p>
+<pre><code class="language-rs">#[derive(Debug, Copy, Clone)]
+pub enum Exception {
+    InstructionAddrMisaligned(u64),
+    InstructionAccessFault(u64),
+    IllegalInstruction(u64),
+    Breakpoint(u64),
+    LoadAccessMisaligned(u64),
+    LoadAccessFault(u64),
+    StoreAMOAddrMisaligned(u64),
+    StoreAMOAccessFault(u64),
+    EnvironmentCallFromUMode(u64),
+    EnvironmentCallFromSMode(u64),
+    EnvironmentCallFromMMode(u64),
+    InstructionPageFault(u64),
+    LoadPageFault(u64),
+    StoreAMOPageFault(u64),
+}
+</code></pre>
+<p>The <code>trap value</code> captured by each exception will be stored in the <code>stval</code> or <code>mtval</code>, which may have different meaning depends on the type of exception as we have mentioned above.</p>
+<p>每个异常都会带一个异常值，这个值将会被写进 stval 或者 mtval。</p>
+<p>We implement the <code>value</code> function to return the trap value and the <code>code</code> function to return the exception code. We have also provided a function <code>is_fatal</code>, which determines whether the exception is fatal.</p>
+<p>我们实现了三个函数：value，code，is_fatal，分别用于返回异常值，异常代码以及该异常是否为严重异常。</p>
+<p class="filename">exception.rs</p>
+<pre><code class="language-rs">impl Exception {
+    pub fn value(self) -&gt; u64 {
+        match self {
+            InstructionAddrMisaligned(addr) =&gt; addr,
+            InstructionAccessFault(addr) =&gt; addr,
+            IllegalInstruction(inst) =&gt; inst,
+            Breakpoint(pc) =&gt; pc,
+            LoadAccessMisaligned(addr) =&gt; addr,
+            LoadAccessFault(addr) =&gt; addr,
+            StoreAMOAddrMisaligned(addr) =&gt; addr,
+            StoreAMOAccessFault(addr) =&gt; addr,
+            EnvironmentCallFromUMode(pc) =&gt; pc,
+            EnvironmentCallFromSMode(pc) =&gt; pc,
+            EnvironmentCallFromMMode(pc) =&gt; pc,
+            InstructionPageFault(addr) =&gt; addr,
+            LoadPageFault(addr) =&gt; addr,
+            StoreAMOPageFault(addr) =&gt; addr,
+        }
+    }
+
+    pub fn code(self) -&gt; u64 {
+        match self {
+            InstructionAddrMisaligned(_) =&gt; 0,
+            InstructionAccessFault(_) =&gt; 1,
+            IllegalInstruction(_) =&gt; 2,
+            Breakpoint(_) =&gt; 3,
+            LoadAccessMisaligned(_) =&gt; 4,
+            LoadAccessFault(_) =&gt; 5,
+            StoreAMOAddrMisaligned(_) =&gt; 6,
+            StoreAMOAccessFault(_) =&gt; 7,
+            EnvironmentCallFromUMode(_) =&gt; 8,
+            EnvironmentCallFromSMode(_) =&gt; 9,
+            EnvironmentCallFromMMode(_) =&gt; 11,
+            InstructionPageFault(_) =&gt; 12,
+            LoadPageFault(_) =&gt; 13,
+            StoreAMOPageFault(_) =&gt; 15,
+        }
+    }
+
+    pub fn is_fatal(self) -&gt; bool {
+        match self {
+            InstructionAddrMisaligned(_)
+            | InstructionAccessFault(_)
+            | LoadAccessFault(_)
+            | StoreAMOAddrMisaligned(_)
+            | StoreAMOAccessFault(_) 
+            | IllegalInstruction(_) =&gt; true,
+            _else =&gt; false,
+        }
+    }
+}
+</code></pre>
+<h3 id="4-handle-exception-in-cpu"><a class="header" href="#4-handle-exception-in-cpu">4. Handle exception in CPU</a></h3>
+<p>We summarize the whole procedure of handling exception as following:</p>
+<ol>
+<li>update hart's privilege mode (M or S according to current mode and exception setting).</li>
+<li>save current pc in epc (sepc in S-mode, mepc in M-mode)</li>
+<li>set pc to trap vector (stvec in S-mode, mtvec in M-mode)</li>
+<li>set cause register with exception code (scause in S-mode, mcause in M-mode)</li>
+<li>set trap value properly (stval in S-mode, mtval in M-mode)</li>
+<li>set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)</li>
+<li>clear up xIE (SIE in S-mode, MIE in M-mode)</li>
+<li>set xPP to previous mode.</li>
+</ol>
+<p>The translation is straightforward.</p>
+<p>我们将处理异常的流程总结如下</p>
+<ol>
+<li>更新 hart 的特权模式</li>
+<li>将 pc 保存到 sepc 或者 mepc</li>
+<li>设置 pc 的值为 stvec 或者 mtvec</li>
+<li>scause 或者 mcause 保存异常代码</li>
+<li>设置 stval 或者 mtval</li>
+<li>令 xIE = xPIE</li>
+<li>清零 xIE</li>
+<li>xPP 保存进入异常前的特权模式</li>
+</ol>
+<p>翻译成代码如下：</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn handle_exception(&amp;mut self, e: Exception) {
+        let pc = self.pc; 
+        let mode = self.mode;
+        let cause = e.code();
+        // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
+        // then this exception should be handled in S-mode.
+        let trap_in_s_mode = mode &lt;= Supervisor &amp;&amp; self.csr.is_medelegated(cause);
+        let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
+            = if trap_in_s_mode {
+                self.mode = Supervisor;
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
+            } else {
+                self.mode = Machine;
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
+            };
+        // 3.1.7 &amp; 4.1.2
+        // The BASE field in tvec is a WARL field that can hold any valid virtual or physical address,
+        // subject to the following alignment constraints: the address must be 4-byte aligned
+        self.pc = self.csr.load(TVEC) &amp; !0b11;
+        // 3.1.14 &amp; 4.1.7
+        // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
+        // of the instruction that was interrupted or that encountered the exception.
+        self.csr.store(EPC, pc);
+        // 3.1.15 &amp; 4.1.8
+        // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
+        // the event that caused the trap.
+        self.csr.store(CAUSE, cause);
+        // 3.1.16 &amp; 4.1.9
+        // If stval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or
+        // page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the
+        // faulting virtual address.
+        // If stval is written with a nonzero value when a misaligned load or store causes an access-fault or
+        // page-fault exception, then stval will contain the virtual address of the portion of the access that
+        // caused the fault
+        self.csr.store(TVAL, e.value());
+        // 3.1.6 covers both sstatus and mstatus.
+        let mut status = self.csr.load(STATUS);
+        // get SIE or MIE
+        let ie = (status &amp; MASK_IE) &gt;&gt; ie_i;
+        // set SPIE = SIE / MPIE = MIE
+        status = (status &amp; !MASK_PIE) | (ie &lt;&lt; pie_i);
+        // set SIE = 0 / MIE = 0
+        status &amp;= !MASK_IE; 
+        // set SPP / MPP = previous mode
+        status = (status &amp; !MASK_PP) | (mode &lt;&lt; pp_i);
+        self.csr.store(STATUS, status);
+    }
+}
+</code></pre>
+<p>Finally, we update the loop in <code>main</code> function as following:</p>
+<p>最后，我们需要更新主函数中的循环。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">fn main() -&gt; io::Result&lt;()&gt; {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            // Break the loop if an error occurs.
+            Ok(inst) =&gt; inst,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+                continue;
+            }
+        };
+        match cpu.execute(inst) {
+            // Break the loop if an error occurs.
+            Ok(new_pc) =&gt; cpu.pc = new_pc,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+            }
+        };
+    }
+}
+</code></pre>
+<h3 id="5-conclusion"><a class="header" href="#5-conclusion">5. Conclusion</a></h3>
+<p>In this chapter, we learn the exception type in RISC-V and the full story of exception handling. Now our emulator is able to handle exceptions, though the valuable exception we can handle only happen in the last chapter, which introduce virtual memory system and page table. From the next chapter, we will gradually introduce several devices and complete the interrupt handling.</p>
+<p>在一章中，我们学习了RISC-V 的异常类型以及处理异常的全过程。现在我们的模拟器已经可以处理异常了。从下一章开始，我们会逐步介绍几个外设，并完善中断的处理。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="v4-Privilege-Mode.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="v6-Plic-Clint.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="v4-Privilege-Mode.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="v6-Plic-Clint.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

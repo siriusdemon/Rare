@@ -1,0 +1,324 @@
+<!DOCTYPE HTML>
+<html lang="zh" class="sidebar-visible no-js rust">
+    <head>
+        <!-- Book generated using mdBook -->
+        <meta charset="UTF-8">
+        <title>PLIC &amp; CLINT - Rare: Rust A Riscv Emulator</title>
+
+
+        <!-- Custom HTML head -->
+        
+        <meta content="text/html; charset=utf-8" http-equiv="Content-Type">
+        <meta name="description" content="">
+        <meta name="viewport" content="width=device-width, initial-scale=1">
+        <meta name="theme-color" content="#ffffff" />
+
+        <link rel="icon" href="favicon.svg">
+        <link rel="shortcut icon" href="favicon.png">
+        <link rel="stylesheet" href="css/variables.css">
+        <link rel="stylesheet" href="css/general.css">
+        <link rel="stylesheet" href="css/chrome.css">
+        <link rel="stylesheet" href="css/print.css" media="print">
+
+        <!-- Fonts -->
+        <link rel="stylesheet" href="FontAwesome/css/font-awesome.css">
+        <link rel="stylesheet" href="fonts/fonts.css">
+
+        <!-- Highlight.js Stylesheets -->
+        <link rel="stylesheet" href="highlight.css">
+        <link rel="stylesheet" href="tomorrow-night.css">
+        <link rel="stylesheet" href="ayu-highlight.css">
+
+        <!-- Custom theme stylesheets -->
+        <link rel="stylesheet" href="theme/custom.css">
+
+    </head>
+    <body>
+        <!-- Provide site root to javascript -->
+        <script type="text/javascript">
+            var path_to_root = "";
+            var default_theme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "navy" : "rust";
+        </script>
+
+        <!-- Work around some values being stored in localStorage wrapped in quotes -->
+        <script type="text/javascript">
+            try {
+                var theme = localStorage.getItem('mdbook-theme');
+                var sidebar = localStorage.getItem('mdbook-sidebar');
+
+                if (theme.startsWith('"') && theme.endsWith('"')) {
+                    localStorage.setItem('mdbook-theme', theme.slice(1, theme.length - 1));
+                }
+
+                if (sidebar.startsWith('"') && sidebar.endsWith('"')) {
+                    localStorage.setItem('mdbook-sidebar', sidebar.slice(1, sidebar.length - 1));
+                }
+            } catch (e) { }
+        </script>
+
+        <!-- Set the theme before any content is loaded, prevents flash -->
+        <script type="text/javascript">
+            var theme;
+            try { theme = localStorage.getItem('mdbook-theme'); } catch(e) { }
+            if (theme === null || theme === undefined) { theme = default_theme; }
+            var html = document.querySelector('html');
+            html.classList.remove('no-js')
+            html.classList.remove('rust')
+            html.classList.add(theme);
+            html.classList.add('js');
+        </script>
+
+        <!-- Hide / unhide sidebar before it is displayed -->
+        <script type="text/javascript">
+            var html = document.querySelector('html');
+            var sidebar = 'hidden';
+            if (document.body.clientWidth >= 1080) {
+                try { sidebar = localStorage.getItem('mdbook-sidebar'); } catch(e) { }
+                sidebar = sidebar || 'visible';
+            }
+            html.classList.remove('sidebar-visible');
+            html.classList.add("sidebar-" + sidebar);
+        </script>
+
+        <nav id="sidebar" class="sidebar" aria-label="Table of contents">
+            <div class="sidebar-scrollbox">
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html" class="active"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
+            </div>
+            <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
+        </nav>
+
+        <div id="page-wrapper" class="page-wrapper">
+
+            <div class="page">
+                                <div id="menu-bar-hover-placeholder"></div>
+                <div id="menu-bar" class="menu-bar sticky bordered">
+                    <div class="left-buttons">
+                        <button id="sidebar-toggle" class="icon-button" type="button" title="Toggle Table of Contents" aria-label="Toggle Table of Contents" aria-controls="sidebar">
+                            <i class="fa fa-bars"></i>
+                        </button>
+                        <button id="theme-toggle" class="icon-button" type="button" title="Change theme" aria-label="Change theme" aria-haspopup="true" aria-expanded="false" aria-controls="theme-list">
+                            <i class="fa fa-paint-brush"></i>
+                        </button>
+                        <ul id="theme-list" class="theme-popup" aria-label="Themes" role="menu">
+                            <li role="none"><button role="menuitem" class="theme" id="light">Light</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="rust">Rust (default)</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="coal">Coal</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="navy">Navy</button></li>
+                            <li role="none"><button role="menuitem" class="theme" id="ayu">Ayu</button></li>
+                        </ul>
+                        <button id="search-toggle" class="icon-button" type="button" title="Search. (Shortkey: s)" aria-label="Toggle Searchbar" aria-expanded="false" aria-keyshortcuts="S" aria-controls="searchbar">
+                            <i class="fa fa-search"></i>
+                        </button>
+                    </div>
+
+                    <h1 class="menu-title">Rare: Rust A Riscv Emulator</h1>
+
+                    <div class="right-buttons">
+                        <a href="print.html" title="Print this book" aria-label="Print this book">
+                            <i id="print-button" class="fa fa-print"></i>
+                        </a>
+
+                    </div>
+                </div>
+
+                <div id="search-wrapper" class="hidden">
+                    <form id="searchbar-outer" class="searchbar-outer">
+                        <input type="search" id="searchbar" name="searchbar" placeholder="Search this book ..." aria-controls="searchresults-outer" aria-describedby="searchresults-header">
+                    </form>
+                    <div id="searchresults-outer" class="searchresults-outer hidden">
+                        <div id="searchresults-header" class="searchresults-header"></div>
+                        <ul id="searchresults">
+                        </ul>
+                    </div>
+                </div>
+
+                <!-- Apply ARIA attributes after the sidebar and the sidebar toggle button are added to the DOM -->
+                <script type="text/javascript">
+                    document.getElementById('sidebar-toggle').setAttribute('aria-expanded', sidebar === 'visible');
+                    document.getElementById('sidebar').setAttribute('aria-hidden', sidebar !== 'visible');
+                    Array.from(document.querySelectorAll('#sidebar a')).forEach(function(link) {
+                        link.setAttribute('tabIndex', sidebar === 'visible' ? 0 : -1);
+                    });
+                </script>
+
+                <div id="content" class="content">
+                    <main>
+                        <h1 id="plic--clint"><a class="header" href="#plic--clint">PLIC &amp; CLINT</a></h1>
+<p>From this chapter, we will start to support several IO devices. Firstly, let's take a look at the PLIC and CLINT.</p>
+<p>RISC-V PLIC Specification is available at this Github <a href="https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc">repo</a>. This is recommanded to read it first. I have quoted many content from this Spec in this chapter.</p>
+<p>从本节开始，我们将支持几个 IO 设备。首先是 PLIC 和 CLINT。</p>
+<p>RISC-V 的 PLIC 标准可在个 Github <a href="https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc">仓库</a>查看。推荐先读下这个文档，我在下文引用了许多文档中的内容。</p>
+<h3 id="1-plic"><a class="header" href="#1-plic">1. PLIC</a></h3>
+<h4 id="11-interrupt-source"><a class="header" href="#11-interrupt-source">1.1 Interrupt Source</a></h4>
+<p>At most one interrupt request per interrupt source can be pending in the PLIC core at any time, indicated by setting the source’s IP bit. The gateway only forwards a new interrupt request to the PLIC core after receiving notiﬁcation that the interrupt handler servicing the previous interrupt request from the same source has completed.</p>
+<p>中断源指的是外部的设备信号，对于每个中断源，PLIC 会顺序处理它的信号。中断源通过在中断等待寄存器（IP）中对应的位置 1 来发起中断请求。</p>
+<h4 id="12-interrupt-notifications"><a class="header" href="#12-interrupt-notifications">1.2 Interrupt Notifications</a></h4>
+<p>If the target is a RISC-V hart context, the interrupt notiﬁcations arrive on the meip/heip/seip/ueip bits depending on the privilege level of the hart context.</p>
+<p>The PLIC hardware only supports multicasting of interrupts, such that all enabled targets will receive interrupt notiﬁcations for a given active interrupt.</p>
+<p>PLIC 通过在 xstatus 寄存器中设置对应的位（meip/heip/seip/ueip）来通知 RISC-V hart 有外部中断需要处理。PLIC 会对中断进行广播，因此，所有能够响应该中断的 hart 都能收到通知。然后，最后只有一个 hart 能够成功进行响应。</p>
+<h4 id="13-interrupt-identiﬁers-ids"><a class="header" href="#13-interrupt-identiﬁers-ids">1.3 Interrupt Identiﬁers (IDs)</a></h4>
+<p>Global interrupt sources are assigned small unsigned integer identiﬁers, beginning at the value 1. An interrupt ID of 0 is reserved to mean “no interrupt”.</p>
+<p>Interrupt identiﬁers are also used to break ties when two or more interrupt sources have the same assigned priority. Smaller values of interrupt ID take precedence over larger values of interrupt ID.</p>
+<p>RISC-V 共定义了 1024 个中断 ID，其中 0 表示没有任何中断。中断 ID 可以用于中断仲裁。当所有的中断优先级相同时，PLIC 会优先广播 ID 最小的中断。</p>
+<h4 id="14-interrupt-flow"><a class="header" href="#14-interrupt-flow">1.4 Interrupt Flow</a></h4>
+<p>Below figure shows the messages ﬂowing between agents when handling interrupts via the PLIC.</p>
+<ul>
+<li>Global interrupts are sent from their source to an interrupt gateway that processes the interrupt signal from each source</li>
+<li>Interrupt gateway then sends a single interrupt request to the PLIC core, which latches these in the core interrupt pending bits (IP).</li>
+<li>The PLIC core forwards an interrupt notiﬁcation to one or more targets if the targets have any pending interrupts enabled, and the priority of the pending interrupts exceeds a per-target threshold.</li>
+<li>When the target takes the external interrupt, it sends an interrupt claim request to retrieve the identiﬁer of the highest priority global interrupt source pending for that target from the PLIC core.</li>
+<li>PLIC core then clears the corresponding interrupt source pending bit.</li>
+<li>After the target has serviced the interrupt, it sends the associated interrupt gateway an interrupt completion message</li>
+<li>The interrupt gateway can now forward another interrupt request for the same source to the PLIC.</li>
+</ul>
+<p>中断处理流程</p>
+<ul>
+<li>中断源向中断网关发起中断请求信号</li>
+<li>对于每一个中断源，中断网关只会发送一个信号给 PLIC，PLIC 于是在 IP 中将该中断源 ID 置 1。</li>
+<li>若该中断的优先级高于 hart 的阈值，则该 hart 会收到来自 PLIC 的广播。</li>
+<li>当 hart 响应这个中断时。它会发一个响应通知给 PLIC。（通过读取 claim/complete 寄存器获取中断源 ID 的同时通知 PLIC）</li>
+<li>PLIC 现在会将该中断源清零。然而 meip/heip/seip/ueip 不一定会清零。中断程序可以在退出前进行检查以便继续处理其他中断。</li>
+<li>当该中断完成后，hart 通知网关。</li>
+<li>网关现在可以再发一个该中断源的中断信号了。</li>
+</ul>
+<p><img src="./images/PLICInterruptFlow.jpg" alt="PLICInterruptFlow" /></p>
+<h4 id="15-operation-parameters"><a class="header" href="#15-operation-parameters">1.5 Operation Parameters</a></h4>
+<p>General PLIC operation parameter register blocks are defined in this spec, those are:</p>
+<ul>
+<li>Interrupt Priorities registers: The interrupt priority for each interrupt source.</li>
+<li>Interrupt Pending Bits registers: The interrupt pending status of each interrupt source.</li>
+<li>Interrupt Enables registers: The enablement of interrupt source of each context.</li>
+<li>Priority Thresholds registers: The interrupt priority threshold of each context.</li>
+<li>Interrupt Claim registers: The register to acquire interrupt source ID of each context.</li>
+<li>Interrupt Completion registers: The register to send interrupt completion message to the associated gateway.</li>
+</ul>
+<p>标准中定义了以下的通用 PLIC 操作参数寄存器类型：</p>
+<ul>
+<li>中断优化级寄存器：用于设置每个中断源的优先级</li>
+<li>中断等待寄存器：用于表示是否发生了该中断，每个寄存器上有 32 位，可以表示 32 个中断源的状态。</li>
+<li>中断使能寄存器：每个 hart 持有一组寄存器，用于表示它是否开启了该中断</li>
+<li>优先级阈值寄存器：每个 hart 持有一个寄存器，当接受大于该阈值的中断请求</li>
+<li>中断声明寄存器：每个 hart 持有一个，通过读该寄存器来获取中断源 ID，同时向 PLIC 发起声明。</li>
+<li>中断完成寄存器：每个 hart 持有一个，通过写该寄存器来通知网关该中断源已经被处理。</li>
+</ul>
+<h4 id="16-memory-map"><a class="header" href="#16-memory-map">1.6 Memory Map</a></h4>
+<p>The base address of PLIC Memory Map is platform implementation-specific.</p>
+<pre><code>base + 0x000000: Reserved (interrupt source 0 does not exist)
+base + 0x000004: Interrupt source 1 priority
+base + 0x000008: Interrupt source 2 priority
+...
+base + 0x000FFC: Interrupt source 1023 priority
+base + 0x001000: Interrupt Pending bit 0-31
+base + 0x00107C: Interrupt Pending bit 992-1023
+...
+base + 0x002000: Enable bits for sources 0-31 on context 0
+base + 0x002004: Enable bits for sources 32-63 on context 0
+...
+base + 0x00207C: Enable bits for sources 992-1023 on context 0
+base + 0x002080: Enable bits for sources 0-31 on context 1
+base + 0x002084: Enable bits for sources 32-63 on context 1
+...
+base + 0x0020FC: Enable bits for sources 992-1023 on context 1
+base + 0x002100: Enable bits for sources 0-31 on context 2
+base + 0x002104: Enable bits for sources 32-63 on context 2
+...
+base + 0x00217C: Enable bits for sources 992-1023 on context 2
+...
+base + 0x1F1F80: Enable bits for sources 0-31 on context 15871
+base + 0x1F1F84: Enable bits for sources 32-63 on context 15871
+base + 0x1F1FFC: Enable bits for sources 992-1023 on context 15871
+...
+base + 0x1FFFFC: Reserved
+base + 0x200000: Priority threshold for context 0
+base + 0x200004: Claim/complete for context 0
+base + 0x200008: Reserved
+...
+base + 0x200FFC: Reserved
+base + 0x201000: Priority threshold for context 1
+base + 0x201004: Claim/complete for context 1
+...
+base + 0x3FFF000: Priority threshold for context 15871
+base + 0x3FFF004: Claim/complete for context 15871
+base + 0x3FFF008: Reserved
+...
+base + 0x3FFFFFC: Reserved
+</code></pre>
+<p>Read the Spec from details for each operation parameter.</p>
+<h3 id="2-clint"><a class="header" href="#2-clint">2. CLINT</a></h3>
+<p>CLINT is used to generate timer interrupt and software interrupt. Refer to <em>Section 3.2.1 Machine Timer Registers (mtime and mtimecmp)</em> of RISC-V privileged for more information.</p>
+<p>CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 特权架构文档的 3.2.1 节。</p>
+<h3 id="3-implementation"><a class="header" href="#3-implementation">3. Implementation</a></h3>
+<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.</p>
+<p>Read the code in <code>plic.rs</code> and <code>clint.rs</code>. The parameters are defined in <code>param.rs</code>. Try to search the source code of chapter 10 to find out how these modules are used in the final version. </p>
+<p>虽然这两个设备都是非常重要的，但在我们的模拟器中，它们几乎啥也没做。我们只会在第 8 章用到一点 PLIC。不管怎样，我们提供了一些背景信息以及一个简单的实现。</p>
+<p>你可以查看相关的代码，可以在第 10 章的代码中搜索一下这两个模块，看看这两个模块是怎么使用的。</p>
+<h3 id="4-conclusion"><a class="header" href="#4-conclusion">4. Conclusion</a></h3>
+<p>I will feel discouraged if I were you. We have learned some theory about PLIC and CLINT but these two devices just do nothing meaningful in our emulator! Just a joke. In fact, I believe <em>less is more</em>. Sometimes we just want to throw something to get the main idea. I promise to provide a valuable reference for you at the end of this tutorial.</p>
+<p>如果我是你，我会感到失望。因为我们学习了关于 PLIC 和 CLINT 的理论知识，但是我们的模拟器却基本不用它们！开玩笑的！事实上，我相信“少即是多”的理念。有时候确实不应该管那么多，掌握核心思想是最重要的。在这个教程的结尾，我承诺提供一个更有参考价值的实现。</p>
+
+                    </main>
+
+                    <nav class="nav-wrapper" aria-label="Page navigation">
+                        <!-- Mobile navigation buttons -->
+                            <a rel="prev" href="v5-Exception.html" class="mobile-nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                                <i class="fa fa-angle-left"></i>
+                            </a>
+
+                            <a rel="next" href="v7-Uart.html" class="mobile-nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                                <i class="fa fa-angle-right"></i>
+                            </a>
+
+                        <div style="clear: both"></div>
+                    </nav>
+                </div>
+            </div>
+
+            <nav class="nav-wide-wrapper" aria-label="Page navigation">
+                    <a rel="prev" href="v5-Exception.html" class="nav-chapters previous" title="Previous chapter" aria-label="Previous chapter" aria-keyshortcuts="Left">
+                        <i class="fa fa-angle-left"></i>
+                    </a>
+
+                    <a rel="next" href="v7-Uart.html" class="nav-chapters next" title="Next chapter" aria-label="Next chapter" aria-keyshortcuts="Right">
+                        <i class="fa fa-angle-right"></i>
+                    </a>
+            </nav>
+
+        </div>
+
+        <!-- Livereload script (if served using the cli tool) -->
+        <script type="text/javascript">
+            const wsProtocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
+            const wsAddress = wsProtocol + "//" + location.host + "/" + "__livereload";
+            const socket = new WebSocket(wsAddress);
+            socket.onmessage = function (event) {
+                if (event.data === "reload") {
+                    socket.close();
+                    location.reload();
+                }
+            };
+
+            window.onbeforeunload = function() {
+                socket.close();
+            }
+        </script>
+
+
+
+        <script type="text/javascript">
+            window.playground_copyable = true;
+        </script>
+
+
+        <script src="elasticlunr.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="mark.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="searcher.js" type="text/javascript" charset="utf-8"></script>
+
+        <script src="clipboard.min.js" type="text/javascript" charset="utf-8"></script>
+        <script src="highlight.js" type="text/javascript" charset="utf-8"></script>
+        <script src="book.js" type="text/javascript" charset="utf-8"></script>
+
+        <!-- Custom JS scripts -->
+
+
+    </body>
+</html>

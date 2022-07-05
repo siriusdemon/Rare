@@ -83,7 +83,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -199,20 +199,20 @@
 <a href="./v2-Memory-and-Bus.html">Memory and Bus 内存和总线</a></li>
 <li><input disabled="" type="checkbox" checked=""/>
 <a href="./v3-CSR.html">Control Status Register 控制状态寄存器</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v4-Privilege-Mode.html">Privilege Mode 特权模式</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v5-Exceptions.html">Exception 异常</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v6-Plic-Clint.html">PLIC &amp; CLINT</a></li>
+<li><input disabled="" type="checkbox" checked=""/>
+<a href="./v7-Uart.html">UART</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v4-privilege-mode.html">Privilege Mode 特权模式</a></li>
+<a href="./v8-Interrupts.html">Interrupt 中断</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v5-exceptions.html">Exception 异常</a></li>
+<a href="./v9-Virtio.html">Virtio</a></li>
 <li><input disabled="" type="checkbox"/>
-<a href="./v6-plic-clint.html">PLIC &amp; CLINT</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v7-uart.html">UART</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v8-interrupts.html">Interrupt 中断</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v9-virtio.html">Virtio</a></li>
-<li><input disabled="" type="checkbox"/>
-<a href="./v10-page-table.html">Page Table 页表</a></li>
+<a href="./v10-Page-Table.html">Page Table 页表</a></li>
 </ol>
 <p>The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. </p>
 <p>原作者划分了硬件和 ISA 指令集两部分内容，我觉得合并成一个更适合，所以进行了合并。</p>
@@ -602,12 +602,18 @@ pub const DRAM_END: u64 = DRAM_SIZE + DRAM_BASE - 1;
     loop {
         let inst = match cpu.fetch() {
             Ok(inst) =&gt; inst,
-            Err(e) =&gt; { break; }
+            Err(e) =&gt; { 
+                println(&quot;{}&quot;, e);                
+                break; 
+            }
         };
 
         match cpu.execute(inst) {
             Ok(new_pc) =&gt; cpu.pc = new_pc,
-            Err(e) =&gt; { break; }
+            Err(e) =&gt; { 
+                println(&quot;{}&quot;, e);                
+                break; 
+            }
         };
     }
 }
@@ -991,7 +997,7 @@ impl Cpu {
 <p>As we have mentioned in last chapter, RISC-V defines three privilege levels: User, Supervisor and Machine. Machine mode is mandatory while other two are optional. The <code>xv6</code> operation system requires all the three privilege mode. In this chapter, we will dive into the details of how RISC-V change its privilege mode from one to another. Specifically, we will support two instructions: <code>sret</code> and <code>mret</code>. These two instructions are used to return from certain privilege mode after trap. We will talk about trap when we move to next chapter <code>Exception</code>. </p>
 <p>Additionally, we will also support the standard <code>A</code> extension and <code>M</code> extension. However, since our simple emulator doesn't support multi-hart, the <code>A</code> extension is degenerated as non-atomical instruction. For the same reason, <code>fence</code> and <code>sfence.vma</code> is implemented as <code>nop</code>.</p>
 <p>正如我们在上一章所提到过的，RISC-V 定义了三种特权等级：用户、监督和机器。机器模式是必须实现的，而其他模式则是可选的。我们的目标是运行 xv6 操作系统，也就意味着三种模式都要实现才行。</p>
-<p>在本章中，我们将探索 RISC-V 特权模式的迁移过程。具体而言，我们将实现两个指令：sret 以及 mret。这两个指令可在陷入（trap in）对应的特权模式之后从中返回。我们会在下一章中讨论陷阱（trap）。</p>
+<p>在本章中，我们将探索 RISC-V 特权模式的迁移过程。具体而言，我们将实现两个指令：sret 以及 mret。这两个指令可在陷入（trap in）对应的特权模式之后从中返回。我们会在下一章中讨论异常（trap）。</p>
 <p>此外，我们还会直接标准拓展 A 和 M。由于我们的模拟器不支持多个 hart 同时运行，因此，A（原意为原子）中的指令退化为普通的非原子操作指令。同样的，fence 和 sfence.vma 也退化为 nop。</p>
 <h3 id="1-cpu-with-privilege-mode"><a class="header" href="#1-cpu-with-privilege-mode">1. CPU with privilege mode</a></h3>
 <p>Let's start with appending a field <code>mode</code> in <code>Cpu</code> structure. When a hart is running up, its privilege mode is <code>Machine</code>.</p>
@@ -1037,11 +1043,11 @@ impl Cpu {
 <p>Global interrupt-enable bits, MIE and SIE, are provided for M-mode and S-mode respectively. When a hart is executing in privilege mode <code>x</code>, interrupts are globally enabled when <code>xIE=1</code> and globally disabled when <code>xIE=0</code>.</p>
 <p>To support nested traps, each privilege mode <code>x</code> that can respond to interrupts has a two-level stack of interrupt-enable bits and privilege modes. <code>xPIE</code> holds the value of the interrupt-enable bit active prior to the trap, and <code>xPP</code> holds the previous privilege mode. The <code>xPP</code> fields can only hold privilege modes up to <code>x</code>, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode <code>y</code> into privilege mode <code>x</code>, <code>xPIE</code> is set to the value of <code>xIE</code>; <code>xIE</code> is set to 0; and <code>xPP</code> is set to <code>y</code>.</p>
 <p>We will implement such a trap token procedure in next chapter.</p>
-<p>MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。</p>
-<p>为了支持嵌套陷阱（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入陷阱之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。</p>
 <p>An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing <code>xPP</code> holds the value <code>y</code>, <code>xIE</code> is set to <code>xPIE</code>; the privilege mode is changed to <code>y</code>; <code>xPIE</code> is set to 1; and <code>xPP</code> is set to the least-privileged supported mode (U if U-mode is implemented, else M). If <code>xPP != M</code>, <code>xRET</code> also sets <code>MPRV=0</code>. Additionally, <code>xRET</code> sets the <code>pc</code> to the value stored in the <code>xepc</code> register.</p>
 <p>Now, we can implement the <code>sret</code> and <code>mret</code> as following:</p>
-<p>MRET 和 SRET 分别用于从 M-mode 和 S-mode 的陷阱中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。</p>
+<p>MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。</p>
+<p>为了支持嵌套异常（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入异常之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。</p>
+<p>MRET 和 SRET 分别用于从 M-mode 和 S-mode 的异常中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。</p>
 <p>现在我们可以实现这两个指令了！</p>
 <p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
@@ -1120,9 +1126,524 @@ impl Cpu {
 <p><img src="./images/fence.png" alt="fence" /></p>
 <p><img src="./images/sfence-vma.png" alt="sfence.vma" /></p>
 <p class="comment">Picture from RISC-V Reader</p>
-<h3 id="5-conclusion-1"><a class="header" href="#5-conclusion-1">5. Conclusion</a></h3>
+<h3 id="5-case-study-xv6"><a class="header" href="#5-case-study-xv6">5. Case Study: xv6</a></h3>
+<p>To make our emulator more concrete, let's take a look at the source code <code>start.c</code> of xv6. In the following piece of code. The <code>MPP</code> field of <code>mstatus</code> is set to <code>S</code>. So when a <code>mret</code> is executed, the privilege mode is changed to S-mode.</p>
+<p>我们来看下 xv6 是如何进入 S 模式的。在一开始，xv6 就将 mstatus 的 MPP 域设置为 S。这样一来，当 mret 执行时，就会进入 S 模式。</p>
+<pre><code class="language-c">void start()
+{
+  // set M Previous Privilege mode to Supervisor, for mret.
+  unsigned long x = r_mstatus();
+  x &amp;= ~MSTATUS_MPP_MASK;
+  x |= MSTATUS_MPP_S;
+  w_mstatus(x);
+  // ...
+}
+</code></pre>
+<h3 id="6-conclusion-1"><a class="header" href="#6-conclusion-1">6. Conclusion</a></h3>
 <p>We have introduced RISC-V privilege level in this chapter and implement the SRET and MRET instructions according to the RISC-V Privileged. We also support the standard A &amp; M extension. Since our emulator is single-threaded, we simplify many instructions in such a context.  However, the story in this chapter is incomplete since we haven't mentioned how CPU trap in certain privilege mode. This is the topic of next chapter.</p>
 <p>这一章中，我们引入了 RISC-V 的特权模式并实现了 SRET 和 MRET 两个指令。我们还添加了对标准拓展 A 和 M 的支持。由于我们的模拟器是单线程的，我们简化了许多指令。然而，本章的故事其实是不完整的，因为我们不知道 CPU 是如何陷入到特定特权模式的，我们将在下一章中探讨这个话题。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="exception"><a class="header" href="#exception">Exception</a></h1>
+<p>In fact, we have already learned how to use <code>Exception</code>. In the preceding chapter, when <code>execute</code> encounters an illegal instruction, it returns an exception to the <code>main</code> function. Then the <code>main</code> function will print the exception, break the loop and finally exits. In this chapter, we will handle exception properly rather than just terminate the program.</p>
+<p>The following text comes from the RISC-V unprivileged ISA:</p>
+<p>In RISC-V hart, we use the term exception to refer to an unusual condition occurring at run time associated with an instruction in the current RISC-V hart. We use the term interrupt to refer to an external asynchronous event that may cause a RISC-V hart to experience an unexpected transfer of control.  We use the term trap to refer to the transfer of control to a trap handler caused by either an exception or an interrupt.</p>
+<p>RISC-V also defines four types of trap. What we need here is the fatal trap. When we encounter a fatal trap, we will terminate the emulator.</p>
+<p>事实上，我们已经用过异常了。在前面的章节中，当 execute 函数遇到一个非法指令时，它会返回一个异常给 main 函数。main 函数则会打印该异常。随后中止循环并退出。以下引用了 RISC-V 非特权架构文档的内容：</p>
+<p>在一个 RISC-V hart 中，我们采用术语“异常”来表示当前这个 hart 在运行某一条指令时所遇到的异常状况。我们使用术语“中断”来表示一个能够引起 RISC-V hart 进行控制权转移的外部事件。使用“陷阱”（trap）表示由异常或者中断引起的控制权转移。在《手把手教你设计 RISC-V》一书中，作者用异常表示 trap，并用狭义异常表示 exception，用狭义中断表示 interrupt。</p>
+<p>RISC-V 还定义了四种属性的 trap，我们只关注 fatal trap。当发生一个 fatal（严重的）的异常时，我们就退出模拟器程序。</p>
+<h3 id="1-exception-type"><a class="header" href="#1-exception-type">1. Exception type</a></h3>
+<p>RISC-V has defined 14 exception types. When a trap is taken into M-mode, <code>mcause</code> is written with a code indicating the event that causes the trap, while <code>mtval</code> may be written with exception-specific information to assist software in handling the trap. Trap taken in S-mode is similar.</p>
+<p>The cause registers contain an interrupt bit and a 15-bit exception code. The interrupt bit is set when the trap is caused by an interrupt. We will talk more about interrupt in next three chapters.</p>
+<p>RISC-V 定义了 14 种异常类型。当陷入 M 模式的时候，造成该 trap 的异常编码会被写进 mcause，同时根据异常的类型，mtval 可能会写入一些辅助的信息以帮助软件 处理该异常。陷入 S 模型时也是相似的。 </p>
+<p><img src="./images/mcause-scause.png" alt="cause register" /></p>
+<p class="comment">mcause or scause register. From RISC-V Privileged<p>
+<p><img src="./images/exception.png" alt="exception" /></p>
+<p class="comment">Exception table. From RISC-V Privileged<p>
+<p>For trap value register, RISC-V defines following rules:</p>
+<ul>
+<li>If stval or mtval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the faulting virtual address.</li>
+<li>If stval or mtval is written with a nonzero value when a misaligned load or store causes an access-fault or page-fault exception, then stval will contain the virtual address of the portion of the access that caused the fault</li>
+<li>The stval and mtval register can optionally also be used to return the faulting instruction bits on an illegal instruction exception.</li>
+</ul>
+<p>对于 mtval 寄存器，RISC-V 规定：</p>
+<ul>
+<li>当进行取指和访存时，若发生断点、地址不对齐、访问错误或者页错误等异常，则将发生异常的那个虚拟地址写入 mtval。</li>
+<li>当一个没对齐的访存造成访问错误或者页错误的时候，则将发生异常的那个虚拟地址写入 mtval。</li>
+<li>在遇到非法指令时，mtval 还可以用于保存该非法指令的值。</li>
+</ul>
+<p>对于 stval 也是一样的。</p>
+<h3 id="2-exception-delegation"><a class="header" href="#2-exception-delegation">2. Exception Delegation</a></h3>
+<p>By default, all traps at any privilege level are handled in machine mode, though a machine-mode handler can redirect traps back to the appropriate level with the MRET instruction. To increase performance, implementations can provide individual read/write bits within <code>medeleg</code> and <code>mideleg</code> to indicate that certain exceptions and interrupts should be processed directly by a lower privilege level. </p>
+<p>In systems with S-mode, the medeleg and mideleg registers must exist, and setting a bit in <code>medeleg</code> or <code>mideleg</code> will delegate the corresponding trap, when occurring in S-mode or U-mode, to the S-mode trap handler.</p>
+<p><code>medeleg</code> has a bit position allocated for every synchronous exception shown in the Exception Table above, with the index of the bit position equal to the value returned in the <code>mcause</code> register.</p>
+<p>Refer to Section 3.1.8 of RISC-V Privileged for more details.</p>
+<p>默认情况下，所有的 trap 都是在机器模式下处理的。虽然机器模式的处理程序可以通过 mret 指令将 trap 重定向至其他合适的特权等级。但是，这样的性能不如直接通过在<code>medeleg</code>和<code>mideleg</code>寄存器中设置特定的位，将异常和中断直接在低等级的模式（通常是 S 模式）中处理。</p>
+<p>对于一个实现了 S 模式的系统，<code>medeleg</code>和<code>mideleg</code>寄存器必须存在。在其中设置特定的位，将会使得在 S 模式或者 U 模型中发生的相应的 trap 交由 S 模式进行处理。</p>
+<p><code>medeleg</code> 是一个 64 位的寄存器，每一个位对应于上面异常类型表格中的一种异常。欲知详情，可以查看 RISC-V 特权架构文档。</p>
+<h3 id="3-exception-implementation"><a class="header" href="#3-exception-implementation">3. Exception Implementation</a></h3>
+<p>Let's take a close look at the <code>exception.rs</code>, which have stayed in our src directory for a long time.</p>
+<p>现在我们可以看下 <code>exception.rs</code>，这份代码已经存在许久了。</p>
+<p class="filename">exception.rs</p>
+<pre><code class="language-rs">#[derive(Debug, Copy, Clone)]
+pub enum Exception {
+    InstructionAddrMisaligned(u64),
+    InstructionAccessFault(u64),
+    IllegalInstruction(u64),
+    Breakpoint(u64),
+    LoadAccessMisaligned(u64),
+    LoadAccessFault(u64),
+    StoreAMOAddrMisaligned(u64),
+    StoreAMOAccessFault(u64),
+    EnvironmentCallFromUMode(u64),
+    EnvironmentCallFromSMode(u64),
+    EnvironmentCallFromMMode(u64),
+    InstructionPageFault(u64),
+    LoadPageFault(u64),
+    StoreAMOPageFault(u64),
+}
+</code></pre>
+<p>The <code>trap value</code> captured by each exception will be stored in the <code>stval</code> or <code>mtval</code>, which may have different meaning depends on the type of exception as we have mentioned above.</p>
+<p>每个异常都会带一个异常值，这个值将会被写进 stval 或者 mtval。</p>
+<p>We implement the <code>value</code> function to return the trap value and the <code>code</code> function to return the exception code. We have also provided a function <code>is_fatal</code>, which determines whether the exception is fatal.</p>
+<p>我们实现了三个函数：value，code，is_fatal，分别用于返回异常值，异常代码以及该异常是否为严重异常。</p>
+<p class="filename">exception.rs</p>
+<pre><code class="language-rs">impl Exception {
+    pub fn value(self) -&gt; u64 {
+        match self {
+            InstructionAddrMisaligned(addr) =&gt; addr,
+            InstructionAccessFault(addr) =&gt; addr,
+            IllegalInstruction(inst) =&gt; inst,
+            Breakpoint(pc) =&gt; pc,
+            LoadAccessMisaligned(addr) =&gt; addr,
+            LoadAccessFault(addr) =&gt; addr,
+            StoreAMOAddrMisaligned(addr) =&gt; addr,
+            StoreAMOAccessFault(addr) =&gt; addr,
+            EnvironmentCallFromUMode(pc) =&gt; pc,
+            EnvironmentCallFromSMode(pc) =&gt; pc,
+            EnvironmentCallFromMMode(pc) =&gt; pc,
+            InstructionPageFault(addr) =&gt; addr,
+            LoadPageFault(addr) =&gt; addr,
+            StoreAMOPageFault(addr) =&gt; addr,
+        }
+    }
+
+    pub fn code(self) -&gt; u64 {
+        match self {
+            InstructionAddrMisaligned(_) =&gt; 0,
+            InstructionAccessFault(_) =&gt; 1,
+            IllegalInstruction(_) =&gt; 2,
+            Breakpoint(_) =&gt; 3,
+            LoadAccessMisaligned(_) =&gt; 4,
+            LoadAccessFault(_) =&gt; 5,
+            StoreAMOAddrMisaligned(_) =&gt; 6,
+            StoreAMOAccessFault(_) =&gt; 7,
+            EnvironmentCallFromUMode(_) =&gt; 8,
+            EnvironmentCallFromSMode(_) =&gt; 9,
+            EnvironmentCallFromMMode(_) =&gt; 11,
+            InstructionPageFault(_) =&gt; 12,
+            LoadPageFault(_) =&gt; 13,
+            StoreAMOPageFault(_) =&gt; 15,
+        }
+    }
+
+    pub fn is_fatal(self) -&gt; bool {
+        match self {
+            InstructionAddrMisaligned(_)
+            | InstructionAccessFault(_)
+            | LoadAccessFault(_)
+            | StoreAMOAddrMisaligned(_)
+            | StoreAMOAccessFault(_) 
+            | IllegalInstruction(_) =&gt; true,
+            _else =&gt; false,
+        }
+    }
+}
+</code></pre>
+<h3 id="4-handle-exception-in-cpu"><a class="header" href="#4-handle-exception-in-cpu">4. Handle exception in CPU</a></h3>
+<p>We summarize the whole procedure of handling exception as following:</p>
+<ol>
+<li>update hart's privilege mode (M or S according to current mode and exception setting).</li>
+<li>save current pc in epc (sepc in S-mode, mepc in M-mode)</li>
+<li>set pc to trap vector (stvec in S-mode, mtvec in M-mode)</li>
+<li>set cause register with exception code (scause in S-mode, mcause in M-mode)</li>
+<li>set trap value properly (stval in S-mode, mtval in M-mode)</li>
+<li>set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)</li>
+<li>clear up xIE (SIE in S-mode, MIE in M-mode)</li>
+<li>set xPP to previous mode.</li>
+</ol>
+<p>The translation is straightforward.</p>
+<p>我们将处理异常的流程总结如下</p>
+<ol>
+<li>更新 hart 的特权模式</li>
+<li>将 pc 保存到 sepc 或者 mepc</li>
+<li>设置 pc 的值为 stvec 或者 mtvec</li>
+<li>scause 或者 mcause 保存异常代码</li>
+<li>设置 stval 或者 mtval</li>
+<li>令 xIE = xPIE</li>
+<li>清零 xIE</li>
+<li>xPP 保存进入异常前的特权模式</li>
+</ol>
+<p>翻译成代码如下：</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn handle_exception(&amp;mut self, e: Exception) {
+        let pc = self.pc; 
+        let mode = self.mode;
+        let cause = e.code();
+        // if an exception happen in U-mode or S-mode, and the exception is delegated to S-mode.
+        // then this exception should be handled in S-mode.
+        let trap_in_s_mode = mode &lt;= Supervisor &amp;&amp; self.csr.is_medelegated(cause);
+        let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
+            = if trap_in_s_mode {
+                self.mode = Supervisor;
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
+            } else {
+                self.mode = Machine;
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
+            };
+        // 3.1.7 &amp; 4.1.2
+        // The BASE field in tvec is a WARL field that can hold any valid virtual or physical address,
+        // subject to the following alignment constraints: the address must be 4-byte aligned
+        self.pc = self.csr.load(TVEC) &amp; !0b11;
+        // 3.1.14 &amp; 4.1.7
+        // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
+        // of the instruction that was interrupted or that encountered the exception.
+        self.csr.store(EPC, pc);
+        // 3.1.15 &amp; 4.1.8
+        // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
+        // the event that caused the trap.
+        self.csr.store(CAUSE, cause);
+        // 3.1.16 &amp; 4.1.9
+        // If stval is written with a nonzero value when a breakpoint, address-misaligned, access-fault, or
+        // page-fault exception occurs on an instruction fetch, load, or store, then stval will contain the
+        // faulting virtual address.
+        // If stval is written with a nonzero value when a misaligned load or store causes an access-fault or
+        // page-fault exception, then stval will contain the virtual address of the portion of the access that
+        // caused the fault
+        self.csr.store(TVAL, e.value());
+        // 3.1.6 covers both sstatus and mstatus.
+        let mut status = self.csr.load(STATUS);
+        // get SIE or MIE
+        let ie = (status &amp; MASK_IE) &gt;&gt; ie_i;
+        // set SPIE = SIE / MPIE = MIE
+        status = (status &amp; !MASK_PIE) | (ie &lt;&lt; pie_i);
+        // set SIE = 0 / MIE = 0
+        status &amp;= !MASK_IE; 
+        // set SPP / MPP = previous mode
+        status = (status &amp; !MASK_PP) | (mode &lt;&lt; pp_i);
+        self.csr.store(STATUS, status);
+    }
+}
+</code></pre>
+<p>Finally, we update the loop in <code>main</code> function as following:</p>
+<p>最后，我们需要更新主函数中的循环。</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">fn main() -&gt; io::Result&lt;()&gt; {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            // Break the loop if an error occurs.
+            Ok(inst) =&gt; inst,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+                continue;
+            }
+        };
+        match cpu.execute(inst) {
+            // Break the loop if an error occurs.
+            Ok(new_pc) =&gt; cpu.pc = new_pc,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+            }
+        };
+    }
+}
+</code></pre>
+<h3 id="5-conclusion-1"><a class="header" href="#5-conclusion-1">5. Conclusion</a></h3>
+<p>In this chapter, we learn the exception type in RISC-V and the full story of exception handling. Now our emulator is able to handle exceptions, though the valuable exception we can handle only happen in the last chapter, which introduce virtual memory system and page table. From the next chapter, we will gradually introduce several devices and complete the interrupt handling.</p>
+<p>在一章中，我们学习了RISC-V 的异常类型以及处理异常的全过程。现在我们的模拟器已经可以处理异常了。从下一章开始，我们会逐步介绍几个外设，并完善中断的处理。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="plic--clint"><a class="header" href="#plic--clint">PLIC &amp; CLINT</a></h1>
+<p>From this chapter, we will start to support several IO devices. Firstly, let's take a look at the PLIC and CLINT.</p>
+<p>RISC-V PLIC Specification is available at this Github <a href="https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc">repo</a>. This is recommanded to read it first. I have quoted many content from this Spec in this chapter.</p>
+<p>从本节开始，我们将支持几个 IO 设备。首先是 PLIC 和 CLINT。</p>
+<p>RISC-V 的 PLIC 标准可在个 Github <a href="https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc">仓库</a>查看。推荐先读下这个文档，我在下文引用了许多文档中的内容。</p>
+<h3 id="1-plic"><a class="header" href="#1-plic">1. PLIC</a></h3>
+<h4 id="11-interrupt-source"><a class="header" href="#11-interrupt-source">1.1 Interrupt Source</a></h4>
+<p>At most one interrupt request per interrupt source can be pending in the PLIC core at any time, indicated by setting the source’s IP bit. The gateway only forwards a new interrupt request to the PLIC core after receiving notiﬁcation that the interrupt handler servicing the previous interrupt request from the same source has completed.</p>
+<p>中断源指的是外部的设备信号，对于每个中断源，PLIC 会顺序处理它的信号。中断源通过在中断等待寄存器（IP）中对应的位置 1 来发起中断请求。</p>
+<h4 id="12-interrupt-notifications"><a class="header" href="#12-interrupt-notifications">1.2 Interrupt Notifications</a></h4>
+<p>If the target is a RISC-V hart context, the interrupt notiﬁcations arrive on the meip/heip/seip/ueip bits depending on the privilege level of the hart context.</p>
+<p>The PLIC hardware only supports multicasting of interrupts, such that all enabled targets will receive interrupt notiﬁcations for a given active interrupt.</p>
+<p>PLIC 通过在 xstatus 寄存器中设置对应的位（meip/heip/seip/ueip）来通知 RISC-V hart 有外部中断需要处理。PLIC 会对中断进行广播，因此，所有能够响应该中断的 hart 都能收到通知。然后，最后只有一个 hart 能够成功进行响应。</p>
+<h4 id="13-interrupt-identiﬁers-ids"><a class="header" href="#13-interrupt-identiﬁers-ids">1.3 Interrupt Identiﬁers (IDs)</a></h4>
+<p>Global interrupt sources are assigned small unsigned integer identiﬁers, beginning at the value 1. An interrupt ID of 0 is reserved to mean “no interrupt”.</p>
+<p>Interrupt identiﬁers are also used to break ties when two or more interrupt sources have the same assigned priority. Smaller values of interrupt ID take precedence over larger values of interrupt ID.</p>
+<p>RISC-V 共定义了 1024 个中断 ID，其中 0 表示没有任何中断。中断 ID 可以用于中断仲裁。当所有的中断优先级相同时，PLIC 会优先广播 ID 最小的中断。</p>
+<h4 id="14-interrupt-flow"><a class="header" href="#14-interrupt-flow">1.4 Interrupt Flow</a></h4>
+<p>Below figure shows the messages ﬂowing between agents when handling interrupts via the PLIC.</p>
+<ul>
+<li>Global interrupts are sent from their source to an interrupt gateway that processes the interrupt signal from each source</li>
+<li>Interrupt gateway then sends a single interrupt request to the PLIC core, which latches these in the core interrupt pending bits (IP).</li>
+<li>The PLIC core forwards an interrupt notiﬁcation to one or more targets if the targets have any pending interrupts enabled, and the priority of the pending interrupts exceeds a per-target threshold.</li>
+<li>When the target takes the external interrupt, it sends an interrupt claim request to retrieve the identiﬁer of the highest priority global interrupt source pending for that target from the PLIC core.</li>
+<li>PLIC core then clears the corresponding interrupt source pending bit.</li>
+<li>After the target has serviced the interrupt, it sends the associated interrupt gateway an interrupt completion message</li>
+<li>The interrupt gateway can now forward another interrupt request for the same source to the PLIC.</li>
+</ul>
+<p>中断处理流程</p>
+<ul>
+<li>中断源向中断网关发起中断请求信号</li>
+<li>对于每一个中断源，中断网关只会发送一个信号给 PLIC，PLIC 于是在 IP 中将该中断源 ID 置 1。</li>
+<li>若该中断的优先级高于 hart 的阈值，则该 hart 会收到来自 PLIC 的广播。</li>
+<li>当 hart 响应这个中断时。它会发一个响应通知给 PLIC。（通过读取 claim/complete 寄存器获取中断源 ID 的同时通知 PLIC）</li>
+<li>PLIC 现在会将该中断源清零。然而 meip/heip/seip/ueip 不一定会清零。中断程序可以在退出前进行检查以便继续处理其他中断。</li>
+<li>当该中断完成后，hart 通知网关。</li>
+<li>网关现在可以再发一个该中断源的中断信号了。</li>
+</ul>
+<p><img src="./images/PLICInterruptFlow.jpg" alt="PLICInterruptFlow" /></p>
+<h4 id="15-operation-parameters"><a class="header" href="#15-operation-parameters">1.5 Operation Parameters</a></h4>
+<p>General PLIC operation parameter register blocks are defined in this spec, those are:</p>
+<ul>
+<li>Interrupt Priorities registers: The interrupt priority for each interrupt source.</li>
+<li>Interrupt Pending Bits registers: The interrupt pending status of each interrupt source.</li>
+<li>Interrupt Enables registers: The enablement of interrupt source of each context.</li>
+<li>Priority Thresholds registers: The interrupt priority threshold of each context.</li>
+<li>Interrupt Claim registers: The register to acquire interrupt source ID of each context.</li>
+<li>Interrupt Completion registers: The register to send interrupt completion message to the associated gateway.</li>
+</ul>
+<p>标准中定义了以下的通用 PLIC 操作参数寄存器类型：</p>
+<ul>
+<li>中断优化级寄存器：用于设置每个中断源的优先级</li>
+<li>中断等待寄存器：用于表示是否发生了该中断，每个寄存器上有 32 位，可以表示 32 个中断源的状态。</li>
+<li>中断使能寄存器：每个 hart 持有一组寄存器，用于表示它是否开启了该中断</li>
+<li>优先级阈值寄存器：每个 hart 持有一个寄存器，当接受大于该阈值的中断请求</li>
+<li>中断声明寄存器：每个 hart 持有一个，通过读该寄存器来获取中断源 ID，同时向 PLIC 发起声明。</li>
+<li>中断完成寄存器：每个 hart 持有一个，通过写该寄存器来通知网关该中断源已经被处理。</li>
+</ul>
+<h4 id="16-memory-map"><a class="header" href="#16-memory-map">1.6 Memory Map</a></h4>
+<p>The base address of PLIC Memory Map is platform implementation-specific.</p>
+<pre><code>base + 0x000000: Reserved (interrupt source 0 does not exist)
+base + 0x000004: Interrupt source 1 priority
+base + 0x000008: Interrupt source 2 priority
+...
+base + 0x000FFC: Interrupt source 1023 priority
+base + 0x001000: Interrupt Pending bit 0-31
+base + 0x00107C: Interrupt Pending bit 992-1023
+...
+base + 0x002000: Enable bits for sources 0-31 on context 0
+base + 0x002004: Enable bits for sources 32-63 on context 0
+...
+base + 0x00207C: Enable bits for sources 992-1023 on context 0
+base + 0x002080: Enable bits for sources 0-31 on context 1
+base + 0x002084: Enable bits for sources 32-63 on context 1
+...
+base + 0x0020FC: Enable bits for sources 992-1023 on context 1
+base + 0x002100: Enable bits for sources 0-31 on context 2
+base + 0x002104: Enable bits for sources 32-63 on context 2
+...
+base + 0x00217C: Enable bits for sources 992-1023 on context 2
+...
+base + 0x1F1F80: Enable bits for sources 0-31 on context 15871
+base + 0x1F1F84: Enable bits for sources 32-63 on context 15871
+base + 0x1F1FFC: Enable bits for sources 992-1023 on context 15871
+...
+base + 0x1FFFFC: Reserved
+base + 0x200000: Priority threshold for context 0
+base + 0x200004: Claim/complete for context 0
+base + 0x200008: Reserved
+...
+base + 0x200FFC: Reserved
+base + 0x201000: Priority threshold for context 1
+base + 0x201004: Claim/complete for context 1
+...
+base + 0x3FFF000: Priority threshold for context 15871
+base + 0x3FFF004: Claim/complete for context 15871
+base + 0x3FFF008: Reserved
+...
+base + 0x3FFFFFC: Reserved
+</code></pre>
+<p>Read the Spec from details for each operation parameter.</p>
+<h3 id="2-clint"><a class="header" href="#2-clint">2. CLINT</a></h3>
+<p>CLINT is used to generate timer interrupt and software interrupt. Refer to <em>Section 3.2.1 Machine Timer Registers (mtime and mtimecmp)</em> of RISC-V privileged for more information.</p>
+<p>CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 特权架构文档的 3.2.1 节。</p>
+<h3 id="3-implementation"><a class="header" href="#3-implementation">3. Implementation</a></h3>
+<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.</p>
+<p>Read the code in <code>plic.rs</code> and <code>clint.rs</code>. The parameters are defined in <code>param.rs</code>. Try to search the source code of chapter 10 to find out how these modules are used in the final version. </p>
+<p>虽然这两个设备都是非常重要的，但在我们的模拟器中，它们几乎啥也没做。我们只会在第 8 章用到一点 PLIC。不管怎样，我们提供了一些背景信息以及一个简单的实现。</p>
+<p>你可以查看相关的代码，可以在第 10 章的代码中搜索一下这两个模块，看看这两个模块是怎么使用的。</p>
+<h3 id="4-conclusion"><a class="header" href="#4-conclusion">4. Conclusion</a></h3>
+<p>I will feel discouraged if I were you. We have learned some theory about PLIC and CLINT but these two devices just do nothing meaningful in our emulator! Just a joke. In fact, I believe <em>less is more</em>. Sometimes we just want to throw something to get the main idea. I promise to provide a valuable reference for you at the end of this tutorial.</p>
+<p>如果我是你，我会感到失望。因为我们学习了关于 PLIC 和 CLINT 的理论知识，但是我们的模拟器却基本不用它们！开玩笑的！事实上，我相信“少即是多”的理念。有时候确实不应该管那么多，掌握核心思想是最重要的。在这个教程的结尾，我承诺提供一个更有参考价值的实现。</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="uart"><a class="header" href="#uart">UART</a></h1>
+<p>UART (Universal Asynchronous Receiver-Transmitter) is a computer hardware device for asynchronous serial communication in which the data format and transmission speeds are configurable. It sends data bits one by one. (quote from WikiPedia.) </p>
+<p>UART in our emulator is used to receive data from standard input and transmit data to standard output. The Spec is available at <a href="http://byterunner.com/16550.html">here</a>. It is recommanded to read it first.</p>
+<p>The registers we need are RHR, THR and LSR.</p>
+<h3 id="1-uart-structure"><a class="header" href="#1-uart-structure">1. Uart Structure</a></h3>
+<p>I am not sure whether the implementation in this emulator is correct. Nevertheless, it works.</p>
+<p>The constants of UART are defined in <code>param.rs</code>. Let's take a look at the <code>uart.rs</code> here.</p>
+<p class="filename">uart.rs</p>
+<pre><code class="language-rs">use std::io;
+use std::io::prelude::*;
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Arc, Condvar, Mutex,
+};
+use std::thread;
+
+pub struct Uart {
+    /// Pair of an array for UART buffer and a conditional variable.
+    uart: Arc&lt;(Mutex&lt;[u8; UART_SIZE as usize]&gt;, Condvar)&gt;,
+    /// Bit if an interrupt happens.
+    interrupt: Arc&lt;AtomicBool&gt;,
+}
+</code></pre>
+<p>The array of <code>u8</code> wrapped by <code>Mutex</code> is the address space of UART. We wrap it with <code>Mutex</code> and <code>Arc</code> because we are going to share the same <code>Uart</code> with two threads. We need condition variables for thread synchronization.</p>
+<h3 id="2-initialization"><a class="header" href="#2-initialization">2. Initialization</a></h3>
+<p>We will use one UART to transfer data between the emulator and the host computer. So when we initialize the UART, we spawn a new thread to run in a loop, waiting for the input from console. When the uart receive a char (u8), it firstly check whether the data in buffer have been transferred (RX bit is cleared). If so, it places the new data in the buffer and set the RX bit, otherwise it wait.</p>
+<p class="filename">uart.rs</p>
+<pre><code class="language-rs">impl Uart {
+    /// Create a new `Uart` object.
+    pub fn new() -&gt; Self {
+        let mut array = [0; UART_SIZE as usize];
+        array[UART_LSR as usize] |= MASK_UART_LSR_TX;
+
+        let uart = Arc::new(((Mutex::new(array)), Condvar::new()));
+        let interrupt = Arc::new(AtomicBool::new(false));
+
+        // receive part
+        let read_uart = Arc::clone(&amp;uart);
+        let read_interrupt = Arc::clone(&amp;interrupt);
+        let mut byte = [0];
+        thread::spawn(move || loop {
+            match io::stdin().read(&amp;mut byte) {
+                Ok(_) =&gt; {
+                    let (uart, cvar) = &amp;*read_uart;
+                    let mut array = uart.lock().unwrap();
+                    // if data have been received but not yet be transferred.
+                    // this thread wait for it to be transferred.
+                    while (array[UART_LSR as usize] &amp; MASK_UART_LSR_RX) == 1 {
+                        array = cvar.wait(array).unwrap();
+                    }
+                    // data have been transferred, so receive next one.
+                    array[UART_RHR as usize] = byte[0];
+                    read_interrupt.store(true, Ordering::Release);
+                    array[UART_LSR as usize] |= MASK_UART_LSR_RX;
+                }
+                Err(e) =&gt; println!(&quot;{}&quot;, e),
+            }
+        });
+        
+        Self { uart, interrupt }
+    }
+}
+</code></pre>
+<p>In our implementation, we will emit every char we receive to standard output immediately. So <code>LSR_TX</code> is always on. </p>
+<h3 id="3-uart-api"><a class="header" href="#3-uart-api">3. UART API</a></h3>
+<p>Similarly, the UART provides two function <code>load</code> and <code>store</code> to manipulate data in its address space. Additionally, we also provide a function to check whether it is interrupting.</p>
+<p class="filename">uart.rs</p>
+<pre><code class="language-rs">impl Uart {
+    // ...
+    pub fn load(&amp;mut self, addr: u64, size: u64) -&gt; Result&lt;u64, Exception&gt; {
+        if size != 8 {
+            return Err(Exception::LoadAccessFault(addr));
+        }
+        let (uart, cvar) = &amp;*self.uart;
+        let mut array = uart.lock().unwrap(); 
+        let index = addr - UART_BASE;
+        // a read happens
+        match index {
+            UART_RHR =&gt; {
+                cvar.notify_one();
+                array[UART_LSR as usize] &amp;= !MASK_UART_LSR_RX;
+                Ok(array[UART_RHR as usize] as u64)
+            }
+            _ =&gt; Ok(array[index as usize] as u64),
+        } 
+    }
+}
+</code></pre>
+<p>In <code>load</code>, we check for the size first since UART register bit-width is 8. Then, we lock the uart and check the index. If it equals to RHR, we wake up the sleeping thread. Since we have held the lock, the value in buffer will not be overwrited before we go to the end of this function. Before we return, we also clear the RX bit so another thread is able to write new data in the buffer.</p>
+<p>The process in <code>store</code> is quite similar. The differece is when we store a value to THR, we deliver it to standard output immediately.</p>
+<p class="filename">uart.rs</p>
+<pre><code class="language-rs">impl Uart {
+    // ...
+    pub fn store(&amp;mut self, addr: u64, size: u64, value: u64) -&gt; Result&lt;(), Exception&gt; {
+        if size != 8 {
+            return Err(Exception::StoreAMOAccessFault(addr));
+        }
+        let (uart, cvar) = &amp;*self.uart;
+        let mut array = uart.lock().unwrap();
+        let index = addr - UART_BASE;
+        match index {
+            UART_THR =&gt; {
+                print!(&quot;{}&quot;, value as u8 as char);
+                io::stdout().flush().unwrap();
+                return Ok(());
+            }
+            _ =&gt; {
+                array[index as usize] = value as u8;
+                return Ok(());
+            }
+        }
+    }
+}
+</code></pre>
+<p>Uart has provided another function for atomically swap out the current state.</p>
+<p class="filename">uart.rs</p>
+<pre><code class="language-rs">impl Uart {
+    // ...
+    pub fn is_interrupting(&amp;self) -&gt; bool {
+        self.interrupt.swap(false, Ordering::Acquire)
+    }
+}
+</code></pre>
+<p>I deliberately ignore the <code>Ordering</code> we use here since this topic is a little distracting. Please refer to Chapter 8 of <code>The Rustonomicon</code> if you are interested in it.</p>
+<h3 id="4-testing"><a class="header" href="#4-testing">4. Testing</a></h3>
+<p>The original author have provided two inspired tests for us. They are <code>helloworld</code> and <code>echoback</code>.</p>
+<pre><code class="language-c">int main() {
+    volatile char *uart = (volatile char *) 0x10000000;
+    uart[0] = 'H';
+    uart[0] = 'e';
+    uart[0] = 'l';
+    uart[0] = 'l';
+    uart[0] = 'o';
+    uart[0] = ',';
+    uart[0] = ' ';
+    uart[0] = 'w';
+    uart[0] = 'o';
+    uart[0] = 'r';
+    uart[0] = 'l';
+    uart[0] = 'd';
+    uart[0] = '!';
+    uart[0] = '\n';
+    return 0;
+}&quot;;
+</code></pre>
+<pre><code class="language-c">int main() {
+    while (1) {
+        volatile char *uart = (volatile char *) 0x10000000;
+        while ((uart[5] &amp; 0x01) == 0);
+        char c = uart[0];
+        if ('a' &lt;= c &amp;&amp; c &lt;= 'z') {
+            c = c + 'A' - 'a';
+        }
+        uart[0] = c;
+    }
+}&quot;;
+</code></pre>
+<p>I have added both as test cases. When you run <code>cargo test</code>, two binary file named <code>test_helloworld.bin</code> and <code>test_echoback.bin</code> will be created. Then you can run <code>cargo run xx.bin</code> to play with them.</p>
+<h3 id="5-conclusion-2"><a class="header" href="#5-conclusion-2">5. Conclusion</a></h3>
+<p>We have defined UART in this chapter. And we have two threads to share the same uart structure with the help of some sync utilities of Rust. UART is able to generate interrupts so we provide a method to swap out its status atomically. On next chapter, we will complete our tour about interrupt in RISC-V.</p>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="interrupt"><a class="header" href="#interrupt">Interrupt</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="virtio"><a class="header" href="#virtio">Virtio</a></h1>
+<div style="break-before: page; page-break-before: always;"></div><h1 id="page-table"><a class="header" href="#page-table">Page Table</a></h1>
 
                     </main>
 

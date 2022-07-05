@@ -82,7 +82,7 @@
 
         <nav id="sidebar" class="sidebar" aria-label="Table of contents">
             <div class="sidebar-scrollbox">
-                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html" class="active"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li></ol>
+                <ol class="chapter"><li class="chapter-item expanded affix "><a href="index.html">Rust A RISC-V Emulator</a></li><li class="chapter-item expanded "><a href="v1-CPU-Adder.html"><strong aria-hidden="true">1.</strong> Adder</a></li><li class="chapter-item expanded "><a href="v2-Memory-and-Bus.html" class="active"><strong aria-hidden="true">2.</strong> Memory and Bus</a></li><li class="chapter-item expanded "><a href="v3-CSR.html"><strong aria-hidden="true">3.</strong> Control Status Register</a></li><li class="chapter-item expanded "><a href="v4-Privilege-Mode.html"><strong aria-hidden="true">4.</strong> Privilege Mode</a></li><li class="chapter-item expanded "><a href="v5-Exception.html"><strong aria-hidden="true">5.</strong> Exception</a></li><li class="chapter-item expanded "><a href="v6-Plic-Clint.html"><strong aria-hidden="true">6.</strong> PLIC &amp; CLINT</a></li><li class="chapter-item expanded "><a href="v7-Uart.html"><strong aria-hidden="true">7.</strong> UART</a></li><li class="chapter-item expanded "><a href="v8-Interrupt.html"><strong aria-hidden="true">8.</strong> Interrupt</a></li><li class="chapter-item expanded "><a href="v9-Virtio.html"><strong aria-hidden="true">9.</strong> Virtio</a></li><li class="chapter-item expanded "><a href="v10-Page-Table.html"><strong aria-hidden="true">10.</strong> Page Table</a></li></ol>
             </div>
             <div id="sidebar-resize-handle" class="sidebar-resize-handle"></div>
         </nav>
@@ -304,12 +304,18 @@ pub const DRAM_END: u64 = DRAM_SIZE + DRAM_BASE - 1;
     loop {
         let inst = match cpu.fetch() {
             Ok(inst) =&gt; inst,
-            Err(e) =&gt; { break; }
+            Err(e) =&gt; { 
+                println(&quot;{}&quot;, e);                
+                break; 
+            }
         };
 
         match cpu.execute(inst) {
             Ok(new_pc) =&gt; cpu.pc = new_pc,
-            Err(e) =&gt; { break; }
+            Err(e) =&gt; { 
+                println(&quot;{}&quot;, e);                
+                break; 
+            }
         };
     }
 }
