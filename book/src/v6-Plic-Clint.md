@@ -1,9 +1,13 @@
 # PLIC & CLINT
 
-
 From this chapter, we will start to support several IO devices. Firstly, let's take a look at the PLIC and CLINT.
 
 RISC-V PLIC Specification is available at this Github [repo](https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc). This is recommanded to read it first. I have quoted many content from this Spec in this chapter.
+
+
+从本节开始，我们将支持几个 IO 设备。首先是 PLIC 和 CLINT。
+
+RISC-V 的 PLIC 标准可在个 Github [仓库](https://github.com/riscv/riscv-plic-spec/blob/master/riscv-plic.adoc)查看。推荐先读下这个文档，我在下文引用了许多文档中的内容。
 
 ### 1. PLIC
 
@@ -122,3 +126,24 @@ The base address of PLIC Memory Map is platform implementation-specific.
 Read the Spec from details for each operation parameter.
 
 ### 2. CLINT
+
+CLINT is used to generate timer interrupt and software interrupt. Refer to *Section 3.2.1 Machine Timer Registers (mtime and mtimecmp)* of RISC-V privileged for more information.
+
+CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 特权架构文档的 3.2.1 节。
+
+### 3. Implementation
+
+Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.
+
+Read the code in `plic.rs` and `clint.rs`. The parameters are defined in `param.rs`. Try to search the source code of chapter 10 to find out how these modules are used in the final version. 
+
+虽然这两个设备都是非常重要的，但在我们的模拟器中，它们几乎啥也没做。我们只会在第 8 章用到一点 PLIC。不管怎样，我们提供了一些背景信息以及一个简单的实现。
+
+你可以查看相关的代码，可以在第 10 章的代码中搜索一下这两个模块，看看这两个模块是怎么使用的。
+
+### 4. Conclusion
+
+I will feel discouraged if I were you. We have learned some theory about PLIC and CLINT but these two devices just do nothing meaningful in our emulator! Just a joke. In fact, I believe *less is more*. Sometimes we just want to throw something to get the main idea. I promise to provide a valuable reference for you at the end of this tutorial.
+
+
+如果我是你，我会感到失望。因为我们学习了关于 PLIC 和 CLINT 的理论知识，但是我们的模拟器却基本不用它们！开玩笑的！事实上，我相信“少即是多”的理念。有时候确实不应该管那么多，掌握核心思想是最重要的。在这个教程的结尾，我承诺提供一个更有参考价值的实现。
