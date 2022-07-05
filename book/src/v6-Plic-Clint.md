@@ -145,5 +145,5 @@ Read the code in `plic.rs` and `clint.rs`. The parameters are defined in `param.
 
 I will feel discouraged if I were you. We have learned some theory about PLIC and CLINT but these two devices just do nothing meaningful in our emulator! Just a joke. In fact, I believe *less is more*. Sometimes we just want to throw something to get the main idea. I promise to provide a valuable reference for you at the end of this tutorial.
 
-
 如果我是你，我会感到失望。因为我们学习了关于 PLIC 和 CLINT 的理论知识，但是我们的模拟器却基本不用它们！开玩笑的！事实上，我相信“少即是多”的理念。有时候确实不应该管那么多，掌握核心思想是最重要的。在这个教程的结尾，我承诺提供一个更有参考价值的实现。
+
