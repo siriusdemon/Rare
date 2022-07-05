@@ -181,7 +181,26 @@ For the reason we have mentioned above, we simplify both instructions as nop.
 
 <p class="comment">Picture from RISC-V Reader</p>
 
-### 5. Conclusion
+
+### 5. Case Study: xv6
+
+To make our emulator more concrete, let's take a look at the source code `start.c` of xv6. In the following piece of code. The `MPP` field of `mstatus` is set to `S`. So when a `mret` is executed, the privilege mode is changed to S-mode.
+
+我们来看下 xv6 是如何进入 S 模式的。在一开始，xv6 就将 mstatus 的 MPP 域设置为 S。这样一来，当 mret 执行时，就会进入 S 模式。
+
+```c
+void start()
+{
+  // set M Previous Privilege mode to Supervisor, for mret.
+  unsigned long x = r_mstatus();
+  x &= ~MSTATUS_MPP_MASK;
+  x |= MSTATUS_MPP_S;
+  w_mstatus(x);
+  // ...
+}
+```
+
+### 6. Conclusion
 
 We have introduced RISC-V privilege level in this chapter and implement the SRET and MRET instructions according to the RISC-V Privileged. We also support the standard A & M extension. Since our emulator is single-threaded, we simplify many instructions in such a context.  However, the story in this chapter is incomplete since we haven't mentioned how CPU trap in certain privilege mode. This is the topic of next chapter.
 

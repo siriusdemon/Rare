@@ -67,7 +67,7 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 4. [x] [Privilege Mode 特权模式](./v4-Privilege-Mode.md)
 5. [x] [Exception 异常](./v5-Exceptions.md)
 6. [x] [PLIC & CLINT](./v6-Plic-Clint.md)
-7. [ ] [UART](./v7-Uart.md)
+7. [x] [UART](./v7-Uart.md)
 8. [ ] [Interrupt 中断](./v8-Interrupts.md)
 9. [ ] [Virtio](./v9-Virtio.md)
 10. [ ] [Page Table 页表](./v10-Page-Table.md)
