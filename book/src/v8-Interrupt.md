@@ -242,3 +242,7 @@ main() {
     }
 }
 ```
+
+### 4. Conclusion
+
+We have dived into the details of how RISC-V handle interrupt in this chapter. Sometimes, exception and interrupt is considered confusing. I hope this chapter and chapter 5 will help you to distinguish them. Next chapter, we will take about VirtIO, a virtual disk that we can perform disk IO on it.
