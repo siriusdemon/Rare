@@ -203,3 +203,42 @@ impl Cpu {
     }
 }
 ```
+
+Finally, we handle an interrupt (if any) at the end of the execution loop.
+
+<p class="filename">main.rs</p>
+
+```rs
+main() {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            Ok(inst) => inst,
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!("{}", e);
+                    break;
+                }
+                continue;
+            }
+        };
+
+        match cpu.execute(inst) {
+            Ok(new_pc) => cpu.pc = new_pc,
+            Err(e) => {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!("{}", e);
+                    break;
+                }
+            }
+        };
+
+        match cpu.check_pending_interrupt() {
+            Some(interrupt) => cpu.handle_interrupt(interrupt),
+            None => (),
+        }
+    }
+}
+```
