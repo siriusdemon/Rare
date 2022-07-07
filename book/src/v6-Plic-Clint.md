@@ -133,7 +133,7 @@ CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 
 
 ### 3. Implementation
 
-Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.
+Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chapter 8.) Nevertheless, we provide some background and a dummy implementation.
 
 Read the code in `plic.rs` and `clint.rs`. The parameters are defined in `param.rs`. Try to search the source code of chapter 10 to find out how these modules are used in the final version. 
 
