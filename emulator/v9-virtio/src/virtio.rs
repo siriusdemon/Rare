@@ -3,6 +3,10 @@
 //!
 //! The virtio spec:
 //! https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.pdf
+// 2.6 Split Virtqueues
+// more information refer to 
+// https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio.h
+// https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio_disk.c
 
 use crate::cpu::*;
 use crate::exception::*;

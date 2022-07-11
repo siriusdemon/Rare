@@ -311,13 +311,35 @@ impl Cpu {
 
 
     pub fn disk_access(&mut self) {
+        // 2.6.2 Legacy Interfaces: A Note on Virtqueue Layout
+        // ------------------------------------------------------------------
+        // Descriptor Table  | Available Ring | (...padding...) | Used Ring
+        // ------------------------------------------------------------------
+        // desc_addr = base address
+        // avail_addr = base address + NUM * sizeof (desc_addr)
+        // used_addr = base address + PGSIZE
+        //
+        // struct virtq_desc {
+        //     le64 addr;
+        //     le32 len;
+        //     le16 flags;
+        //     le16 next;
+        // };
         let desc_addr = self.bus.virtio.desc_addr();
-        let avail_addr = desc_addr + 0x40;
+        let avail_addr = desc_addr + 0x80;
         let used_addr = desc_addr + 4096;
-        
-        let offset = self.bus.load(avail_addr.wrapping_add(1), 16).unwrap();
-        let index = self.bus.load(avail_addr.wrapping_add(offset % DESC_NUM)
-                                            .wrapping_add(2), 16).unwrap();
+        // struct virtq_avail {
+        //     le16 flags;
+        //     le16 idx;
+        //     le16 ring[ /* Queue Size */ ];
+        //     le16 used_event; /* Only if VIRTIO_F_EVENT_IDX */
+        // };
+        // this is the idx field of virtq_avail
+        let idx = self.bus.load(avail_addr.wrapping_add(2), 16).unwrap();
+        // this is the index of descriptor stored in ring[idx].
+        let index = self.bus.load(avail_addr.wrapping_add(4)                            // skip flags and idx
+                                            .wrapping_add(2 * (idx % DESC_NUM)), 16)    // read ring[idx]
+                                            .unwrap();
         let desc_addr0 = desc_addr + VRING_DESC_SIZE * index;
         let addr0 = self.bus.load(desc_addr0, 64).unwrap();
         let next0 = self.bus.load(desc_addr0.wrapping_add(14), 16).unwrap();
@@ -325,6 +347,11 @@ impl Cpu {
         let addr1 = self.bus.load(desc_addr1, 64).unwrap();
         let len1 = self.bus.load(desc_addr1.wrapping_add(8), 32).unwrap();
         let flags1 = self.bus.load(desc_addr1.wrapping_add(12), 16).unwrap();
+        // struct virtio_blk_req {
+        //     uint32 type; // VIRTIO_BLK_T_IN or ..._OUT
+        //     uint32 reserved;
+        //     uint64 sector;
+        // };
         let blk_sector = self.bus.load(addr0.wrapping_add(8), 64).unwrap();
         match (flags1 & 2) == 0 {
             true => {

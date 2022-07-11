@@ -188,6 +188,8 @@ To make our emulator more concrete, let's take a look at the source code `start.
 
 我们来看下 xv6 是如何进入 S 模式的。在一开始，xv6 就将 mstatus 的 MPP 域设置为 S。这样一来，当 mret 执行时，就会进入 S 模式。
 
+<p class="filename">xv6-riscv/kernel/start.c</p>
+
 ```c
 void start()
 {
