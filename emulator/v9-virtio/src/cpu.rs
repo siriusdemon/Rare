@@ -1,12 +1,14 @@
 //! The cpu module contains `Cpu` and implementarion for it.
 
 #![allow(dead_code)]
+use std::mem::size_of;
 
 use crate::bus::*;
 use crate::exception::*;
 use crate::interrupt::*;
 use crate::param::*;
 use crate::csr::*;
+use crate::virtqueue::*;
 
 
 // Riscv Privilege Mode
