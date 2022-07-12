@@ -28,7 +28,7 @@ pub struct VirtioBlock {
     disk: Vec<u8>,
 }
 
-const MAX_QUEUE: u32 = 1;
+const MAX_BLOCK_QUEUE: u32 = 1;
 
 impl VirtioBlock {
     pub fn new(disk_image: Vec<u8>) -> Self {
@@ -42,15 +42,15 @@ impl VirtioBlock {
             queue_sel: 0,
             queue_num: 0,
             queue_pfn: 0,
-            queue_notify: MAX_QUEUE,
+            queue_notify: MAX_BLOCK_QUEUE,
             status: 0,
             disk,
         }
     }
 
     pub fn is_interrupting(&mut self) -> bool {
-        if self.queue_notify < MAX_QUEUE {
-            self.queue_notify = MAX_QUEUE;
+        if self.queue_notify < MAX_BLOCK_QUEUE {
+            self.queue_notify = MAX_BLOCK_QUEUE;
             return true;
         }
         return false;

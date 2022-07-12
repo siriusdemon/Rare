@@ -354,17 +354,21 @@ impl Cpu {
         // the flags mark this buffer as device write-only or read-only.
         // We ignore it here
         // let flags1 = self.bus.load(&virtq_desc1.flags as *const _ as u64, 16).unwrap();
-        if iotype == VIRTIO_BLK_T_OUT {       // write the disk
-            for i in 0..len1 {
-                let data = self.bus.load(addr1 + i, 8).unwrap();
-                self.bus.virtio_blk.write_disk(blk_sector * SECTOR_SIZE + i, data);
+        match iotype {
+            VIRTIO_BLK_T_OUT => {
+                for i in 0..len1 {
+                    let data = self.bus.load(addr1 + i, 8).unwrap();
+                    self.bus.virtio_blk.write_disk(blk_sector * SECTOR_SIZE + i, data);
+                }
             }
-        } else { // VIRTIO_BLK_T_IN  read the disk
-            for i in 0..len1 {
-                let data = self.bus.virtio_blk.read_disk(blk_sector * SECTOR_SIZE + i);
-                self.bus.store(addr1 + i, 8, data as u64).unwrap();
-            }
-        }
+            VIRTIO_BLK_T_IN => {
+                for i in 0..len1 {
+                    let data = self.bus.virtio_blk.read_disk(blk_sector * SECTOR_SIZE + i);
+                    self.bus.store(addr1 + i, 8, data as u64).unwrap();
+                }
+            } 
+            _ => unreachable!(),
+        }     
 
         let new_id = self.bus.virtio_blk.get_new_id();
         self.bus.store(&virtq_used.idx as *const _ as u64, 16, new_id % 8).unwrap();
