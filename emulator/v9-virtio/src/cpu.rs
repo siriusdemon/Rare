@@ -318,7 +318,7 @@ impl Cpu {
         match (flags1 & 2) == 0 {
             true => {
                 for i in 0..len1 {
-                    let data = self.bus.load(addr1 + 1, 8).unwrap();
+                    let data = self.bus.load(addr1 + i, 8).unwrap();
                     self.bus.virtio.write_disk(blk_sector * 512 + i, data);
                 }
             }
