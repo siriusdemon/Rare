@@ -68,8 +68,8 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 5. [x] [Exception 异常](./v5-Exceptions.md)
 6. [x] [PLIC & CLINT](./v6-Plic-Clint.md)
 7. [x] [UART](./v7-Uart.md)
-8. [ ] [Interrupt 中断](./v8-Interrupts.md)
-9. [ ] [Virtio](./v9-Virtio.md)
+8. [x] [Interrupt 中断](./v8-Interrupts.md)
+9. [x] [Virtio](./v9-Virtio.md)
 10. [ ] [Page Table 页表](./v10-Page-Table.md)
 
 The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
