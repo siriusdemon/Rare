@@ -5,6 +5,7 @@ mod dram;
 mod plic;
 mod uart;
 mod virtio;
+mod virtqueue;
 mod param;
 mod csr;
 mod exception;

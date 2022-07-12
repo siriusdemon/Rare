@@ -324,6 +324,7 @@ impl Cpu {
 
         // cast addr to a reference to ease field access.
         let virtq_avail = unsafe { &(*(avail_addr as *const VirtqAvail)) };
+        let virtq_used  = unsafe { &(*(used_addr  as *const VirtqUsed)) };
 
         // The idx field of virtq_avail should be indexed into available ring to get the
         // index of descriptor we need to process.
@@ -339,7 +340,7 @@ impl Cpu {
         let req_addr = self.bus.load(&virtq_desc0.addr as *const _ as u64, 64).unwrap();
         let virtq_blk_req = unsafe { &(*(req_addr as *const VirtioBlkRequest)) };
         let blk_sector = self.bus.load(&virtq_blk_req.sector as *const _ as u64, 64).unwrap();
-        let iotype = self.bus.load(&virtq_blk_req.iotype as *const _ as u64, 32).unwrap();
+        let iotype = self.bus.load(&virtq_blk_req.iotype as *const _ as u64, 32).unwrap() as u32;
         // The next field points to the second descriptor. (data descriptor)
         let next0  = self.bus.load(&virtq_desc0.next  as *const _ as u64, 16).unwrap();
 
@@ -353,24 +354,20 @@ impl Cpu {
         // the flags mark this buffer as device write-only or read-only.
         // We ignore it here
         // let flags1 = self.bus.load(&virtq_desc1.flags as *const _ as u64, 16).unwrap();
-        match iotype as u32 {
-            VIRTIO_BLK_T_OUT => {       // write the disk
-                for i in 0..len1 {
-                    let data = self.bus.load(addr1 + i, 8).unwrap();
-                    self.bus.virtio.write_disk(blk_sector * SECTOR_SIZE + i, data);
-                }
+        if iotype == VIRTIO_BLK_T_OUT {       // write the disk
+            for i in 0..len1 {
+                let data = self.bus.load(addr1 + i, 8).unwrap();
+                self.bus.virtio.write_disk(blk_sector * SECTOR_SIZE + i, data);
             }
-            VIRTIO_BLK_T_IN => {        // read the disk
-                for i in 0..len1 {
-                    let data = self.bus.virtio.read_disk(blk_sector * SECTOR_SIZE + i);
-                    self.bus.store(addr1 + i, 8, data as u64).unwrap();
-                }
+        } else { // VIRTIO_BLK_T_IN  read the disk
+            for i in 0..len1 {
+                let data = self.bus.virtio.read_disk(blk_sector * SECTOR_SIZE + i);
+                self.bus.store(addr1 + i, 8, data as u64).unwrap();
             }
-            _ => unreachable!(),
         }
 
         let new_id = self.bus.virtio.get_new_id();
-        self.bus.store(used_addr.wrapping_add(2), 16, new_id % 8).unwrap();
+        self.bus.store(&virtq_used.idx as *const _ as u64, 16, new_id % 8).unwrap();
     }
 
     fn update_paging(&mut self, csr_addr: usize) {

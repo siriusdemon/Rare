@@ -62,9 +62,8 @@ pub const VIRTIO_SIZE: u64 = 0x1000;
 pub const VIRTIO_END: u64 = VIRTIO_BASE + VIRTIO_SIZE - 1;
 pub const VIRTIO_IRQ: u64 = 1;
 
-pub const VRING_DESC_SIZE: u64 = 16;
 // The number of virtio descriptors. It must be a power of two.
-pub const DESC_NUM: u64 = 8;
+pub const DESC_NUM: usize = 8;
 
 // Always return 0x74726976.
 pub const VIRTIO_MAGIC: u64 = VIRTIO_BASE + 0x000;
@@ -97,3 +96,14 @@ pub const VIRTIO_STATUS: u64 = VIRTIO_BASE + 0x070;
 
 
 pub const PAGE_SIZE: u64 = 4096;
+pub const SECTOR_SIZE: u64 = 512;
+
+
+// virtio block request type
+pub const VIRTIO_BLK_T_IN: u32 = 0;
+pub const VIRTIO_BLK_T_OUT: u32 = 1;
+
+// virtqueue descriptor flags
+pub const VIRTQ_DESC_F_NEXT: u16 = 1;
+pub const VIRTQ_DESC_F_WRITE: u16 = 2;
+pub const VIRTQ_DESC_F_INDIRECT: u16 = 4;
