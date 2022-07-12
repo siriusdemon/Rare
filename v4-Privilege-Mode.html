@@ -279,6 +279,7 @@ impl Cpu {
 <h3 id="5-case-study-xv6"><a class="header" href="#5-case-study-xv6">5. Case Study: xv6</a></h3>
 <p>To make our emulator more concrete, let's take a look at the source code <code>start.c</code> of xv6. In the following piece of code. The <code>MPP</code> field of <code>mstatus</code> is set to <code>S</code>. So when a <code>mret</code> is executed, the privilege mode is changed to S-mode.</p>
 <p>我们来看下 xv6 是如何进入 S 模式的。在一开始，xv6 就将 mstatus 的 MPP 域设置为 S。这样一来，当 mret 执行时，就会进入 S 模式。</p>
+<p class="filename">xv6-riscv/kernel/start.c</p>
 <pre><code class="language-c">void start()
 {
   // set M Previous Privilege mode to Supervisor, for mret.

@@ -248,7 +248,7 @@ base + 0x3FFFFFC: Reserved
 <p>CLINT is used to generate timer interrupt and software interrupt. Refer to <em>Section 3.2.1 Machine Timer Registers (mtime and mtimecmp)</em> of RISC-V privileged for more information.</p>
 <p>CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 特权架构文档的 3.2.1 节。</p>
 <h3 id="3-implementation"><a class="header" href="#3-implementation">3. Implementation</a></h3>
-<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.</p>
+<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chapter 8.) Nevertheless, we provide some background and a dummy implementation.</p>
 <p>Read the code in <code>plic.rs</code> and <code>clint.rs</code>. The parameters are defined in <code>param.rs</code>. Try to search the source code of chapter 10 to find out how these modules are used in the final version. </p>
 <p>虽然这两个设备都是非常重要的，但在我们的模拟器中，它们几乎啥也没做。我们只会在第 8 章用到一点 PLIC。不管怎样，我们提供了一些背景信息以及一个简单的实现。</p>
 <p>你可以查看相关的代码，可以在第 10 章的代码中搜索一下这两个模块，看看这两个模块是怎么使用的。</p>

@@ -1129,6 +1129,7 @@ impl Cpu {
 <h3 id="5-case-study-xv6"><a class="header" href="#5-case-study-xv6">5. Case Study: xv6</a></h3>
 <p>To make our emulator more concrete, let's take a look at the source code <code>start.c</code> of xv6. In the following piece of code. The <code>MPP</code> field of <code>mstatus</code> is set to <code>S</code>. So when a <code>mret</code> is executed, the privilege mode is changed to S-mode.</p>
 <p>我们来看下 xv6 是如何进入 S 模式的。在一开始，xv6 就将 mstatus 的 MPP 域设置为 S。这样一来，当 mret 执行时，就会进入 S 模式。</p>
+<p class="filename">xv6-riscv/kernel/start.c</p>
 <pre><code class="language-c">void start()
 {
   // set M Previous Privilege mode to Supervisor, for mret.
@@ -1474,7 +1475,7 @@ base + 0x3FFFFFC: Reserved
 <p>CLINT is used to generate timer interrupt and software interrupt. Refer to <em>Section 3.2.1 Machine Timer Registers (mtime and mtimecmp)</em> of RISC-V privileged for more information.</p>
 <p>CLINT 是用于生产时钟中断和软件中断的设备。可以看下 RISC-V 特权架构文档的 3.2.1 节。</p>
 <h3 id="3-implementation"><a class="header" href="#3-implementation">3. Implementation</a></h3>
-<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chatper 8.) Nevertheless, we provide some background and a dummy implementation.</p>
+<p>Although these two devices are vital in real hardware, our emulator is too simple to imitate timer interrupt. The PLIC and CLINT in our emulator almost do nothing at all. (We will use a bit of PLIC in chapter 8.) Nevertheless, we provide some background and a dummy implementation.</p>
 <p>Read the code in <code>plic.rs</code> and <code>clint.rs</code>. The parameters are defined in <code>param.rs</code>. Try to search the source code of chapter 10 to find out how these modules are used in the final version. </p>
 <p>虽然这两个设备都是非常重要的，但在我们的模拟器中，它们几乎啥也没做。我们只会在第 8 章用到一点 PLIC。不管怎样，我们提供了一些背景信息以及一个简单的实现。</p>
 <p>你可以查看相关的代码，可以在第 10 章的代码中搜索一下这两个模块，看看这两个模块是怎么使用的。</p>
@@ -1485,9 +1486,12 @@ base + 0x3FFFFFC: Reserved
 <p>UART (Universal Asynchronous Receiver-Transmitter) is a computer hardware device for asynchronous serial communication in which the data format and transmission speeds are configurable. It sends data bits one by one. (quote from WikiPedia.) </p>
 <p>UART in our emulator is used to receive data from standard input and transmit data to standard output. The Spec is available at <a href="http://byterunner.com/16550.html">here</a>. It is recommanded to read it first.</p>
 <p>The registers we need are RHR, THR and LSR.</p>
+<p>UART 是通用异步收发器的缩写，是一种用于异步通信的硬件设备。它逐位发送数据，且其通信速率是可调的。（来自维基百科）。知乎上有不少介绍 UART 的文章，可以看看。</p>
+<p>在我们的模拟器中，UART 是用于与宿主机的标准输入输出流进行通信。这里用的型号是 16550，其标准在<a href="http://byterunner.com/16550.html">这里</a>。 我们只用到 RHR，THR，LSR 这三个寄存器。</p>
 <h3 id="1-uart-structure"><a class="header" href="#1-uart-structure">1. Uart Structure</a></h3>
 <p>I am not sure whether the implementation in this emulator is correct. Nevertheless, it works.</p>
 <p>The constants of UART are defined in <code>param.rs</code>. Let's take a look at the <code>uart.rs</code> here.</p>
+<p>我不确定这里的实现是否是对的，但不管怎样，跑得通！UART 的常量定义在 param.rs 中，我们先看下 uart.rs 的内容。</p>
 <p class="filename">uart.rs</p>
 <pre><code class="language-rs">use std::io;
 use std::io::prelude::*;
@@ -1505,8 +1509,12 @@ pub struct Uart {
 }
 </code></pre>
 <p>The array of <code>u8</code> wrapped by <code>Mutex</code> is the address space of UART. We wrap it with <code>Mutex</code> and <code>Arc</code> because we are going to share the same <code>Uart</code> with two threads. We need condition variables for thread synchronization.</p>
+<p>Condition variables are synchronization primitives that enable threads to wait until a particular condition occurs. They enable threads to atomically release a lock and enter the sleeping state. Condition variables support operations that &quot;wake one&quot; or &quot;wake all&quot; waiting threads. After a thread is woken, it re-acquires the lock it released when the thread entered the sleeping state. </p>
+<p>UART 的地址空间是一个用 Mutex 打包好的 u8 数组。由于 UART 要用于多线程，所以我们得 Mutex 和 Arc 来封装。此外，我们需要条件变量来做线程同步。</p>
+<p>条件变量是用于线程同步的原语，可以使线程释放一个锁并进入休眠，直到某一条件满足时将线程唤醒。线程苏醒时会重新获取它进入休眠前释放的锁。条件变量通常支持只唤醒一个线程或者唤醒所有线程这两种操作。</p>
 <h3 id="2-initialization"><a class="header" href="#2-initialization">2. Initialization</a></h3>
 <p>We will use one UART to transfer data between the emulator and the host computer. So when we initialize the UART, we spawn a new thread to run in a loop, waiting for the input from console. When the uart receive a char (u8), it firstly check whether the data in buffer have been transferred (RX bit is cleared). If so, it places the new data in the buffer and set the RX bit, otherwise it wait.</p>
+<p>我们将采用 UART 在模拟器和宿主机间进行通信。因此，在初始化 UART 的时候，我们创建了一个新的线程。这个线程跑在一个死循环中，等待控制台的输入。当它接到一个字符时，首先检查缓存（buffer）中的数据是否已经被取走了，也就是说 RX 是否被清零了。如果是，就把刚收到的数据放在缓存中，并置 RX 为 1，否则，进入休眠。</p>
 <p class="filename">uart.rs</p>
 <pre><code class="language-rs">impl Uart {
     /// Create a new `Uart` object.
@@ -1545,8 +1553,10 @@ pub struct Uart {
 }
 </code></pre>
 <p>In our implementation, we will emit every char we receive to standard output immediately. So <code>LSR_TX</code> is always on. </p>
+<p>在我们的实现中，我们每接到到一个字符，都会立即打印到标准输出。因此，LSR_TX 总是 1.</p>
 <h3 id="3-uart-api"><a class="header" href="#3-uart-api">3. UART API</a></h3>
 <p>Similarly, the UART provides two function <code>load</code> and <code>store</code> to manipulate data in its address space. Additionally, we also provide a function to check whether it is interrupting.</p>
+<p>与其他设备，UART 也提供了 loal 和 store 两个函数来操作其地址空间中的数据。此外，我们提供了一个函数用于判断其是否发生了中断。</p>
 <p class="filename">uart.rs</p>
 <pre><code class="language-rs">impl Uart {
     // ...
@@ -1571,6 +1581,7 @@ pub struct Uart {
 </code></pre>
 <p>In <code>load</code>, we check for the size first since UART register bit-width is 8. Then, we lock the uart and check the index. If it equals to RHR, we wake up the sleeping thread. Since we have held the lock, the value in buffer will not be overwrited before we go to the end of this function. Before we return, we also clear the RX bit so another thread is able to write new data in the buffer.</p>
 <p>The process in <code>store</code> is quite similar. The differece is when we store a value to THR, we deliver it to standard output immediately.</p>
+<p>在 load 函数中，我们首先检查 size，因为 UART 寄存器位宽为 8。然后，我们给 uart 加锁，再对 index 进行匹配，如果等于 RHR，则唤醒休眠的线程。因为当前线程有 uart 的锁，在其释放锁之前（即函数执行完毕之前），另一个线程是无法覆盖缓存中的数据的。在返回之前，当前线程将 RX 置 0 以便让另一线程可以在缓存中写入新的数据。</p>
 <p class="filename">uart.rs</p>
 <pre><code class="language-rs">impl Uart {
     // ...
@@ -1596,6 +1607,7 @@ pub struct Uart {
 }
 </code></pre>
 <p>Uart has provided another function for atomically swap out the current state.</p>
+<p>UART 还提供了另一个函数用于将当前的中断状态读出来且置之为 false。</p>
 <p class="filename">uart.rs</p>
 <pre><code class="language-rs">impl Uart {
     // ...
@@ -1605,8 +1617,10 @@ pub struct Uart {
 }
 </code></pre>
 <p>I deliberately ignore the <code>Ordering</code> we use here since this topic is a little distracting. Please refer to Chapter 8 of <code>The Rustonomicon</code> if you are interested in it.</p>
+<p>我有意忽略了关于 Ordering 的内容。想了解的话可以看下 The Rustonomicon 的第 8 章。</p>
 <h3 id="4-testing"><a class="header" href="#4-testing">4. Testing</a></h3>
 <p>The original author have provided two inspired tests for us. They are <code>helloworld</code> and <code>echoback</code>.</p>
+<p>原作者提供了两个非常有启发性的测试用例：helloworld 和 echoback。</p>
 <pre><code class="language-c">int main() {
     volatile char *uart = (volatile char *) 0x10000000;
     uart[0] = 'H';
@@ -1639,10 +1653,518 @@ pub struct Uart {
 }&quot;;
 </code></pre>
 <p>I have added both as test cases. When you run <code>cargo test</code>, two binary file named <code>test_helloworld.bin</code> and <code>test_echoback.bin</code> will be created. Then you can run <code>cargo run xx.bin</code> to play with them.</p>
+<p>这两个我都添加到测试用例了。当执行 cargo test 时，会相应生成两个 bin 文件。再用 cargo run xx.bin 的方式来跑。</p>
 <h3 id="5-conclusion-2"><a class="header" href="#5-conclusion-2">5. Conclusion</a></h3>
 <p>We have defined UART in this chapter. And we have two threads to share the same uart structure with the help of some sync utilities of Rust. UART is able to generate interrupts so we provide a method to swap out its status atomically. On next chapter, we will complete our tour about interrupt in RISC-V.</p>
+<p>本章中我们定义了 UART。同时，用两个线程共享一个 uart 的方式来完成宿主机与模拟器的通信。在下一章，我们将会完整实现 RISC-V 的中断机制。</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="interrupt"><a class="header" href="#interrupt">Interrupt</a></h1>
+<p>Interrupt is an external event generated by peripheral devices. CPU will handle an interrupt after it have fully executed an instruction, which is quite difference from handling exceptions. Consequently, when CPU encounters an exception, the PC points to the instruction that causes the exception. When CPU encounters an interrupt, the PC points to the instruction that it haven't executed.</p>
+<h3 id="1-interrupt-type"><a class="header" href="#1-interrupt-type">1. Interrupt type</a></h3>
+<p>RISC-V has defined six interrupt types. </p>
+<p><img src="./images/interrupt.png" alt="interrupt" /></p>
+<p class="comment">mcause/scause and interrupt code. From RISC-V Privileged<p>
+<p>The software interrupt and timer interrupt are generated by CLINT, while the external interrupt is generated by PLIC as we have mentioned in last chapter.</p>
+<p>When an interrupt is generated, corresponding field in mip/sip is set to 1. Fields in mie/sie controls whether the corresponding interrupt is enabled or disabled.</p>
+<p><img src="./images/mip-mie.png" alt="mip-mie" /></p>
+<p>When a hart is executing in privilege mode x, interrupts are globally enabled when xIE=1 and globally disabled when xIE=0. Interrupts for lower-privilege modes, w &lt; x, are always globally disabled regardless of the setting of any global wIE bit for the lower-privilege mode. Interrupts for higher-privilege modes, y &gt; x, are always globally enabled regardless of the setting of the global yIE bit for the higher-privilege mode. Higher-privilege-level code can use separate per-interrupt enable bits to disable selected higher-privilege-mode interrupts before ceding control to a lower-privilege mode.</p>
+<p>An interrupt i will trap to M-mode (causing the privilege mode to change to M-mode) if all of the following are true: (a) either the current privilege mode is M and the MIE bit in the mstatus register is set, or the current privilege mode has less privilege than M-mode; (b) bit i is set in both mip and mie; and (c) if register mideleg exists, bit i is not set in mideleg.</p>
+<p>Trap in S-mode is quite similarly.</p>
+<p>Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing priority order: MEI, MSI, MTI, SEI, SSI, STI.</p>
+<p>Read the Section 3.1.6.1, 3.1.9 and 4.1.3 of RISC-V Privileged for more information.</p>
+<h3 id="2-interrupt-handle"><a class="header" href="#2-interrupt-handle">2. Interrupt handle</a></h3>
+<p>The procedure of handling interrupt is similar to that of handling exception. For convenience, I summarize the process as following:</p>
+<ol>
+<li>update hart's privilege mode (M or S according to current mode and exception setting).</li>
+<li>save current pc in epc (sepc in S-mode, mepc in M-mode)</li>
+<li>set pc properly according to the MODE field of trap vector (stvec in S-mode, mtvec in M-mode)</li>
+<li>set cause register with exception code (scause in S-mode, mcause in M-mode)</li>
+<li>set xPIE to xIE (SPIE in S-mode, MPIE in M-mode)</li>
+<li>clear up xIE (SIE in S-mode, MIE in M-mode)</li>
+<li>set xPP to previous mode.</li>
+</ol>
+<p>There are two different points compared with exception. First, we omit the set up of trap value. Second, we have to set up the pc according to the MODE field of trap vector.</p>
+<p><img src="./images/trap-vector.png" alt="trap-vector" /></p>
+<p class=comment>trap vector</p>
+<p><img src="./images/trap-vector-base.png" alt="trap-vector-base" /></p>
+<p class=comment>encoding of trap vector MODE field.</p>
+<p>Read the Section 3.1.7 in RISC-V Privileged for more details.</p>
+<h3 id="3-implementation-1"><a class="header" href="#3-implementation-1">3. Implementation</a></h3>
+<p>The interrupt enum is defined in <code>interrupt.rs</code>. Since we don't have to deal with trap value, the interrupt structure only owns a <code>code</code> method.</p>
+<p class="filename">interrupt.rs</p>
+<pre><code class="language-rs">pub const MASK_INTERRUPT_BIT: u64 = 1 &lt;&lt; 63;
+
+#[derive(Debug, Copy, Clone)]
+pub enum Interrupt {
+    SupervisorSoftwareInterrupt,
+    MachineSoftwareInterrupt,
+    SupervisorTimerInterrupt,
+    MachineTimerInterrupt,
+    SupervisorExternalInterrupt,
+    MachineExternalInterrupt,
+}
+
+
+
+impl Interrupt {
+    pub fn code(self) -&gt; u64 {
+        use Interrupt::*;
+        match self {
+            SupervisorSoftwareInterrupt =&gt; 1 | MASK_INTERRUPT_BIT,
+            MachineSoftwareInterrupt =&gt; 3 | MASK_INTERRUPT_BIT,
+            SupervisorTimerInterrupt =&gt; 5 | MASK_INTERRUPT_BIT,
+            MachineTimerInterrupt =&gt; 7 | MASK_INTERRUPT_BIT,
+            SupervisorExternalInterrupt =&gt; 9 | MASK_INTERRUPT_BIT,
+            MachineExternalInterrupt =&gt; 11 | MASK_INTERRUPT_BIT,
+        }
+    }
+}
+</code></pre>
+<p>There are two places we need to modify to enable interrupt handling. One is in <code>cpu.rs</code>, another is in <code>main.rs</code>.</p>
+<p>Firstly, we need to introduce interrupt handling for our cpu.</p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn handle_interrupt(&amp;mut self, interrupt: Interrupt) {
+        // similar to handle exception
+        let pc = self.pc; 
+        let mode = self.mode;
+        let cause = interrupt.code();
+        // although cause contains a interrupt bit. Shift the cause make it out.
+        let trap_in_s_mode = mode &lt;= Supervisor &amp;&amp; self.csr.is_midelegated(cause);
+        let (STATUS, TVEC, CAUSE, TVAL, EPC, MASK_PIE, pie_i, MASK_IE, ie_i, MASK_PP, pp_i) 
+            = if trap_in_s_mode {
+                self.mode = Supervisor;
+                (SSTATUS, STVEC, SCAUSE, STVAL, SEPC, MASK_SPIE, 5, MASK_SIE, 1, MASK_SPP, 8)
+            } else {
+                self.mode = Machine;
+                (MSTATUS, MTVEC, MCAUSE, MTVAL, MEPC, MASK_MPIE, 7, MASK_MIE, 3, MASK_MPP, 11)
+            };
+        // 3.1.7 &amp; 4.1.2
+        // When MODE=Direct, all traps into machine mode cause the pc to be set to the address in the BASE field. 
+        // When MODE=Vectored, all synchronous exceptions into machine mode cause the pc to be set to the address 
+        // in the BASE field, whereas interrupts cause the pc to be set to the address in the BASE field plus four 
+        // times the interrupt cause number. 
+        let tvec = self.csr.load(TVEC);
+        let tvec_mode = tvec &amp; 0b11;
+        let tvec_base = tvec &amp; !0b11;
+        match tvec_mode { // DIrect
+            0 =&gt; self.pc = tvec_base,
+            1 =&gt; self.pc = tvec_base + cause &lt;&lt; 2,
+            _ =&gt; unreachable!(),
+        };
+        // 3.1.14 &amp; 4.1.7
+        // When a trap is taken into S-mode (or M-mode), sepc (or mepc) is written with the virtual address 
+        // of the instruction that was interrupted or that encountered the exception.
+        self.csr.store(EPC, pc);
+        // 3.1.15 &amp; 4.1.8
+        // When a trap is taken into S-mode (or M-mode), scause (or mcause) is written with a code indicating 
+        // the event that caused the trap.
+        self.csr.store(CAUSE, cause);
+        // 3.1.16 &amp; 4.1.9
+        // When a trap is taken into M-mode, mtval is either set to zero or written with exception-specific 
+        // information to assist software in handling the trap. 
+        self.csr.store(TVAL, 0);
+        // 3.1.6 covers both sstatus and mstatus.
+        let mut status = self.csr.load(STATUS);
+        // get SIE or MIE
+        let ie = (status &amp; MASK_IE) &gt;&gt; ie_i;
+        // set SPIE = SIE / MPIE = MIE
+        status = (status &amp; !MASK_PIE) | (ie &lt;&lt; pie_i);
+        // set SIE = 0 / MIE = 0
+        status &amp;= !MASK_IE; 
+        // set SPP / MPP = previous mode
+        status = (status &amp; !MASK_PP) | (mode &lt;&lt; pp_i);
+        self.csr.store(STATUS, status);
+    }
+}
+</code></pre>
+<p>We have also implemented a function <code>check_pending_interrupt</code> for checking whether there is a pending interrupt. </p>
+<p class="filename">cpu.rs</p>
+<pre><code class="language-rs">impl Cpu {
+    // ...
+    pub fn check_pending_interrupt(&amp;mut self) -&gt; Option&lt;Interrupt&gt; {
+        use Interrupt::*;
+        if (self.mode == Machine) &amp;&amp; (self.csr.load(MSTATUS) &amp; MASK_MIE) == 0 {
+            return None;
+        }
+        if (self.mode == Supervisor) &amp;&amp; (self.csr.load(SSTATUS) &amp; MASK_SIE) == 0 {
+            return None;
+        }
+        
+        // In fact, we should using priority to decide which interrupt should be handled first.
+        if self.bus.uart.is_interrupting() {
+            self.bus.store(PLIC_SCLAIM, 32, UART_IRQ).unwrap();
+            self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
+        } 
+        // 3.1.9 &amp; 4.1.3
+        // Multiple simultaneous interrupts destined for M-mode are handled in the following decreasing
+        // priority order: MEI, MSI, MTI, SEI, SSI, STI.
+        let pending = self.csr.load(MIE) &amp; self.csr.load(MIP);
+
+        if (pending &amp; MASK_MEIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_MEIP);
+            return Some(MachineExternalInterrupt);
+        }
+        if (pending &amp; MASK_MSIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_MSIP);
+            return Some(MachineSoftwareInterrupt);
+        }
+        if (pending &amp; MASK_MTIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_MTIP);
+            return Some(MachineTimerInterrupt);
+        }
+        if (pending &amp; MASK_SEIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_SEIP);
+            return Some(SupervisorExternalInterrupt);
+        }
+        if (pending &amp; MASK_SSIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_SSIP);
+            return Some(SupervisorSoftwareInterrupt);
+        }
+        if (pending &amp; MASK_STIP) != 0 {
+            self.csr.store(MIP, self.csr.load(MIP) &amp; !MASK_STIP);
+            return Some(SupervisorTimerInterrupt);
+        }
+        return None;
+    }
+}
+</code></pre>
+<p>Finally, we handle an interrupt (if any) at the end of the execution loop.</p>
+<p class="filename">main.rs</p>
+<pre><code class="language-rs">main() {
+    // ...
+    loop {
+        let inst = match cpu.fetch() {
+            Ok(inst) =&gt; inst,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+                continue;
+            }
+        };
+
+        match cpu.execute(inst) {
+            Ok(new_pc) =&gt; cpu.pc = new_pc,
+            Err(e) =&gt; {
+                cpu.handle_exception(e);
+                if e.is_fatal() {
+                    println!(&quot;{}&quot;, e);
+                    break;
+                }
+            }
+        };
+
+        match cpu.check_pending_interrupt() {
+            Some(interrupt) =&gt; cpu.handle_interrupt(interrupt),
+            None =&gt; (),
+        }
+    }
+}
+</code></pre>
+<h3 id="4-conclusion-1"><a class="header" href="#4-conclusion-1">4. Conclusion</a></h3>
+<p>We have dived into the details of how RISC-V handle interrupt in this chapter. Sometimes, exception and interrupt is considered confusing. I hope this chapter and chapter 5 will help you to distinguish them. Next chapter, we will take about VirtIO, a virtual disk that we can perform disk IO on it.</p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="virtio"><a class="header" href="#virtio">Virtio</a></h1>
+<p>Virtio represents a virtual device family. In this chapter, we will focus on the <em>Block Device</em>, a virtual disk. The full documentation is available at <a href="https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html">here</a>.</p>
+<p>Section 2, 4 and 5 are mostly relevant and recommanded to read first.</p>
+<p>In this chapter, we will implement the legacy interface of virtio block device, which is implemented by QEMU and our target OS xv6 provides a driver for it.</p>
+<h3 id="1-block-device--mmio-device-register-layout"><a class="header" href="#1-block-device--mmio-device-register-layout">1. Block Device &amp; MMIO Device Register Layout</a></h3>
+<p>Section 5.2 contains an introduction to the Block Device. We can find out many useful information there. The <code>Device ID</code> is 2 while there is only one virtqueue, whose index is 0. </p>
+<p>Section 4.2.2 &amp; 4.2.4 provide the register layout for both current and legacy interfaces. Some registers are only explained in Section 4.2.2, that is why I mention it.</p>
+<p>I have listed most of these in <code>param.rs</code>.</p>
+<h3 id="2-virtqueue"><a class="header" href="#2-virtqueue">2. Virtqueue</a></h3>
+<p>The mechanism for bulk data transport on virtio devices is pretentiously called a virtqueue. Each device can have zero or more virtqueues. The block device have only one virtqueue, namely requestq, indexed as 0. The <code>QueueNotify</code> should be initialized with the max number of virtqueues. It is 1 in this case.</p>
+<p>Each virtqueue occupies two or more physically-contiguous pages (usually defined as 4096 bytes) and consists of three parts:</p>
+<p><img src="./images/virtqueue-layout.png" alt="virtqueue-layout" /></p>
+<pre><code class="language-c">struct virtq {
+    // The actual descriptors (16 bytes each)
+    struct virtq_desc desc[ Queue Size ];
+    // A ring of available descriptor heads with free-running index.
+    struct virtq_avail avail;
+    // Padding to the next Queue Align boundary.
+    u8 pad[ Padding ];
+    // A ring of used descriptor heads with free-running index.
+    struct virtq_used used;
+};
+</code></pre>
+<h3 id="21-descriptor"><a class="header" href="#21-descriptor">2.1 Descriptor</a></h3>
+<p>The first field of a virtqueue is an array of descriptor, aka. descriptor table. </p>
+<p>The descriptor table refers to the buffers the driver is using for the device. <code>addr</code> is a physical address, and the buffers can be chained via <code>next</code>. Each descriptor describes a buffer which is read-only for the device (“device-readable”) or write-only for the device (“device-writable”), but a chain of descriptors can contain both device-readable and device-writable buffers.</p>
+<pre><code class="language-c">struct virtq_desc {
+    /* Address (guest-physical). */
+    le64 addr;
+    /* Length. */
+    le32 len;
+/* This marks a buffer as continuing via the next field. */
+#define VIRTQ_DESC_F_NEXT 1
+/* This marks a buffer as device write-only (otherwise device read-only). */
+#define VIRTQ_DESC_F_WRITE 2
+/* This means the buffer contains a list of buffer descriptors. */
+#define VIRTQ_DESC_F_INDIRECT 4
+    /* The flags as indicated above. */
+    le16 flags;
+    /* Next field if flags &amp; NEXT */
+    le16 next;
+};
+</code></pre>
+<p>The actual contents of the memory offered to the device depends on the device type. Most common is to begin the data with a header (containing little-endian fields) for the device to read, and postfix it with a status tailer for the device to write.</p>
+<p>In our emulator (also in QEMU), the block device request contains three descriptors. The first one (the header) contains some request information, the second one describes the data, and the last one contains a status for the device to write. (However, the code provided by the original author ignores the last one, so do I.)</p>
+<h3 id="22-available-ring"><a class="header" href="#22-available-ring">2.2 Available Ring</a></h3>
+<p>The available ring has the following layout structure:</p>
+<pre><code class="language-c">struct virtq_avail {
+#define VIRTQ_AVAIL_F_NO_INTERRUPT 1
+    le16 flags;
+    le16 idx;
+    le16 ring[ /* Queue Size */ ];
+    le16 used_event; /* Only if VIRTIO_F_EVENT_IDX */
+};
+</code></pre>
+<p>The driver uses the available ring to offer buffers to the device: each ring entry refers to the head of a descriptor chain. It is only written by the driver and read by the device.</p>
+<p><code>idx</code> field indicates where the driver would put the next descriptor entry in the ring (modulo the queue size).  This starts at 0, and increases.</p>
+<h3 id="23-used-ring"><a class="header" href="#23-used-ring">2.3 Used Ring</a></h3>
+<p>The used ring has the following layout structure:</p>
+<pre><code class="language-c">struct virtq_used {
+#define VIRTQ_USED_F_NO_NOTIFY 1
+    le16 flags;
+    le16 idx;
+    struct virtq_used_elem ring[ /* Queue Size */];
+    le16 avail_event; /* Only if VIRTIO_F_EVENT_IDX */
+};
+/* le32 is used here for ids for padding reasons. */
+struct virtq_used_elem {
+    /* Index of start of used descriptor chain. */
+    le32 id;
+    /* Total length of the descriptor chain which was used (written to) */
+    le32 len;
+};
+</code></pre>
+<p>The used ring is where the device returns buffers once it is done with them: it is only written to by the device, and read by the driver.</p>
+<p>Each entry in the ring is a pair: <code>id</code> indicates the head entry of the descriptor chain describing the buffer (this matches an entry placed in the available ring by the guest earlier), and <code>len</code> the total of bytes written into the buffer.</p>
+<p>Historically, many drivers ignored the len value, as a result, many devices set len incorrectly. Thus, when using the legacy interface, it is generally a good idea to ignore the len value in used ring entries if possible.</p>
+<h3 id="24-virtio-block-request"><a class="header" href="#24-virtio-block-request">2.4 Virtio Block Request</a></h3>
+<p>The driver queues requests to the virtqueue, and they are used by the device (not necessarily in order).  Each request is of form:</p>
+<pre><code class="language-c">struct virtio_blk_req {
+    le32 type;
+    le32 reserved;
+    le64 sector;
+    u8 data[];
+    u8 status;
+};
+</code></pre>
+<p>The type of the request is either a read (VIRTIO_BLK_T_IN), a write (VIRTIO_BLK_T_OUT), a discard (VIRTIO_BLK_T_DISCARD), a write zeroes (VIRTIO_BLK_T_WRITE_ZEROES) or a flush (VIRTIO_BLK_T_FLUSH)</p>
+<pre><code class="language-c">#define VIRTIO_BLK_T_IN             0
+#define VIRTIO_BLK_T_OUT            1
+#define VIRTIO_BLK_T_FLUSH          4
+#define VIRTIO_BLK_T_DISCARD        11
+#define VIRTIO_BLK_T_WRITE_ZEROES   13
+</code></pre>
+<p>The sector number indicates the offset (multiplied by 512) where the read or write is to occur. This field is unused and set to 0 for commands other than read or write.</p>
+<p>VIRTIO_BLK_T_IN requests populate data with the contents of sectors read from the block device (in multi- ples of 512 bytes). VIRTIO_BLK_T_OUT requests write the contents of data to the block device (in multiples of 512 bytes).</p>
+<p>We will only support VIRTIO_BLK_T_IN and VIRTIO_BLK_T_OUT requests.</p>
+<h3 id="3-virtio-block-api"><a class="header" href="#3-virtio-block-api">3. Virtio Block API</a></h3>
+<p>Our implementation is simplified but still contains enough details. And it won't be too difficult to improve it.</p>
+<p>I have defined almost all of the structure we mentioned above in <code>virtqueue.rs</code> except the <code>virtq</code> itself. And the structure of request lacks two fields <code>data</code> and <code>status</code>. These structure are defined almost as same as <a href="https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio.h">xv6's</a>.</p>
+<p>Let's define a virtio block device as following:</p>
+<p class=filename>virtio.rs</p>
+<pre><code class="language-rs">pub struct VirtioBlock {
+    id: u64,
+    driver_features: u32,
+    page_size: u32,
+    queue_sel: u32,
+    queue_num: u32,
+    queue_pfn: u32,
+    queue_notify: u32,
+    status: u32,
+    disk: Vec&lt;u8&gt;,
+}
+
+const MAX_BLOCK_QUEUE: u32 = 1;
+
+impl VirtioBlock {
+    pub fn new(disk_image: Vec&lt;u8&gt;) -&gt; Self {
+        let mut disk = Vec::new();
+        disk.extend(disk_image.into_iter());
+
+        Self {
+            id: 0, 
+            driver_features: 0,
+            page_size: 0,
+            queue_sel: 0,
+            queue_num: 0,
+            queue_pfn: 0,
+            queue_notify: MAX_BLOCK_QUEUE,
+            status: 0,
+            disk,
+        }
+    }
+}
+</code></pre>
+<p>When we create a virtio block device, we initialize its NOTIFY as maximum number of virtqueue. When the device is interrupting, NOTIFY contains the index of the virtqueue needed to process.</p>
+<p>The virtio block device provide several APIs:</p>
+<ul>
+<li>interrupting: whether the device is interrupting</li>
+<li>load: load the value of certain MMIO registers</li>
+<li>store: store some value into certain MMIO registers</li>
+<li>get_new_id: get the next id of used ring.</li>
+<li>desc_addr: get the base address of the virtqueue.</li>
+<li>read_disk: read data from disk and store into data buffer.</li>
+<li>write_disk: write the data contained in buffer into disk.</li>
+</ul>
+<p>The implementation is straightforward. Please stop to read the code in <code>virtio.rs</code>. You also need to add this module into <code>main.rs</code> and <code>bus.rs</code>.</p>
+<h3 id="4-data-transfer"><a class="header" href="#4-data-transfer">4. Data Transfer</a></h3>
+<p>We will implement the <code>data_access</code> in <code>cpu.rs</code>. When an virtio block interrupt arrives, we call this function to perform disk IO.</p>
+<p class="filename">cpu.rs</p>
+<p>The first step is to compute the address of the descriptor table, available ring and the used ring.  We also cast the address to a type reference to ease field access.</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        const desc_size: u64 = size_of::&lt;VirtqDesc&gt;() as u64;
+        // 2.6.2 Legacy Interfaces: A Note on Virtqueue Layout
+        // ------------------------------------------------------------------
+        // Descriptor Table  | Available Ring | (...padding...) | Used Ring
+        // ------------------------------------------------------------------
+        let desc_addr = self.bus.virtio_blk.desc_addr();
+        let avail_addr = desc_addr + DESC_NUM as u64 * desc_size;
+        let used_addr = desc_addr + PAGE_SIZE;
+        // cast address to reference
+        let virtq_avail = unsafe { &amp;(*(avail_addr as *const VirtqAvail)) };
+        let virtq_used  = unsafe { &amp;(*(used_addr  as *const VirtqUsed)) };
+        // ... TO BE CONTINUE ...
+    }
+}
+</code></pre>
+<p>The pattern to cast an address to an immutable type reference is as following. We will repeat it many times.</p>
+<pre><code class="language-rs">let obj = unsafe { &amp;(*(memaddr as *const YourType))};
+</code></pre>
+<p>The idx field of <code>virtq_avail</code> should be indexed into available ring to get the index of descriptor we need to process.</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        // ...
+        let idx = self.bus.load(&amp;virtq_avail.idx as *const _ as u64, 16).unwrap() as usize;
+        let index = self.bus.load(&amp;virtq_avail.ring[idx % DESC_NUM] as *const _ as u64, 16).unwrap();
+        // ... TO BE CONTINUE ...
+    }
+}
+</code></pre>
+<p>As we have above, a block device request use three descriptors. One for the header, one for the data, and one for the status. The header descriptor contains the request. We use only first two descriptors.</p>
+<p>The first descriptor contains the request information and a pointer to the data descriptor. The <code>addr</code> field points to a virtio block request. We need two fields in the request: the sector number stored in the <code>sector</code> field tells us where to perform IO and the <code>iotype</code> tells us whether to read or write. The <code>next</code> field points to the second descriptor. (data descriptor)</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        // ...
+        let desc_addr0 = desc_addr + desc_size * index;
+        let virtq_desc0 = unsafe { &amp;(*(desc_addr0 as *const VirtqDesc)) };
+        let next0  = self.bus.load(&amp;virtq_desc0.next  as *const _ as u64, 16).unwrap();
+
+        let req_addr = self.bus.load(&amp;virtq_desc0.addr as *const _ as u64, 64).unwrap();
+        let virtq_blk_req = unsafe { &amp;(*(req_addr as *const VirtioBlkRequest)) };
+        let blk_sector = self.bus.load(&amp;virtq_blk_req.sector as *const _ as u64, 64).unwrap();
+        let iotype = self.bus.load(&amp;virtq_blk_req.iotype as *const _ as u64, 32).unwrap() as u32;
+        // ... TO BE CONTINUE ...
+    }
+}
+</code></pre>
+<p>We use the <code>next0</code> of first descriptor to compute the address of the second descriptor. To perform disk IO, we need the <code>addr</code> field and the <code>len</code> field. The <code>addr</code> field points to the data to read or write while the <code>len</code> donates the size of the data. And we perform disk IO based on the <code>iotype</code>.</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        // ...
+        let desc_addr1 = desc_addr + desc_size * next0;
+        let virtq_desc1 = unsafe { &amp;(*(desc_addr1 as *const VirtqDesc)) };
+        let addr1 = self.bus.load(&amp;virtq_desc1.addr as *const _ as u64, 64).unwrap();
+        let len1  = self.bus.load(&amp;virtq_desc1.len  as *const _ as u64, 32).unwrap();
+
+        match iotype {
+            VIRTIO_BLK_T_OUT =&gt; {
+                for i in 0..len1 {
+                    let data = self.bus.load(addr1 + i, 8).unwrap();
+                    self.bus.virtio_blk.write_disk(blk_sector * SECTOR_SIZE + i, data);
+                }
+            }
+            VIRTIO_BLK_T_IN =&gt; {
+                for i in 0..len1 {
+                    let data = self.bus.virtio_blk.read_disk(blk_sector * SECTOR_SIZE + i);
+                    self.bus.store(addr1 + i, 8, data as u64).unwrap();
+                }
+            } 
+            _ =&gt; unreachable!(),
+        }       
+        // ... TO BE CONTINUE ...
+    }
+}
+</code></pre>
+<p>Finally, we need to update used ring to tell driver we are done.</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        // ...
+        let new_id = self.bus.virtio_blk.get_new_id();
+        self.bus.store(&amp;virtq_used.idx as *const _ as u64, 16, new_id % 8).unwrap();
+    }
+}
+</code></pre>
+<p>The whole function is as follows:</p>
+<pre><code class="language-rs">impl Cpu {
+    pub fn disk_access(&amp;mut self) {
+        const desc_size: u64 = size_of::&lt;VirtqDesc&gt;() as u64;
+        // 2.6.2 Legacy Interfaces: A Note on Virtqueue Layout
+        // ------------------------------------------------------------------
+        // Descriptor Table  | Available Ring | (...padding...) | Used Ring
+        // ------------------------------------------------------------------
+        let desc_addr = self.bus.virtio_blk.desc_addr();
+        let avail_addr = desc_addr + DESC_NUM as u64 * desc_size;
+        let used_addr = desc_addr + PAGE_SIZE;
+
+        // cast addr to a reference to ease field access.
+        let virtq_avail = unsafe { &amp;(*(avail_addr as *const VirtqAvail)) };
+        let virtq_used  = unsafe { &amp;(*(used_addr  as *const VirtqUsed)) };
+
+        // The idx field of virtq_avail should be indexed into available ring to get the
+        // index of descriptor we need to process.
+        let idx = self.bus.load(&amp;virtq_avail.idx as *const _ as u64, 16).unwrap() as usize;
+        let index = self.bus.load(&amp;virtq_avail.ring[idx % DESC_NUM] as *const _ as u64, 16).unwrap();
+
+        // The first descriptor:
+        // which contains the request information and a pointer to the data descriptor.
+        let desc_addr0 = desc_addr + desc_size * index;
+        let virtq_desc0 = unsafe { &amp;(*(desc_addr0 as *const VirtqDesc)) };
+        // The addr field points to a virtio block request. We need the sector number stored 
+        // in the sector field. The iotype tells us whether to read or write.
+        let req_addr = self.bus.load(&amp;virtq_desc0.addr as *const _ as u64, 64).unwrap();
+        let virtq_blk_req = unsafe { &amp;(*(req_addr as *const VirtioBlkRequest)) };
+        let blk_sector = self.bus.load(&amp;virtq_blk_req.sector as *const _ as u64, 64).unwrap();
+        let iotype = self.bus.load(&amp;virtq_blk_req.iotype as *const _ as u64, 32).unwrap() as u32;
+        // The next field points to the second descriptor. (data descriptor)
+        let next0  = self.bus.load(&amp;virtq_desc0.next  as *const _ as u64, 16).unwrap();
+
+        // the second descriptor. 
+        let desc_addr1 = desc_addr + desc_size * next0;
+        let virtq_desc1 = unsafe { &amp;(*(desc_addr1 as *const VirtqDesc)) };
+        // The addr field points to the data to read or write
+        let addr1  = self.bus.load(&amp;virtq_desc1.addr  as *const _ as u64, 64).unwrap();
+        // the len donates the size of the data
+        let len1   = self.bus.load(&amp;virtq_desc1.len   as *const _ as u64, 32).unwrap();
+
+        match iotype {
+            VIRTIO_BLK_T_OUT =&gt; {
+                for i in 0..len1 {
+                    let data = self.bus.load(addr1 + i, 8).unwrap();
+                    self.bus.virtio_blk.write_disk(blk_sector * SECTOR_SIZE + i, data);
+                }
+            }
+            VIRTIO_BLK_T_IN =&gt; {
+                for i in 0..len1 {
+                    let data = self.bus.virtio_blk.read_disk(blk_sector * SECTOR_SIZE + i);
+                    self.bus.store(addr1 + i, 8, data as u64).unwrap();
+                }
+            } 
+            _ =&gt; unreachable!(),
+        }       
+
+        let new_id = self.bus.virtio_blk.get_new_id();
+        self.bus.store(&amp;virtq_used.idx as *const _ as u64, 16, new_id % 8).unwrap();
+    }
+}
+</code></pre>
+<h3 id="5-conclusion-3"><a class="header" href="#5-conclusion-3">5. Conclusion</a></h3>
+<p>The implementation we provide here is not optimal. Ideally, we are supposed to check the flags field in the descriptor to follow the chain until the NEXT flag bit is not set. We can do such a simplification since we already know how xv6 deliver disk IO. Nevertheless, disk IO is hard and error-prone. And I had spent one week to figure out what happen in it. Next comes our final chapter, we will arm our emulator with a page table. </p>
 <div style="break-before: page; page-break-before: always;"></div><h1 id="page-table"><a class="header" href="#page-table">Page Table</a></h1>
 
                     </main>
