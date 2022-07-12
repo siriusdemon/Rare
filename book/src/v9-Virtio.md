@@ -199,9 +199,11 @@ The implementation is straightforward. Please stop to read the code in `virtio.r
 ### 4. Data Transfer
 
 We will implement the `data_access` in `cpu.rs`. When an virtio block interrupt arrives, we call this function to perform disk IO.
-<p class="filename">cpu.rs</p>
 
 The first step is to compute the address of the descriptor table, available ring and the used ring.  We also cast the address to a type reference to ease field access.
+
+
+<p class="filename">cpu.rs</p>
 
 ```rs
 impl Cpu {
@@ -232,6 +234,8 @@ let obj = unsafe { &(*(memaddr as *const YourType))};
 
 The idx field of `virtq_avail` should be indexed into available ring to get the index of descriptor we need to process.
 
+<p class="filename">cpu.rs</p>
+
 ```rs
 impl Cpu {
     pub fn disk_access(&mut self) {
@@ -246,6 +250,8 @@ impl Cpu {
 As we have above, a block device request use three descriptors. One for the header, one for the data, and one for the status. The header descriptor contains the request. We use only first two descriptors.
 
 The first descriptor contains the request information and a pointer to the data descriptor. The `addr` field points to a virtio block request. We need two fields in the request: the sector number stored in the `sector` field tells us where to perform IO and the `iotype` tells us whether to read or write. The `next` field points to the second descriptor. (data descriptor)
+
+<p class="filename">cpu.rs</p>
 
 ```rs
 impl Cpu {
@@ -265,6 +271,8 @@ impl Cpu {
 ```
 
 We use the `next0` of first descriptor to compute the address of the second descriptor. To perform disk IO, we need the `addr` field and the `len` field. The `addr` field points to the data to read or write while the `len` donates the size of the data. And we perform disk IO based on the `iotype`.
+
+<p class="filename">cpu.rs</p>
 
 ```rs
 impl Cpu {
@@ -297,6 +305,8 @@ impl Cpu {
 
 Finally, we need to update used ring to tell driver we are done.
 
+<p class="filename">cpu.rs</p>
+
 ```rs
 impl Cpu {
     pub fn disk_access(&mut self) {
@@ -309,6 +319,8 @@ impl Cpu {
 
 
 The whole function is as follows:
+
+<p class="filename">cpu.rs</p>
 
 ```rs
 impl Cpu {
