@@ -207,9 +207,9 @@
 <a href="./v6-Plic-Clint.html">PLIC &amp; CLINT</a></li>
 <li><input disabled="" type="checkbox" checked=""/>
 <a href="./v7-Uart.html">UART</a></li>
-<li><input disabled="" type="checkbox"/>
+<li><input disabled="" type="checkbox" checked=""/>
 <a href="./v8-Interrupts.html">Interrupt 中断</a></li>
-<li><input disabled="" type="checkbox"/>
+<li><input disabled="" type="checkbox" checked=""/>
 <a href="./v9-Virtio.html">Virtio</a></li>
 <li><input disabled="" type="checkbox"/>
 <a href="./v10-Page-Table.html">Page Table 页表</a></li>
@@ -2014,8 +2014,8 @@ impl VirtioBlock {
 <p>The implementation is straightforward. Please stop to read the code in <code>virtio.rs</code>. You also need to add this module into <code>main.rs</code> and <code>bus.rs</code>.</p>
 <h3 id="4-data-transfer"><a class="header" href="#4-data-transfer">4. Data Transfer</a></h3>
 <p>We will implement the <code>data_access</code> in <code>cpu.rs</code>. When an virtio block interrupt arrives, we call this function to perform disk IO.</p>
-<p class="filename">cpu.rs</p>
 <p>The first step is to compute the address of the descriptor table, available ring and the used ring.  We also cast the address to a type reference to ease field access.</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         const desc_size: u64 = size_of::&lt;VirtqDesc&gt;() as u64;
@@ -2037,6 +2037,7 @@ impl VirtioBlock {
 <pre><code class="language-rs">let obj = unsafe { &amp;(*(memaddr as *const YourType))};
 </code></pre>
 <p>The idx field of <code>virtq_avail</code> should be indexed into available ring to get the index of descriptor we need to process.</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         // ...
@@ -2048,6 +2049,7 @@ impl VirtioBlock {
 </code></pre>
 <p>As we have above, a block device request use three descriptors. One for the header, one for the data, and one for the status. The header descriptor contains the request. We use only first two descriptors.</p>
 <p>The first descriptor contains the request information and a pointer to the data descriptor. The <code>addr</code> field points to a virtio block request. We need two fields in the request: the sector number stored in the <code>sector</code> field tells us where to perform IO and the <code>iotype</code> tells us whether to read or write. The <code>next</code> field points to the second descriptor. (data descriptor)</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         // ...
@@ -2064,6 +2066,7 @@ impl VirtioBlock {
 }
 </code></pre>
 <p>We use the <code>next0</code> of first descriptor to compute the address of the second descriptor. To perform disk IO, we need the <code>addr</code> field and the <code>len</code> field. The <code>addr</code> field points to the data to read or write while the <code>len</code> donates the size of the data. And we perform disk IO based on the <code>iotype</code>.</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         // ...
@@ -2092,6 +2095,7 @@ impl VirtioBlock {
 }
 </code></pre>
 <p>Finally, we need to update used ring to tell driver we are done.</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         // ...
@@ -2101,6 +2105,7 @@ impl VirtioBlock {
 }
 </code></pre>
 <p>The whole function is as follows:</p>
+<p class="filename">cpu.rs</p>
 <pre><code class="language-rs">impl Cpu {
     pub fn disk_access(&amp;mut self) {
         const desc_size: u64 = size_of::&lt;VirtqDesc&gt;() as u64;
