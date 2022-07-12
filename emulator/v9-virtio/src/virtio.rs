@@ -12,15 +12,11 @@ use crate::cpu::*;
 use crate::exception::*;
 use crate::param::*;
 use crate::bus::*;
-
-
 use Exception::*;
 
-/// Paravirtualized drivers for IO virtualization.
 
 
-
-pub struct Virtio {
+pub struct VirtioBlock {
     id: u64,
     driver_features: u32,
     page_size: u32,
@@ -34,7 +30,7 @@ pub struct Virtio {
 
 const MAX_QUEUE: u32 = 1;
 
-impl Virtio {
+impl VirtioBlock {
     pub fn new(disk_image: Vec<u8>) -> Self {
         let mut disk = Vec::new();
         disk.extend(disk_image.into_iter());

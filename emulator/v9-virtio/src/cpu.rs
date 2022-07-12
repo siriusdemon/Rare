@@ -262,7 +262,7 @@ impl Cpu {
         if self.bus.uart.is_interrupting() {
             self.bus.store(PLIC_SCLAIM, 32, UART_IRQ).unwrap();
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP); 
-        } else if self.bus.virtio.is_interrupting() {
+        } else if self.bus.virtio_blk.is_interrupting() {
             self.disk_access();
             self.bus.store(PLIC_SCLAIM, 32, VIRTIO_IRQ).unwrap();  
             self.csr.store(MIP, self.csr.load(MIP) | MASK_SEIP);
@@ -306,7 +306,7 @@ impl Cpu {
         // ------------------------------------------------------------------
         // Descriptor Table  | Available Ring | (...padding...) | Used Ring
         // ------------------------------------------------------------------
-        let desc_addr = self.bus.virtio.desc_addr();
+        let desc_addr = self.bus.virtio_blk.desc_addr();
         let avail_addr = desc_addr + DESC_NUM as u64 * desc_size;
         let used_addr = desc_addr + PAGE_SIZE;
 
@@ -345,16 +345,16 @@ impl Cpu {
         if iotype == VIRTIO_BLK_T_OUT {       // write the disk
             for i in 0..len1 {
                 let data = self.bus.load(addr1 + i, 8).unwrap();
-                self.bus.virtio.write_disk(blk_sector * SECTOR_SIZE + i, data);
+                self.bus.virtio_blk.write_disk(blk_sector * SECTOR_SIZE + i, data);
             }
         } else { // VIRTIO_BLK_T_IN  read the disk
             for i in 0..len1 {
-                let data = self.bus.virtio.read_disk(blk_sector * SECTOR_SIZE + i);
+                let data = self.bus.virtio_blk.read_disk(blk_sector * SECTOR_SIZE + i);
                 self.bus.store(addr1 + i, 8, data as u64).unwrap();
             }
         }
 
-        let new_id = self.bus.virtio.get_new_id();
+        let new_id = self.bus.virtio_blk.get_new_id();
         self.bus.store(&virtq_used.idx as *const _ as u64, 16, new_id % 8).unwrap();
     }
 

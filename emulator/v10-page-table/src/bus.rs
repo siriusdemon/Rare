@@ -5,7 +5,7 @@ use crate::dram::Dram;
 use crate::plic::Plic;
 use crate::clint::Clint;
 use crate::uart::Uart;
-use crate::virtio::Virtio;
+use crate::virtio::VirtioBlock;
 use crate::exception::*;
 
 pub struct Bus {
@@ -13,7 +13,7 @@ pub struct Bus {
     plic: Plic,
     clint: Clint,
     pub uart: Uart,
-    pub virtio: Virtio,
+    pub virtio_blk: VirtioBlock,
 }
 
 
@@ -25,7 +25,7 @@ impl Bus {
             clint: Clint::new(),
             plic: Plic::new(),
             uart: Uart::new(),
-            virtio: Virtio::new(disk_image),
+            virtio_blk: VirtioBlock::new(disk_image),
         }
     }
     pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
@@ -34,7 +34,7 @@ impl Bus {
             PLIC_BASE..=PLIC_END => self.plic.load(addr, size),
             DRAM_BASE..=DRAM_END => self.dram.load(addr, size),
             UART_BASE..=UART_END => self.uart.load(addr, size),
-            VIRTIO_BASE..=VIRTIO_END => self.virtio.load(addr, size),
+            VIRTIO_BASE..=VIRTIO_END => self.virtio_blk.load(addr, size),
             _ => Err(Exception::LoadAccessFault(addr)),
         }
     }
@@ -45,7 +45,7 @@ impl Bus {
             PLIC_BASE..=PLIC_END => self.plic.store(addr, size, value),
             DRAM_BASE..=DRAM_END => self.dram.store(addr, size, value),
             UART_BASE..=UART_END => self.uart.store(addr, size, value),
-            VIRTIO_BASE..=VIRTIO_END => self.virtio.store(addr, size, value),
+            VIRTIO_BASE..=VIRTIO_END => self.virtio_blk.store(addr, size, value),
             _ => Err(Exception::StoreAMOAccessFault(addr)),
         }
     }
