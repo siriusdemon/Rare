@@ -295,3 +295,12 @@ impl Cpu {
 Ideally, we should compile the xv6 kernel and build filesystem image from the xv6 source. I have tried to do this but failed. The emulator encounters an illegal instruction exception. We will use the xv6 kernel binary and filesystem image the original author provided.
 
 Since I omit some modifications when I wrote this tutorial. Your run of `cargo run xv6-kernel.bin fs.img` may fail. If so, fix them and try again.
+
+
+### 5. Congratulations!
+
+You are done!
+
+The emulator is completed and able to run xv6 up. I have many thanks to the original author [Asami](https://github.com/d0iasm). Writing such a tutorial forces me to read the RISC-V Spec carefully and other relevant documentations many times. I have finished the labs of xv6 formerly and when I return to read the xv6 book again, I recognize many details I used to ignore. By the way, I have also learned something new about Rust, such as cast an address to a type reference and multithread.
+
+I hope this tutorial can bring you with luck. Thanks for your reading.
