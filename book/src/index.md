@@ -70,7 +70,7 @@ We nned the `clang` toolchain to generate some files used in testing. You can do
 7. [x] [UART](./v7-Uart.md)
 8. [x] [Interrupt 中断](./v8-Interrupts.md)
 9. [x] [Virtio](./v9-Virtio.md)
-10. [ ] [Page Table 页表](./v10-Page-Table.md)
+10. [x] [Page Table 页表](./v10-Page-Table.md)
 
 The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
 
