@@ -152,7 +152,7 @@ impl Exception {
 
 ### 4. Handle exception in CPU
 
-We summarize the whole procedure of handling exception as following:
+We summarize the whole procedure of handling exception as follows:
 
 1. update hart's privilege mode (M or S according to current mode and exception setting).
 2. save current pc in epc (sepc in S-mode, mepc in M-mode)
@@ -232,7 +232,7 @@ impl Cpu {
 }
 ```
 
-Finally, we update the loop in `main` function as following:
+Finally, we update the loop in `main` function as follow:
 
 最后，我们需要更新主函数中的循环。
 

@@ -49,7 +49,7 @@ impl Cpu {
 
 Before we talk about the behaviour of sret & mret, we need to understand the meaning of different fields in the sstatus & mstatus register.  What I try to descript here is refered to the section 3.1.6 of RISC-V Privileged.
 
-The mstatus register for RV64 is an 64-bit read/write register formatted as following. 
+The mstatus register for RV64 is an 64-bit read/write register formatted as follows. 
 
 在我们讨论 sret 以及 mret 的行为之前，我们必须先理解 sstatus 以及 mstatus 寄存器上不同字段的含义 。我在此描述的内容出自 RISC-V 特权指令标准的第 3.1.6 节。
 
@@ -75,7 +75,7 @@ We will implement such a trap token procedure in next chapter.
 
 An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing `xPP` holds the value `y`, `xIE` is set to `xPIE`; the privilege mode is changed to `y`; `xPIE` is set to 1; and `xPP` is set to the least-privileged supported mode (U if U-mode is implemented, else M). If `xPP != M`, `xRET` also sets `MPRV=0`. Additionally, `xRET` sets the `pc` to the value stored in the `xepc` register.
 
-Now, we can implement the `sret` and `mret` as following:
+Now, we can implement the `sret` and `mret` as follow:
 
 MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。
 

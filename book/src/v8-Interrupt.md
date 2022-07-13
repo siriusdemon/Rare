@@ -28,7 +28,7 @@ Read the Section 3.1.6.1, 3.1.9 and 4.1.3 of RISC-V Privileged for more informat
 
 ### 2. Interrupt handle
 
-The procedure of handling interrupt is similar to that of handling exception. For convenience, I summarize the process as following:
+The procedure of handling interrupt is similar to that of handling exception. For convenience, I summarize the process as follows:
 
 1. update hart's privilege mode (M or S according to current mode and exception setting).
 2. save current pc in epc (sepc in S-mode, mepc in M-mode)

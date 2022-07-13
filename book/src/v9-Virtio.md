@@ -143,7 +143,7 @@ Our implementation is simplified but still contains enough details. And it won't
 
 I have defined almost all of the structure we mentioned above in `virtqueue.rs` except the `virtq` itself. And the structure of request lacks two fields `data` and `status`. These structure are defined almost as same as [xv6's](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio.h).
 
-Let's define a virtio block device as following:
+Let's define a virtio block device as follows:
 
 <p class=filename>virtio.rs</p>
 
