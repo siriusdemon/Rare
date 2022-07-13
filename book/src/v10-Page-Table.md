@@ -148,6 +148,8 @@ impl Cpu {
 
 Otherwise, we will translate the address. Since Sv39 has three levels of translation. 
 
+<p class=filename>cpu.rs</p>
+
 ```rs
 impl Cpu {
     pub fn translate(&mut self, addr: u64, access_type: AccessType) -> Result<u64, Exception> {
@@ -168,6 +170,8 @@ impl Cpu {
 ```
 
 Next comes a loop to find the leaf PTE. 
+
+<p class=filename>cpu.rs</p>
 
 ```rs
 impl Cpu {
@@ -218,3 +222,74 @@ impl Cpu {
     }
 }
 ```
+
+Finally, we construct the physical address depending on whether a page is superpage (indicated by the value of `i`).
+
+<p class=filename>cpu.rs</p>
+
+```rs
+impl Cpu {
+    pub fn translate(&mut self, addr: u64, access_type: AccessType) -> Result<u64, Exception> {
+        // ...
+        // A leaf PTE has been found.
+        let ppn = [
+            (pte >> 10) & 0x1ff,
+            (pte >> 19) & 0x1ff,
+            (pte >> 28) & 0x03ff_ffff,
+        ];
+
+        // The translation is successful. The translated physical address is given as follows:
+        // • pa.pgoff = va.pgoff.
+        // • If i > 0, then this is a superpage translation and pa.ppn[i−1:0] = va.vpn[i−1:0].
+        // • pa.ppn[LEVELS−1:i] = pte.ppn[LEVELS−1:i]."
+        let offset = addr & 0xfff;
+        match i {
+            0 => {
+                let ppn = (pte >> 10) & 0x0fff_ffff_ffff;
+                Ok((ppn << 12) | offset)
+            }
+            1 => { // Superpage translation. 2 MiB
+                Ok((ppn[2] << 30) | (ppn[1] << 21) | (vpn[0] << 12) | offset)
+            }
+            2 => { // Superpage translation. 1 GiB
+                Ok((ppn[2] << 30) | (vpn[1] << 21) | (vpn[0] << 12) | offset)
+            }
+            _ => match access_type {
+                AccessType::Instruction => return Err(Exception::InstructionPageFault(addr)),
+                AccessType::Load => return Err(Exception::LoadPageFault(addr)),
+                AccessType::Store => return Err(Exception::StoreAMOPageFault(addr)),
+            },
+        }
+    }
+}
+```
+
+The translation is complete right now. To enable paging, we also need to update the `fetch`, `load`, `store` methods of CPU.
+```rs
+impl Cpu {
+    /// Load a value from a dram.
+    pub fn load(&mut self, addr: u64, size: u64) -> Result<u64, Exception> {
+        let p_addr = self.translate(addr, AccessType::Load)?;
+        self.bus.load(p_addr, size)
+    }
+
+    /// Store a value to a dram.
+    pub fn store(&mut self, addr: u64, size: u64, value: u64) -> Result<(), Exception> {
+        let p_addr = self.translate(addr, AccessType::Store)?;
+        self.bus.store(p_addr, size, value)
+    }
+
+    /// Get an instruction from the dram.
+    pub fn fetch(&mut self) -> Result<u64, Exception> {
+        let p_pc = self.translate(self.pc, AccessType::Instruction)?;
+        match self.bus.load(p_pc, 32) {
+            Ok(inst) => Ok(inst),
+            Err(_e) => Err(Exception::InstructionAccessFault(self.pc)),
+        }
+    }
+}
+```
+
+### 4. Run xv6 up!
+
+
