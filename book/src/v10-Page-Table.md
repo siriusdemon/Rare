@@ -111,7 +111,7 @@ impl Cpu {
 }
 ```
 
-We will enable paging if satp is set properly. Since satp is a CSR, we will update paging when a CSR instruction is executed.
+We will enable paging if satp is set properly. Since satp is a CSR, we will update paging when a CSR instruction is executed. (make a call of the following method before returning from six CSR instructions branch.)
 
 <p class=filename>cpu.rs</p>
 
@@ -292,4 +292,6 @@ impl Cpu {
 
 ### 4. Run xv6 up!
 
+Ideally, we should compile the xv6 kernel and build filesystem image from the xv6 source. I have tried to do this but failed. The emulator encounters an illegal instruction exception. We will use the xv6 kernel binary and filesystem image the original author provided.
 
+Since I omit some modifications when I wrote this tutorial. Your run of `cargo run xv6-kernel.bin fs.img` may fail. If so, fix them and try again.
