@@ -379,10 +379,11 @@ impl Cpu {
 
         // Read the physical page number (PPN) of the root page table, i.e., its
         // supervisor physical address divided by 4 KiB.
-        self.page_table = (self.csr.load(SATP) & ((1 << 44) - 1)) * PAGE_SIZE;
+        let satp = self.csr.load(SATP);
+        self.page_table = (satp & ((1 << 44) - 1)) * PAGE_SIZE;
 
         // Read the MODE field, which selects the current address-translation scheme.
-        let mode = self.csr.load(SATP) >> 60;
+        let mode = satp >> 60;
 
         // Enable the SV39 paging if the value of the mode field is 8.
         self.enable_paging = mode == 8;
