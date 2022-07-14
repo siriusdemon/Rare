@@ -60,13 +60,13 @@ There are two different points compared with exception. First, we omit the set u
 
 中断的处理过程与异常是非常相似的。为方便起见，我们将该过程总结如下：
 
-1、更新 hart 的特权模式
-2、保存 pc 至 epc
-3、根据 trap vector 的 MODE 字段的值来设置 pc。
-4、保存中断的异常代码到 cause 寄存器中
-5、令 xPIE = xIE
-6、令 xIE = 0
-7、将进入中断前的模式保存到 xPP 中
+1. 更新 hart 的特权模式
+2. 保存 pc 至 epc
+3. 根据 trap vector 的 MODE 字段的值来设置 pc。
+4. 保存中断的异常代码到 cause 寄存器中
+5. 令 xPIE = xIE
+6. 令 xIE = 0
+7. 将进入中断前的模式保存到 xPP 中
 
 以上有两个地方是与异常不同的。一是我们不需要处理 trap value。二是我们要根据 trap vector 的 MODE 字段的值来设置 PC。
 
