@@ -2,20 +2,28 @@
 
 Welcome back! This is the last chapter of this tutorial. We will implement a virtual address system by using a popular data structure: page table.
 
-The main reference the Chapter 3 of the xv6-book, and Section 4.3, 4.4 of RISC-V Privileged.
+The main reference are the Chapter 3 of the xv6-book, and Section 4.3, 4.4 of RISC-V Privileged.
+
+欢迎回来！本章是这个教程的最后一章。我们将使用一种流行的数据结构————页表，来实现一个虚拟地址系统。
+
+本章主要参考了 xv6-book 的第三章，以及 RISC-V 特权架构文档的第 4.3，4.4 节。
 
 
 ### 1. SATP
 
-Let's start with the SATP control status register. Refer to the Section 4.1.11 of RISC-V Privileged.
+Let's start with the satp control status register. Refer to the Section 4.1.11 of RISC-V Privileged.
 
 The satp register is a 64-bit read/write register, which controls supervisor-mode address translation and protection. This register holds the physical page number (PPN) of the root page table, i.e., its supervisor physical address divided by 4 KiB; an address space identifier (ASID), which facilitates address-translation fences on a per-address-space basis; and the MODE field, which selects the current address-translation scheme. 
+
+首先看下 SATP 寄存器。RISC-V 特权架构文档的第 4.1.11 节中说，satp 是一个 64 位的的可读可写寄存器，用于控制 S-mode 下的地址转换和保护。sapt 存有根页表的 PPN（物理地址页码）。以及一个用于地址同步地址空间 ID，还有一个 MODE 字段，用于选择当前所使用的地址转换方案。
 
 ![satp](./images/satp.png)
 
 <p class="comment">SATP register: From RISC-V Privileged</p>
 
-The encoding of MODE field is as follows:
+The encoding of MODE field is as follows: 
+
+MODE 字段的编码如下所示
 
 ![satp-mode](./images/satp-mode.png)
 
@@ -23,9 +31,13 @@ The encoding of MODE field is as follows:
 
 We will implement the Sv39 (MODE = 8) in our emulator. Sv39 means that only the bottom 39 bits of a 64-bit virtual address are used; the top 25 bits are not used. 
 
+我们在模拟器中实现的是 Sv39 (MODE = 8)。Sv39 的意思是，64 位的虚拟地址中，只有 39 位被用到，其余的 25 位没有被使用。
+
 ### 2. Page Table and Address Translation
 
 In this Sv39 configuration, a RISC-V page table is logically an array of 2^27 (134,217,728) page table entries (PTEs). Each PTE contains a 44-bit physical page number (PPN) and some flags. The paging hardware translates a virtual address by using the top 27 bits of the 39 bits to index into the page table to find a PTE, and making a 56-bit physical address whose top 44 bits come from the PPN in the PTE and whose bottom 12 bits are copied from the original virtual address.
+
+在 Sv39 中，RISC-V 页表逻辑上是一个 PTE（页表入口）数组，数组大小为 2 的 27 次幂。每个 PTE 由 44 位的 PPN 和一些标志位组成。硬件使用 39 位虚拟地址的前 27 位来索引 PTE。并使用 PTE 的 PPN 字段以及虚拟地址中的 Offset 字段（12位）来构成一个 56 位的物理地址。
 
 ![page-table](./images/page-table.png)
 ![PPN](./images/PPN.png)

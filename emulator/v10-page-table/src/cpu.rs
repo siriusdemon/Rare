@@ -406,14 +406,14 @@ impl Cpu {
             (addr >> 30) & 0x1ff,
         ];
 
-        // "1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. (For Sv32, PAGESIZE=212
-        //     and LEVELS=2.)"
+        // "1. Let a be satp.ppn × PAGESIZE, and let i = LEVELS − 1. (For Sv39, PAGESIZE=212
+        //     and LEVELS=3.)"
         let mut a = self.page_table;
         let mut i: i64 = levels - 1;
         let mut pte;
         loop {
-            // "2. Let pte be the value of the PTE at address a+va.vpn[i]×PTESIZE. (For Sv32,
-            //     PTESIZE=4.) If accessing pte violates a PMA or PMP check, raise an access
+            // "2. Let pte be the value of the PTE at address a+va.vpn[i]×PTESIZE. (For Sv39,
+            //     PTESIZE=8.) If accessing pte violates a PMA or PMP check, raise an access
             //     exception corresponding to the original access type."
             pte = self.bus.load(a + vpn[i as usize] * 8, 64)?;
 
