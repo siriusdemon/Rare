@@ -15,7 +15,7 @@ Let's start with the satp control status register. Refer to the Section 4.1.11 o
 
 The satp register is a 64-bit read/write register, which controls supervisor-mode address translation and protection. This register holds the physical page number (PPN) of the root page table, i.e., its supervisor physical address divided by 4 KiB; an address space identifier (ASID), which facilitates address-translation fences on a per-address-space basis; and the MODE field, which selects the current address-translation scheme. 
 
-首先看下 SATP 寄存器。RISC-V 特权架构文档的第 4.1.11 节中说，satp 是一个 64 位的的可读可写寄存器，用于控制 S-mode 下的地址转换和保护。sapt 存有根页表的 PPN（物理地址页码）。以及一个用于地址同步地址空间 ID，还有一个 MODE 字段，用于选择当前所使用的地址转换方案。
+首先看下 SATP 寄存器。RISC-V 特权架构文档的第 4.1.11 节中说，satp 是一个 64 位的的可读可写寄存器，用于控制 S-mode 下的地址翻译和保护。sapt 存有根页表的 PPN（物理地址页码）。以及一个用于地址同步地址空间 ID，还有一个 MODE 字段，用于选择当前所使用的地址翻译方案。
 
 ![satp](./images/satp.png)
 
@@ -67,13 +67,30 @@ What I show above is a simplified process. Please refer to the Section 4.3.2 *Vi
 
 每个 PTE 包含了一些标志位，用于告诉硬件其关联的虚拟地址的权限。PTE_V 标志 PTE 是否合法，如果其不为 1，则抛出异常。PTE_R 标志该页是否可读，PTE_W 标志该页是否可写；PTE_X 标志该页是否可执行。PTE_U 表示该页是否能被用户模式的指令所访问，如果其不为 1，则该 PTE 只能用于 S 模式。
 
-当 PTE_X，PTE_W，PTE_R 都为零的时候，表示该 PTE 是一个指向下一级页表的指针，否则表示该 PTE 是叶 PTE（leaf PTE）。
+当 PTE_X，PTE_W，PTE_R 都为零的时候，表示该 PTE 是一个指向下一级页表的指针，否则表示该 PTE 是叶节点 PTE（leaf PTE）。到达叶节点 PTE 之后就可以开始拼接物理地址了。
 
+任意一级的 PTE 都可能是一个叶结点 PTE，因此，SV39 除了支持 4 KiB 的页之外，还支持 2 MiB 和 1 GiB 的超级页（superpage）。然而，xv6 默认没有使用超级页。
 
+为了让硬件启用虚拟地址系统，内核必须将根页表的地址写到 satp 中。以下是我们总结的一个简化版的地址翻译过程。对于虚拟地址 va（根据上图，其由 EXT，L2，L1，L0 以及 Offset 构成），其步骤为：
+
+1、读取 satp.ppn，其指向了根页表 pt0。
+2、以 va.L2 作为索引读取 pt0 中相应的 PTE，得到 pte0。
+3、读取 pte0.ppn，其指向了中间层页表 pt1，
+4、以 va.L1 作为索引读取 pt1 中相应的 PTE，得到 pte1。
+5、读取 pte1.ppn，其指向了最后一级页表 pt2。
+6、以 va.L0 作为索引读取 pt2 中相应的 PTE，得到 pte2。
+7、pte2 应该是一个叶节点 PTE。
+8、使用 pte2.ppn 拼上 va.offset 得到最终的物理地址。
+
+在上面的过程中，每一个 PTE 都必须是有效的（PTE_V = 1），否则将抛出异常。
+
+对于以上过程，RISC-V 特权架构文档的 4.3.2 节有一个更加通用的描述，涵盖了不同方案（Sv32，Sv39 等）的同时还支持超级页。我们将按这个描述进行实现。
 
 ### 3. Implementation
 
 We defines the translation function as follows:
+
+我们的翻译函数定义如下。
 
 <p class=filename>cpu.rs</p>
 
@@ -85,7 +102,11 @@ impl Cpu {
 
 Function `translate` takes a virtual address and return a physical address if succeeds. It also needs to know the access type so it can raise a corresponding page fualt exception when it encounters an error. 
 
+函数 `translate` 将输入的虚拟地址翻译为对应的物理地址。它带一个额外的 AccessType 参数，因为它需要根据不同的访问类型来抛出相应的异常。
+
 There are three types of accessments.
+
+访问类型有三种。如下所示：
 
 <p class=filename>cpu.rs</p>
 
@@ -98,6 +119,9 @@ pub enum AccessType {
 ```
 
 We need to update CPU to include some paging facilities.
+
+我们还需要在 CPU 中加入一些用于支持地址翻译的变量。
+
 
 <p class=filename>cpu.rs</p>
 
@@ -130,6 +154,8 @@ impl Cpu {
 
 We will enable paging if satp is set properly. Since satp is a CSR, we will update paging when a CSR instruction is executed. (make a call of the following method before returning from six CSR instructions branch.)
 
+一旦 satp 被设置了特定的模式，我们将启动对应的地址翻译方案。因为 satp 是一个 CSR，我们需要在每一个 CSR 指令执行之后，检查是否应该启动虚拟地址模式。（也就是说，在每个 CSR 指令的执行分支下新增一行代码调用以下的函数。）
+
 <p class=filename>cpu.rs</p>
 
 ```rs
@@ -150,6 +176,10 @@ The original author implement the `translate` according to Section 4.3.2 and sup
 
 Firstly, if paging is not enabled, just return original address.
 
+原作者对 `translate` 函数是按 RISC-V 文档来写的，我们不作更改。
+
+现在可以来开始实现了。首先，我们检测是否开启了虚拟地址系统。
+
 <p class=filename>cpu.rs</p>
 
 ```rs
@@ -164,6 +194,8 @@ impl Cpu {
 ```
 
 Otherwise, we will translate the address. Since Sv39 has three levels of translation. 
+
+如果开启了，我们则开始进行翻译。Sv39 的翻译过程共有三个层次。
 
 <p class=filename>cpu.rs</p>
 
@@ -186,7 +218,7 @@ impl Cpu {
 }
 ```
 
-Next comes a loop to find the leaf PTE. 
+Next comes a loop to find the leaf PTE.  我们使用一个循环来查找叶结点 PTE。
 
 <p class=filename>cpu.rs</p>
 
@@ -242,6 +274,8 @@ impl Cpu {
 
 Finally, we construct the physical address depending on whether a page is superpage (indicated by the value of `i`).
 
+找到叶结点 PTE 之后，我们就可以拼出物理地址了。这里我们根据叶结点的层次来判断是否有超级页。超级页的地址拼接写在注释中。该注释来自 RISC-V 文档。
+
 <p class=filename>cpu.rs</p>
 
 ```rs
@@ -282,6 +316,9 @@ impl Cpu {
 ```
 
 The translation is complete right now. To enable paging, we also need to update the `fetch`, `load`, `store` methods of CPU.
+
+现在，翻译函数已经完成了。但我们还要更新下 CPU 的另外三个函数。
+
 ```rs
 impl Cpu {
     /// Load a value from a dram.
@@ -315,12 +352,22 @@ Since I omit some modifications when I wrote this tutorial. Your run of `cargo r
 
 Finally, you can run `cargo build --release` to get an optimized version and run the `usertests` of xv6.
 
+理想情况下，我们应该从 xv6 的源码重新编译出其内核以及文件系统镜像。但我尝试过但失败了，模拟器遇到了一个非法指令错误。因此，我们这次使用的是原作者提供的内核和文件系统镜像。
+
+我在写在这份教程的过程中，一些小的改动我没有提及，因此你尝试运行 `cargo run xv6-kernel.bin fs-img` 时可能会出错。你可以尝试进行修复，必要时可以参考我的代码。
+
+最后，你可以通过 `cargo build --release` 来编译一个优化版本，其速度比是调试版本快得多。我觉得跟 QEMU 差不多一样快了。可以跑下 usertests 试试。
+
 
 ### 5. Conclusion
 
 You are done!
 
 The emulator is completed and able to run xv6 up. Our emulator is small size. If we ignore the comments and the test code, it only contains 1460 lines of code (including lines which only contain a single `}`).
+
+恭喜，你做完了！
+
+模拟器已经完成，可以用来跑 xv6 了。我们的模型器很小，如果忽略掉注释以及测试代码，总共才 1460 行（包括那些只有一个 } 的行）。
 
 ```rs
 bus.rs              : 45
@@ -343,7 +390,7 @@ total               : 1460
 As we have already mentioned, the emulator is not perfect. 
 
 + It only supports a hart and we have implemented many instruction as nop. 
-+ The devices (PLIC, CLINT, VirtIO) are simplified. Timer interrupt is not supported.
++ The devices (PLIC, CLINT, VirtIO etc) are simplified. Timer interrupt is not supported.
 + It does not support network.
 + It does not support VGA device.
 + ...
@@ -367,8 +414,40 @@ Additionally, the following courses may be useful:
 + [rust-based-os-comp2022](https://github.com/LearningOS/rust-based-os-comp2022)
 
 
+正如我们之前所说，这个模拟器不是完美的：
+
++ 只支持一个 hart
++ IO 设备都是简化过的，连时间中断都没有
++ 不支持网络
++ 不支持 VGA 显示器。
++ 。。。
+
+其实还有一个开源的小型模型器，叫 [TinyEMU](https://bellard.org/tinyemu/)，由 QEMU 的作者 Fabrice Bellard 所写，其特点包括但不限于：
+
++ 支持 32/64/128 位的整数寄存器
++ 支持 32/64/128 位的浮点数指令
++ 支持压缩指令集
++ 支持 VirtIO 控制台、网络、磁盘、输入设备以及 9P 文件系统（我也不知道是啥）
++ 支持图形化界面
++ 支持动态调整 XLEN
++ 由 C 写成
++ 其 JS 版本可以运行 Linux 和 Windows 2000
+
+我想，将之用 Rust 重写会是一件非常有意思的事情！
+
+另外，以下的课程与本教程有点互补：
+
++ [MIT 6.S081](https://pdos.csail.mit.edu/6.828/2021/tools.html)
++ [rust-based-os-comp2022](https://github.com/LearningOS/rust-based-os-comp2022)
+
+
 ### 6. Postscript
 
 I have many thanks to the original author [Asami](https://github.com/d0iasm). Writing such a tutorial forces me to read the RISC-V Spec carefully and other relevant documentations many times. I have finished the labs of xv6 formerly and when I return to read the xv6 book again, I recognize many details I used to ignore. By the way, I have also learned something new about Rust, such as cast an address to a type reference and multithread.
 
 I hope this tutorial can bring you with luck. Thanks for your reading.
+
+
+我非常感谢原作者 Asami 提供了她的教程和代码。为了编写这么一个教程，我仔细读了 RISC-V 标准以及其他相关的文档好几遍。我之前已经学过 xv6 的课程并做了相应的实验，但当我重新去读 xv6 的书时，我注意到了一些以前被我所忽略的细节。这些细节现在看来是如此熟悉和易于理解。我还顺便学习了一些关于 Rust 的新知识，比如说，将一个地址转换为某一个类型的引用，以及多线程。
+
+我希望本教程能够带给您好运，在这个浮躁且动荡不安的时代。感谢您的阅读。
