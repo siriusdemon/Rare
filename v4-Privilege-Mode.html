@@ -181,7 +181,7 @@ impl Cpu {
 </code></pre>
 <h3 id="2-sret--mret"><a class="header" href="#2-sret--mret">2. SRET &amp; MRET</a></h3>
 <p>Before we talk about the behaviour of sret &amp; mret, we need to understand the meaning of different fields in the sstatus &amp; mstatus register.  What I try to descript here is refered to the section 3.1.6 of RISC-V Privileged.</p>
-<p>The mstatus register for RV64 is an 64-bit read/write register formatted as following. </p>
+<p>The mstatus register for RV64 is an 64-bit read/write register formatted as follows. </p>
 <p>在我们讨论 sret 以及 mret 的行为之前，我们必须先理解 sstatus 以及 mstatus 寄存器上不同字段的含义 。我在此描述的内容出自 RISC-V 特权指令标准的第 3.1.6 节。</p>
 <p><img src="./images/mstatus.png" alt="mstatus" /></p>
 <p class="comment">mstatus: Picture from RISC-V Privileged</p>
@@ -194,7 +194,7 @@ impl Cpu {
 <p>To support nested traps, each privilege mode <code>x</code> that can respond to interrupts has a two-level stack of interrupt-enable bits and privilege modes. <code>xPIE</code> holds the value of the interrupt-enable bit active prior to the trap, and <code>xPP</code> holds the previous privilege mode. The <code>xPP</code> fields can only hold privilege modes up to <code>x</code>, so MPP is two bits wide and SPP is one bit wide. When a trap is taken from privilege mode <code>y</code> into privilege mode <code>x</code>, <code>xPIE</code> is set to the value of <code>xIE</code>; <code>xIE</code> is set to 0; and <code>xPP</code> is set to <code>y</code>.</p>
 <p>We will implement such a trap token procedure in next chapter.</p>
 <p>An MRET or SRET instruction is used to return from a trap in M-mode or S-mode respectively. When executing an xRET instruction, supposing <code>xPP</code> holds the value <code>y</code>, <code>xIE</code> is set to <code>xPIE</code>; the privilege mode is changed to <code>y</code>; <code>xPIE</code> is set to 1; and <code>xPP</code> is set to the least-privileged supported mode (U if U-mode is implemented, else M). If <code>xPP != M</code>, <code>xRET</code> also sets <code>MPRV=0</code>. Additionally, <code>xRET</code> sets the <code>pc</code> to the value stored in the <code>xepc</code> register.</p>
-<p>Now, we can implement the <code>sret</code> and <code>mret</code> as following:</p>
+<p>Now, we can implement the <code>sret</code> and <code>mret</code> as follow:</p>
 <p>MIE 和 SIE 分别是 M 模式和 S 模式的全局中断使能位。假设一个 hart 当前的特权模式是 x，若 xIE=1，则可被中断，否则不可被中断。</p>
 <p>为了支持嵌套异常（trap），每个特权模式 x 都有一个两级的栈来保存中断使能位和特权模式信息。xPIE，xPP 分别保存了进入异常之前的中断使能位以及特权模式的值。xPP 只能保存不超过 x 的特权模式，因此，MPP 有两位而 SPP 只有一位。当特权模式 y 陷入到特权模式 x 时。xPIE 被设为 xIE 的值，xPP 被设为 y，xIE 被置 0。</p>
 <p>MRET 和 SRET 分别用于从 M-mode 和 S-mode 的异常中返回。当执行 xRET 的时候，xIE 被设置为 xPIE 的值；特权模式被设置为 xPP；xPIE 置 1；xPP 被设置为等级最小的特权模式 （如果支持 U 模式，则是 U 模式，否则就是 M 模式）。如果 xPP 不是 M 模式，则 MPRV 被置 0。此外，xRET 还会设置 PC 的值为 xEPC 寄存器的值。</p>

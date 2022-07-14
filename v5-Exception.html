@@ -260,7 +260,7 @@ pub enum Exception {
 }
 </code></pre>
 <h3 id="4-handle-exception-in-cpu"><a class="header" href="#4-handle-exception-in-cpu">4. Handle exception in CPU</a></h3>
-<p>We summarize the whole procedure of handling exception as following:</p>
+<p>We summarize the whole procedure of handling exception as follows:</p>
 <ol>
 <li>update hart's privilege mode (M or S according to current mode and exception setting).</li>
 <li>save current pc in epc (sepc in S-mode, mepc in M-mode)</li>
@@ -335,7 +335,7 @@ pub enum Exception {
     }
 }
 </code></pre>
-<p>Finally, we update the loop in <code>main</code> function as following:</p>
+<p>Finally, we update the loop in <code>main</code> function as follow:</p>
 <p>最后，我们需要更新主函数中的循环。</p>
 <p class="filename">main.rs</p>
 <pre><code class="language-rs">fn main() -&gt; io::Result&lt;()&gt; {
