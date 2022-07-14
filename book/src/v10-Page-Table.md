@@ -292,17 +292,65 @@ impl Cpu {
 
 ### 4. Run xv6 up!
 
-Ideally, we should compile the xv6 kernel and build filesystem image from the xv6 source. I have tried to do this but failed. The emulator encounters an illegal instruction exception. We will use the xv6 kernel binary and filesystem image the original author provided.
+Ideally, we should compile the xv6 kernel and build filesystem image from the xv6 source. I have tried to do this but failed. The emulator encounters an illegal instruction exception. Therefore, I will use the xv6 kernel binary and filesystem image provided by the original author.
 
-Since I omit some modifications when I wrote this tutorial. Your run of `cargo run xv6-kernel.bin fs.img` may fail. If so, fix them and try again.
+Since I omit some modifications when I wrote this tutorial. Your run of `cargo run xv6-kernel.bin fs.img` may fail. If so, fix them and try again. Refer to my code if necessary.
+
+Finally, you can run `cargo build --release` to get an optimized version and run the `usertests` of xv6.
 
 
-### 5. Congratulations!
+### 5. Conclusion
 
 You are done!
 
-The emulator is completed and able to run xv6 up.
+The emulator is completed and able to run xv6 up. Our emulator is small size. If we ignore the comments and the test code, it only contains 1460 lines of code (including lines which only contain a single `}`).
 
+```rs
+bus.rs              : 45
+clint.rs            : 33
+cpu.rs              : 777
+csr.rs              : 106
+dram.rs             : 37
+exception.rs        : 88
+interrupt.rs        : 23
+main.rs             : 63
+param.rs            : 50
+plic.rs             : 38
+uart.rs             : 80
+virtio.rs           : 87
+virtqueue.rs        : 33
+----------------------------
+total               : 1460
+```
+
+As we have already mentioned, the emulator is not perfect. 
+
++ It only supports a hart and we have implemented many instruction as nop. 
++ The devices (PLIC, CLINT, VirtIO) are simplified. Timer interrupt is not supported.
++ It does not support network.
++ It does not support VGA device.
++ ...
+
+There is another open-source, tiny RISC-V emulator named [TinyEMU](https://bellard.org/tinyemu/), written by Fabrice Bellard, the original author of QEMU, features as:
+
++ support 32/64/128 bit integer registers
++ support 32/64/128 bit floating point instructions
++ support compressed instructions
++ support VirtIO console, network, block device, input and 9P filesystem
++ support graphical display with SDL
++ dynamic XLEN change
++ written in C
++ JS version can run Linux and Windows 2000
+
+It is interesting to rewrite it in Rust! 
+
+Additionally, the following courses may be useful:
+
++ [MIT 6.S081](https://pdos.csail.mit.edu/6.828/2021/tools.html)
++ [rust-based-os-comp2022](https://github.com/LearningOS/rust-based-os-comp2022)
+
+
+### 6. Postscript
 
 I have many thanks to the original author [Asami](https://github.com/d0iasm). Writing such a tutorial forces me to read the RISC-V Spec carefully and other relevant documentations many times. I have finished the labs of xv6 formerly and when I return to read the xv6 book again, I recognize many details I used to ignore. By the way, I have also learned something new about Rust, such as cast an address to a type reference and multithread.
 
