@@ -44,7 +44,6 @@ In this Sv39 configuration, a RISC-V page table is logically an array of 2^27 (1
 
 <p class="comment">RISC-V address translation details: From xv6-book</p>
 
-
 Each PTE contains flag bits that tell the paging hardware how the associated virtual address is allowed to be used. PTE_V indicates whether the PTE is present: if it is not set, a reference to the page causes an exception (i.e. is not allowed). PTE_R controls whether instructions are allowed to read to the page. PTE_W controls whether instructions are allowed to write to the page. PTE_X controls whether the CPU may interpret the content of the page as instructions and execute them.  PTE_U controls whether instructions in user mode are allowed to access the page; if PTE_U is not set, the PTE can be used only in supervisor mode.
 
 When all three PTE_X, PTE_W, PTE_R bits are zero, the PTE is a pointer to the next level of the page table; otherwise, it is a leaf PTE. 
@@ -65,6 +64,12 @@ To tell the hardware to use a page table, the kernel must write the physical add
 Note that all the PTE should be valid; otherwise, a page fault exception should be thrown.
 
 What I show above is a simplified process. Please refer to the Section 4.3.2 *Virtual Address Translation Process* of RISC-V Privileged for more details.
+
+每个 PTE 包含了一些标志位，用于告诉硬件其关联的虚拟地址的权限。PTE_V 标志 PTE 是否合法，如果其不为 1，则抛出异常。PTE_R 标志该页是否可读，PTE_W 标志该页是否可写；PTE_X 标志该页是否可执行。PTE_U 表示该页是否能被用户模式的指令所访问，如果其不为 1，则该 PTE 只能用于 S 模式。
+
+当 PTE_X，PTE_W，PTE_R 都为零的时候，表示该 PTE 是一个指向下一级页表的指针，否则表示该 PTE 是叶 PTE（leaf PTE）。
+
+
 
 ### 3. Implementation
 
