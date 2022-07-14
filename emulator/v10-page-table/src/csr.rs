@@ -83,7 +83,7 @@ pub const MASK_SEIP: u64 = 1 << 9;
 pub const MASK_MEIP: u64 = 1 << 11;
 
 // SATP field
-pub const MASK_PPN:  u64 = 1 << 44 - 1;
+pub const MASK_PPN:  u64 = (1 << 44) - 1;
 
 
 pub struct Csr {
