@@ -356,7 +356,7 @@ Finally, you can run `cargo build --release` to get an optimized version and run
 
 我在写在这份教程的过程中，一些小的改动我没有提及，因此你尝试运行 `cargo run xv6-kernel.bin fs-img` 时可能会出错。你可以尝试进行修复，必要时可以参考我的代码。
 
-最后，你可以通过 `cargo build --release` 来编译一个优化版本，其速度比是调试版本快得多。我觉得跟 QEMU 差不多一样快了。可以跑下 usertests 试试。
+最后，你可以通过 `cargo build --release` 来编译一个优化版本，其速度比是调试版本快得多。我觉得跟 QEMU 差不多一样快了。可以跑下 usertests 试试。它可以通过大部分测试，我没说全部，因为它卡在了 forkforkfork 那里。
 
 
 ### 5. Conclusion
