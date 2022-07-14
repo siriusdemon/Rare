@@ -26,7 +26,7 @@ The mechanism for bulk data transport on virtio devices is pretentiously called 
 
 Each virtqueue occupies two or more physically-contiguous pages (usually defined as 4096 bytes) and consists of three parts:
 
-CPU 与虚拟硬盘的数据传输主要依赖 virtqueue（虚拟队列）。每个设备可以有 0 或者多个 virtqueue。虚拟硬盘只有一个 virtqueue。寄存器 QueueNotify 初始化的时候被设置为 virtqueue 的数目。
+CPU 与虚拟磁盘的数据传输主要依赖 virtqueue（虚拟队列）。每个设备可以有 0 或者多个 virtqueue。虚拟磁盘只有一个 virtqueue。寄存器 QueueNotify 初始化的时候被设置为 virtqueue 的数目。
 
 
 ![virtqueue-layout](./images/virtqueue-layout.png)
@@ -79,7 +79,7 @@ In our emulator (also in QEMU), the block device request contains three descript
 
 设备的类型决定了提供给它的数据的实际内容。最常见的是做法是，数据带有一个只读的头部指示某些信息，接着则是实际的数据，最后再带一个可写的状态地址供设备去写。
 
-在我们的模拟器中，硬盘设备收到的数据包含三个描述符。第一个是头部，包含了请求的信息，第二个是实际的数据，第三个是一个可写的状态。（然而。原作者忽略了对状态的处理，我这也是如此。）
+在我们的模拟器中，磁盘设备收到的数据包含三个描述符。第一个是头部，包含了请求的信息，第二个是实际的数据，第三个是一个可写的状态。（然而。原作者忽略了对状态的处理，我这也是如此。）
 
 ### 2.2 Available Ring
 The available ring has the following layout structure:  
@@ -186,7 +186,7 @@ Let's define a virtio block device as follows:
 
 以上所提到的数据结构，除了 virtq 之外，其他的都定义在 virtqueue.rs 当中。这些数据结构与 xv6 的基本相同。
 
-我们定义虚拟硬盘的数据结构如下：
+我们定义虚拟磁盘的数据结构如下：
 
 <p class=filename>virtio.rs</p>
 
@@ -239,7 +239,7 @@ The virtio block device provide several APIs:
 
 The implementation is straightforward. Please stop to read the code in `virtio.rs`. You also need to add this module into `main.rs` and `bus.rs`.
 
-当我们初始化硬盘时，NOTIFY 设置为 virtqueue 的数量。当设备发生中断时，NOTIFY 中包含了要处理的 virtqueue 的索引。
+当我们初始化磁盘时，NOTIFY 设置为 virtqueue 的数量。当设备发生中断时，NOTIFY 中包含了要处理的 virtqueue 的索引。
 
 虚拟磁盘提供了以下几个 API
 
@@ -248,8 +248,8 @@ The implementation is straightforward. Please stop to read the code in `virtio.r
 + store: 将值写入某个寄存器
 + get_new_id: 获取下一个 used ring 的索引
 + desc_addr: 获取 virtqueue 的地址
-+ read_disk: 从硬盘中读取数据
-+ write_disk: 写数据到硬盘。
++ read_disk: 从磁盘中读取数据
++ write_disk: 写数据到磁盘。
 
 ### 4. Data Transfer
 
@@ -257,7 +257,7 @@ We will implement the `data_access` in `cpu.rs`. When an virtio block interrupt 
 
 The first step is to compute the address of the descriptor table, available ring and the used ring.  We also cast the address to a type reference to ease field access.
 
-我们在 cpu.rs 中实现 data_access，当一个硬盘中断到达时，我们调用这个函数处理硬盘 IO。
+我们在 cpu.rs 中实现 data_access，当一个磁盘中断到达时，我们调用这个函数处理磁盘 IO。
 
 第一步是计算出描述符表、available ring 和 used ring 的内存地址。我们将之转换为一个类型引用，以方便我们读取字段的值。
 
@@ -338,7 +338,7 @@ impl Cpu {
 
 We use the `next0` of first descriptor to compute the address of the second descriptor. To perform disk IO, we need the `addr` field and the `len` field. The `addr` field points to the data to read or write while the `len` donates the size of the data. And we perform disk IO based on the `iotype`.
 
-我们使用第一个描述符的 next0 计算出第二个描述符的索引。为了执行硬盘 IO，我们需要 addr 和 len 字段。addr 字段指向了数据的内存地址。len 则表明该数据的大小。iotype 决定是读还是写。
+我们使用第一个描述符的 next0 计算出第二个描述符的索引。为了执行磁盘 IO，我们需要 addr 和 len 字段。addr 字段指向了数据的内存地址。len 则表明该数据的大小。iotype 决定是读还是写。
 
 <p class="filename">cpu.rs</p>
 

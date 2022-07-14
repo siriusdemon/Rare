@@ -73,14 +73,14 @@ What I show above is a simplified process. Please refer to the Section 4.3.2 *Vi
 
 为了让硬件启用虚拟地址系统，内核必须将根页表的地址写到 satp 中。以下是我们总结的一个简化版的地址翻译过程。对于虚拟地址 va（根据上图，其由 EXT，L2，L1，L0 以及 Offset 构成），其步骤为：
 
-1、读取 satp.ppn，其指向了根页表 pt0。
-2、以 va.L2 作为索引读取 pt0 中相应的 PTE，得到 pte0。
-3、读取 pte0.ppn，其指向了中间层页表 pt1，
-4、以 va.L1 作为索引读取 pt1 中相应的 PTE，得到 pte1。
-5、读取 pte1.ppn，其指向了最后一级页表 pt2。
-6、以 va.L0 作为索引读取 pt2 中相应的 PTE，得到 pte2。
-7、pte2 应该是一个叶节点 PTE。
-8、使用 pte2.ppn 拼上 va.offset 得到最终的物理地址。
+1. 读取 satp.ppn，其指向了根页表 pt0。
+2. 以 va.L2 作为索引读取 pt0 中相应的 PTE，得到 pte0。
+3. 读取 pte0.ppn，其指向了中间层页表 pt1，
+4. 以 va.L1 作为索引读取 pt1 中相应的 PTE，得到 pte1。
+5. 读取 pte1.ppn，其指向了最后一级页表 pt2。
+6. 以 va.L0 作为索引读取 pt2 中相应的 PTE，得到 pte2。
+7. pte2 应该是一个叶节点 PTE。
+8. 使用 pte2.ppn 拼上 va.offset 得到最终的物理地址。
 
 在上面的过程中，每一个 PTE 都必须是有效的（PTE_V = 1），否则将抛出异常。
 
@@ -356,7 +356,7 @@ Finally, you can run `cargo build --release` to get an optimized version and run
 
 我在写在这份教程的过程中，一些小的改动我没有提及，因此你尝试运行 `cargo run xv6-kernel.bin fs-img` 时可能会出错。你可以尝试进行修复，必要时可以参考我的代码。
 
-最后，你可以通过 `cargo build --release` 来编译一个优化版本，其速度比是调试版本快得多。我觉得跟 QEMU 差不多一样快了。可以跑下 usertests 试试。它可以通过大部分测试，我没说全部，因为它卡在了 forkforkfork 那里。
+最后，你可以通过 `cargo build --release` 来编译一个优化版本，其速度比调试版本快得多。我觉得跟 QEMU 差不多一样快了。可以跑下 usertests 试试。它可以通过大部分测试，我没说全部，因为它卡在了 forkforkfork 那里。
 
 
 ### 5. Conclusion
@@ -450,4 +450,4 @@ I hope this tutorial can bring you with luck. Thanks for your reading.
 
 我非常感谢原作者 Asami 提供了她的教程和代码。为了编写这么一个教程，我仔细读了 RISC-V 标准以及其他相关的文档好几遍。我之前已经学过 xv6 的课程并做了相应的实验，但当我重新去读 xv6 的书时，我注意到了一些以前被我所忽略的细节。这些细节现在看来是如此熟悉和易于理解。我还顺便学习了一些关于 Rust 的新知识，比如说，将一个地址转换为某一个类型的引用，以及多线程。
 
-我希望本教程能够带给您好运，在这个浮躁且动荡不安的时代。感谢您的阅读。
+在这个浮躁且动荡不安的时代，我希望本教程能够带给您好运。感谢您的阅读。
