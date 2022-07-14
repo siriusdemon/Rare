@@ -6,6 +6,10 @@ Section 2, 4 and 5 are mostly relevant and recommanded to read first.
 
 In this chapter, we will implement the legacy interface of virtio block device, which is implemented by QEMU and our target OS xv6 provides a driver for it.
 
+VirtIO 代表了一个虚拟设备家族。在本章中，我们将专注于虚拟磁盘（block device）。完整的文档可以在[这里](https://docs.oasis-open.org/virtio/virtio/v1.1/virtio-v1.1.html)获取。其中的第 2、4、5 节是最相关的，推荐先读一遍。
+
+本章我们要实现的是虚拟磁盘的旧（legacy）接口，QEMU 实现了同样的接口，xv6 的驱动也与之适配。
+
 ### 1. Block Device & MMIO Device Register Layout
 
 Section 5.2 contains an introduction to the Block Device. We can find out many useful information there. The `Device ID` is 2 while there is only one virtqueue, whose index is 0. 
@@ -14,11 +18,16 @@ Section 4.2.2 & 4.2.4 provide the register layout for both current and legacy in
 
 I have listed most of these in `param.rs`.
 
+Virtio 文档的第 5.2 节是对虚拟磁盘的介绍，包括了设备ID，virtqueue 的数量等。4.2.2 和 4.2.4 节提供了旧接口的寄存器布局。一些寄存器仅在会 4.2.2 节中介绍，这两部分应该合起来看。
+
 ### 2. Virtqueue
 
 The mechanism for bulk data transport on virtio devices is pretentiously called a virtqueue. Each device can have zero or more virtqueues. The block device have only one virtqueue, namely requestq, indexed as 0. The `QueueNotify` should be initialized with the max number of virtqueues. It is 1 in this case.
 
 Each virtqueue occupies two or more physically-contiguous pages (usually defined as 4096 bytes) and consists of three parts:
+
+CPU 与虚拟硬盘的数据传输主要依赖 virtqueue（虚拟队列）。每个设备可以有 0 或者多个 virtqueue。虚拟硬盘只有一个 virtqueue。寄存器 QueueNotify 初始化的时候被设置为 virtqueue 的数目。
+
 
 ![virtqueue-layout](./images/virtqueue-layout.png)
 
@@ -40,6 +49,10 @@ struct virtq {
 The first field of a virtqueue is an array of descriptor, aka. descriptor table. 
 
 The descriptor table refers to the buffers the driver is using for the device. `addr` is a physical address, and the buffers can be chained via `next`. Each descriptor describes a buffer which is read-only for the device (“device-readable”) or write-only for the device (“device-writable”), but a chain of descriptors can contain both device-readable and device-writable buffers.
+
+virtqueue 的第一个字段是一个描述符数组，也叫描述符表。
+
+描述符表告诉设备驱动正在使用的缓存。addr 是一个物理地址，缓存可以通过 next 字段进行衔接。描述符带有一个标志，用于标识该缓存对于设备来说是可读还是可写的。一串描述符中可以同时包含可读可写两种类型的缓存。
 
 ```c
 struct virtq_desc {
@@ -64,9 +77,14 @@ The actual contents of the memory offered to the device depends on the device ty
 
 In our emulator (also in QEMU), the block device request contains three descriptors. The first one (the header) contains some request information, the second one describes the data, and the last one contains a status for the device to write. (However, the code provided by the original author ignores the last one, so do I.)
 
+设备的类型决定了提供给它的数据的实际内容。最常见的是做法是，数据带有一个只读的头部指示某些信息，接着则是实际的数据，最后再带一个可写的状态地址供设备去写。
+
+在我们的模拟器中，硬盘设备收到的数据包含三个描述符。第一个是头部，包含了请求的信息，第二个是实际的数据，第三个是一个可写的状态。（然而。原作者忽略了对状态的处理，我这也是如此。）
 
 ### 2.2 Available Ring
 The available ring has the following layout structure:  
+
+available ring 的结构如下：
 
 ```c
 struct virtq_avail {
@@ -82,9 +100,15 @@ The driver uses the available ring to offer buffers to the device: each ring ent
 
 `idx` field indicates where the driver would put the next descriptor entry in the ring (modulo the queue size).  This starts at 0, and increases.
 
+驱动程序使用 available ring 来提供数据给设备。每个入口代表了一个描述符串的头部。available 只能由驱动程序来写，由设备来读。used ring 与之相反。
+
+字段 idx 指定了驱动程序放置数据到 available ring 的索引，
 
 ### 2.3 Used Ring
 The used ring has the following layout structure:
+
+used ring 的结构如下：
+
 ```c
 struct virtq_used {
 #define VIRTQ_USED_F_NO_NOTIFY 1
@@ -108,9 +132,18 @@ Each entry in the ring is a pair: `id` indicates the head entry of the descripto
 
 Historically, many drivers ignored the len value, as a result, many devices set len incorrectly. Thus, when using the legacy interface, it is generally a good idea to ignore the len value in used ring entries if possible.
 
+设备处理完 buffer 之后，就会在 used ring 写入一个新的描述符 id 指向该 buffer。表示它已经处理完了。
+
+Ring 的每个入口都有两个字段，id 指向了一个该 buffer 的头部描述符。len 表示这个 buffer 的长度。
+
+由于历史原因，许多驱动程序会忽略 len 的值，因此，很多设备也没有正确地设置这个值。当使用旧接口时，最好忽略这个字段。
+
 ### 2.4 Virtio Block Request
 
 The driver queues requests to the virtqueue, and they are used by the device (not necessarily in order).  Each request is of form:
+
+驱动程序将请求排队发给 virtqueue，然后由设备去使用。请求的格式如下：
+
 ```c
 struct virtio_blk_req {
     le32 type;
@@ -123,6 +156,8 @@ struct virtio_blk_req {
 
 The type of the request is either a read (VIRTIO_BLK_T_IN), a write (VIRTIO_BLK_T_OUT), a discard (VIRTIO_BLK_T_DISCARD), a write zeroes (VIRTIO_BLK_T_WRITE_ZEROES) or a flush (VIRTIO_BLK_T_FLUSH)
 
+请求类型要么是读，要么是写。或者丢弃，写入 0，或者刷新。
+
 ```c
 #define VIRTIO_BLK_T_IN             0
 #define VIRTIO_BLK_T_OUT            1
@@ -133,9 +168,11 @@ The type of the request is either a read (VIRTIO_BLK_T_IN), a write (VIRTIO_BLK_
 
 The sector number indicates the offset (multiplied by 512) where the read or write is to occur. This field is unused and set to 0 for commands other than read or write.
 
-VIRTIO_BLK_T_IN requests populate data with the contents of sectors read from the block device (in multi- ples of 512 bytes). VIRTIO_BLK_T_OUT requests write the contents of data to the block device (in multiples of 512 bytes).
+VIRTIO_BLK_T_IN requests populate data with the contents of sectors read from the block device (in multiples of 512 bytes). VIRTIO_BLK_T_OUT requests write the contents of data to the block device (in multiples of 512 bytes).
 
 We will only support VIRTIO_BLK_T_IN and VIRTIO_BLK_T_OUT requests.
+
+字段 sector 指明了要读写的扇区（每个扇区为 512 个字节，因此该值应该乘以 512）。VIRTIO_BLK_T_IN 表示将指定扇区的数据读到缓存中。VIRTIO_BLK_T_OUT 表示将缓存的数据写到磁盘里。我们仅支持这两种类型的请求。
 
 ### 3. Virtio Block API
 
@@ -144,6 +181,12 @@ Our implementation is simplified but still contains enough details. And it won't
 I have defined almost all of the structure we mentioned above in `virtqueue.rs` except the `virtq` itself. And the structure of request lacks two fields `data` and `status`. These structure are defined almost as same as [xv6's](https://github.com/mit-pdos/xv6-riscv/blob/riscv/kernel/virtio.h).
 
 Let's define a virtio block device as follows:
+
+虽然我们的实现是简化过的，但依旧包含了足够的细节，后续改进应该也不会太难。
+
+以上所提到的数据结构，除了 virtq 之外，其他的都定义在 virtqueue.rs 当中。这些数据结构与 xv6 的基本相同。
+
+我们定义虚拟硬盘的数据结构如下：
 
 <p class=filename>virtio.rs</p>
 
@@ -196,12 +239,27 @@ The virtio block device provide several APIs:
 
 The implementation is straightforward. Please stop to read the code in `virtio.rs`. You also need to add this module into `main.rs` and `bus.rs`.
 
+当我们初始化硬盘时，NOTIFY 设置为 virtqueue 的数量。当设备发生中断时，NOTIFY 中包含了要处理的 virtqueue 的索引。
+
+虚拟磁盘提供了以下几个 API
+
++ interrupting: 表示该设备是否发生了中断
++ load: 加载某个寄存器的值
++ store: 将值写入某个寄存器
++ get_new_id: 获取下一个 used ring 的索引
++ desc_addr: 获取 virtqueue 的地址
++ read_disk: 从硬盘中读取数据
++ write_disk: 写数据到硬盘。
+
 ### 4. Data Transfer
 
 We will implement the `data_access` in `cpu.rs`. When an virtio block interrupt arrives, we call this function to perform disk IO.
 
 The first step is to compute the address of the descriptor table, available ring and the used ring.  We also cast the address to a type reference to ease field access.
 
+我们在 cpu.rs 中实现 data_access，当一个硬盘中断到达时，我们调用这个函数处理硬盘 IO。
+
+第一步是计算出描述符表、available ring 和 used ring 的内存地址。我们将之转换为一个类型引用，以方便我们读取字段的值。
 
 <p class="filename">cpu.rs</p>
 
@@ -226,6 +284,8 @@ impl Cpu {
 
 The pattern to cast an address to an immutable type reference is as following. We will repeat it many times.
 
+将一个地址转换为一个不可变类型引用的代码模式如下。我们会多次重复这个模式。
+
 ```rs
 let obj = unsafe { &(*(memaddr as *const YourType))};
 ```
@@ -233,6 +293,8 @@ let obj = unsafe { &(*(memaddr as *const YourType))};
 
 
 The idx field of `virtq_avail` should be indexed into available ring to get the index of descriptor we need to process.
+
+virtq_avail 的 idx 字段可用于从 available ring 中找到我们要处理的描述符的索引。
 
 <p class="filename">cpu.rs</p>
 
@@ -247,9 +309,13 @@ impl Cpu {
 }
 ```
 
-As we have above, a block device request use three descriptors. One for the header, one for the data, and one for the status. The header descriptor contains the request. We use only first two descriptors.
+As we have mentioned above, a block device request use three descriptors. One for the header, one for the data, and one for the status. The header descriptor contains the request. We use only first two descriptors.
 
 The first descriptor contains the request information and a pointer to the data descriptor. The `addr` field points to a virtio block request. We need two fields in the request: the sector number stored in the `sector` field tells us where to perform IO and the `iotype` tells us whether to read or write. The `next` field points to the second descriptor. (data descriptor)
+
+正如我们上面所提到的，一个块设备请求使用了三个描述符。一个用于头部，一个用于数据，一个用于状态回写。头部描述符包含了请求的信息，我们只使用前两个描述符。
+
+第一个描述符包含了请求的信息以及一个指向数据描述符的指针。addr 字符指向了该请求。我们需要两个字段，sector 告诉我们相应的扇区，iotype 告诉这个请求是要读还是要写。next 指向了要读/写的数据描述符。
 
 <p class="filename">cpu.rs</p>
 
@@ -271,6 +337,8 @@ impl Cpu {
 ```
 
 We use the `next0` of first descriptor to compute the address of the second descriptor. To perform disk IO, we need the `addr` field and the `len` field. The `addr` field points to the data to read or write while the `len` donates the size of the data. And we perform disk IO based on the `iotype`.
+
+我们使用第一个描述符的 next0 计算出第二个描述符的索引。为了执行硬盘 IO，我们需要 addr 和 len 字段。addr 字段指向了数据的内存地址。len 则表明该数据的大小。iotype 决定是读还是写。
 
 <p class="filename">cpu.rs</p>
 
@@ -305,6 +373,8 @@ impl Cpu {
 
 Finally, we need to update used ring to tell driver we are done.
 
+最后，我们更新 used ring 通知驱动程序。
+
 <p class="filename">cpu.rs</p>
 
 ```rs
@@ -318,7 +388,7 @@ impl Cpu {
 ```
 
 
-The whole function is as follows:
+The whole function is as follows: 完整的函数代码如下
 
 <p class="filename">cpu.rs</p>
 
@@ -389,3 +459,5 @@ impl Cpu {
 ### 5. Conclusion
 
 The implementation we provide here is not optimal. Ideally, we are supposed to check the flags field in the descriptor to follow the chain until the NEXT flag bit is not set. We can do such a simplification since we already know how xv6 deliver disk IO. Nevertheless, disk IO is hard and error-prone. And I had spent one week to figure out what happen in it. Next comes our final chapter, we will arm our emulator with a page table. 
+
+我们这里提供的实现并非是最优的。理想情况下，我们应该逐个松查描述符链中的每个描述符，直到没有 NEXT 标志为止。我们做了简化是因为我们知道 xv6 是如何进行磁盘 IO 的。不管怎么样，磁盘 IO 很容易出错。我好了一周的时间才搞清楚里面的细节。我们还有最后一章，我们将实现一个虚拟地址系统。
