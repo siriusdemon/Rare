@@ -5,7 +5,7 @@ This tutorial is based on [Asami's excellent tutorial](https://book.rvemu.app). 
 
 When you complete this tutorial, the emulator is able to run xv6, a UNIX-like operation system running on RISC-V.
 
-I am planning to follow her code build the emulator step by step. When finished, I will write a complete tutorial to help reader to get the details. My tutorial will use the same tool `mdbook` as the original author, to build.
+I am planning to follow her code to build the emulator step by step. When finished, I will write a complete tutorial to help reader to get the details. My tutorial will use the same tool `mdbook` as the original author, to build.
 
 + Project: [Github Rare](https://github.com/siriusdemon/Rare)
 + Tutorial: [Github.io Rare](https://siriusdemon.github.io/Rare/)
@@ -25,7 +25,7 @@ For `Rust`, you can read `the book` after you have installed the toolchain. Open
 
 + Linux / WSL
 
-We nned the `clang` toolchain to generate some files used in testing. You can download the precompiled version from [here]((https://releases.llvm.org/)). The version I used is [clang-12](https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0).
+We need the `clang` toolchain to generate some files used in testing. You can download the precompiled version from [here]((https://releases.llvm.org/)). The version I used is [clang-12](https://github.com/llvm/llvm-project/releases/tag/llvmorg-12.0.0).
 
 
 ### How to use
