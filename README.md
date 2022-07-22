@@ -36,16 +36,16 @@ We need the `clang` toolchain to generate some files used in testing. You can do
 
 ### Catelogue
 
-1. [x] [Adder 加法器](./v1-CPU-Adder.md)
-2. [x] [Memory and Bus 内存和总线](./v2-Memory-and-Bus.md)
-3. [x] [Control Status Register 控制状态寄存器](./v3-CSR.md)
-4. [x] [Privilege Mode 特权模式](./v4-Privilege-Mode.md)
-5. [x] [Exception 异常](./v5-Exceptions.md)
-6. [x] [PLIC & CLINT](./v6-Plic-Clint.md)
-7. [x] [UART](./v7-Uart.md)
-8. [x] [Interrupt 中断](./v8-Interrupts.md)
-9. [x] [Virtio](./v9-Virtio.md)
-10. [x] [Page Table 页表](./v10-Page-Table.md)
+1. [x] [Adder 加法器](./book/src/v1-CPU-Adder.md)
+2. [x] [Memory and Bus 内存和总线](./book/src/v2-Memory-and-Bus.md)
+3. [x] [Control Status Register 控制状态寄存器](./book/src/v3-CSR.md)
+4. [x] [Privilege Mode 特权模式](./book/src/v4-Privilege-Mode.md)
+5. [x] [Exception 异常](./book/src/v5-Exceptions.md)
+6. [x] [PLIC & CLINT](./book/src/v6-Plic-Clint.md)
+7. [x] [UART](./book/src/v7-Uart.md)
+8. [x] [Interrupt 中断](./book/src/v8-Interrupts.md)
+9. [x] [Virtio](./book/src/v9-Virtio.md)
+10. [x] [Page Table 页表](./book/src/v10-Page-Table.md)
 
 The original author separate the tutorial into two parts: Hardware and ISA. I have merged them here. 
 
