@@ -160,7 +160,7 @@ impl Cpu {
         match opcode {
             0x13 => {
                 // addi
-                let imm = ((inst & 0xfff0_0000) as i64 >> 20) as u64;
+                let imm = ((inst & 0xfff0_0000) as i32 as i64 >> 20) as u64;
                 self.regs[rd] = self.regs[rs1].wrapping_add(imm);
             }
             0x33 => {
